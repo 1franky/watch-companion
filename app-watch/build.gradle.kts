@@ -1,21 +1,52 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
+
+/**
+ * Firma de release compartida con la otra app del companion (ADR-011): en CI llega por variables de entorno; en local,
+ * de `keystore.properties` (ignorado por Git, ver keystore.properties.example). Sin ninguna, solo falla
+ * `assembleRelease`. En debug ambas apps usan la llave de depuración de la máquina que compila, que es la misma.
+ */
+val keystoreProperties = Properties().apply {
+    rootProject.file("keystore.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
+
+fun releaseSigning(key: String, env: String): String? = System.getenv(env) ?: keystoreProperties.getProperty(key)
 
 android {
     namespace = "mx.watchcompanion.watch"
     compileSdk = 37
 
     defaultConfig {
-        // Mismo applicationId que app-phone: la Data Layer solo comunica apps con el mismo id y firma (ADR-011).
-        applicationId = "mx.watchcompanion"
+        // Mismo applicationId en ambas apps, definido una sola vez en gradle.properties (ADR-011).
+        applicationId = providers.gradleProperty("companion.applicationId").get()
         // Wear OS 6 / One UI 8 Watch, verificado en el Galaxy Watch Ultra (ADR-014).
         minSdk = 36
         targetSdk = 37
         versionCode = 1
         versionName = "0.1.0"
         androidResources.localeFilters += listOf("es-rMX", "es")
+    }
+
+    signingConfigs {
+        create("release") {
+            releaseSigning("storeFile", "KEYSTORE_PATH")?.let { storeFile = file(it) }
+            storePassword = releaseSigning("storePassword", "KEYSTORE_PASSWORD")
+            keyAlias = releaseSigning("keyAlias", "KEY_ALIAS")
+            keyPassword = releaseSigning("keyPassword", "KEY_PASSWORD")
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
     }
 
     compileOptions {

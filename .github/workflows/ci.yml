@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          # JDK 21: Robolectric lo exige para emular el SDK 36 de app-watch.
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Compilar, pruebas y lint
+        run: ./gradlew assembleDebug testDebugUnitTest lintDebug
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: reportes
+          path: |
+            **/build/reports/
+            **/build/test-results/
+          retention-days: 7

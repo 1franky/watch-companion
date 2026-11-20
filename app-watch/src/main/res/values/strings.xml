@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Watch Companion</string>
-    <string name="home_status_pending">Fase 0: sin conexión con el teléfono todavía</string>
+    <string name="link_checking">Buscando el teléfono…</string>
+    <string name="link_no_peer">No encuentro el teléfono. Instala Watch Companion en él.</string>
+    <string name="link_unreachable">%1$s no responde</string>
+    <string name="link_connected">Conectado a %1$s</string>
+    <string name="link_connected_detail">%1$d ms · v%2$s</string>
+    <string name="link_incompatible">Actualiza la app en el reloj o en el teléfono</string>
+    <string name="link_check">Probar conexión</string>
 </resources>

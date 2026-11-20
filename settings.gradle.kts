@@ -17,3 +17,4 @@ rootProject.name = "watch-companion"
 include(":app-watch")
 include(":app-phone")
 include(":core:phone-communication")
+include(":core:data-layer")

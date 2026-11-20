@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Capacidad que anuncia esta app en la Data Layer; la otra app la busca (core:data-layer, Capabilities). -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="UnusedResources"
+    tools:keep="@array/android_wear_capabilities">
+    <string-array name="android_wear_capabilities" translatable="false">
+        <item>wc_watch_app</item>
+    </string-array>
+</resources>

@@ -31,9 +31,19 @@ Toda la especificación vive en [`docs/`](docs/README.md):
 |---|---|
 | `app-watch` | App Wear OS para el Galaxy Watch Ultra (Wear OS 6, `minSdk 36`) |
 | `app-phone` | App Android en el S26 Ultra: único puente hacia Velora y Nexora (ADR-011, ADR-013), `minSdk 31` |
-| `core:phone-communication` | Protocolo Watch ↔ Phone en Kotlin puro: sobre versionado, catálogo y validación (`00` §5) |
+| `core:phone-communication` | Protocolo Watch ↔ Phone en Kotlin puro: sobre versionado, catálogo, validación y `LinkSession` (ping/pong y estado del enlace) |
+| `core:data-layer` | Transporte sobre la Wear OS Data Layer (`CapabilityClient` + `MessageClient`), servicio receptor y `deviceId` seudónimo |
 
 Ambas apps comparten `applicationId` (`mx.watchcompanion`) y firma, porque la Data Layer solo comunica apps con el mismo id y certificado.
+
+## Probar el enlace en dispositivos
+
+1. Activa la depuración por ADB en el S26 Ultra y la depuración inalámbrica en el Galaxy Watch Ultra.
+2. Instala **las dos apps desde la misma computadora**: en debug, la firma es la llave de depuración local y ambas deben coincidir.
+   ```bash
+   ./gradlew :app-phone:installDebug :app-watch:installDebug   # con los dos dispositivos conectados por ADB
+   ```
+3. Abre Watch Companion en ambos: cada uno busca al otro y muestra «Conectado a …» con la latencia, o la causa si no lo encuentra.
 
 ## Desarrollo
 

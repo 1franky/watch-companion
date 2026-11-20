@@ -2,32 +2,46 @@ package mx.watchcompanion.phone
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
+import mx.watchcompanion.core.communication.LinkState
+import mx.watchcompanion.core.datalayer.LinkSessionOwner
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        setContent { PhoneHome() }
+        val session = (application as LinkSessionOwner).linkSession
+        setContent {
+            val state by session.state.collectAsStateWithLifecycle()
+            val scope = rememberCoroutineScope()
+            LaunchedEffect(Unit) { session.refresh() }
+            PhoneHome(state = state, onCheck = { scope.launch { session.refresh() } })
+        }
     }
 }
 
-/** Pantalla inicial de Fase 0. Mostrará el estado del reloj y de las sesiones de Velora y Nexora. */
+/** Pantalla inicial de Fase 0: estado del enlace con el reloj. Después mostrará también las sesiones de Velora y Nexora. */
 @Composable
-fun PhoneHome() {
+fun PhoneHome(state: LinkState, onCheck: () -> Unit) {
     MaterialTheme {
         Scaffold { padding ->
             Column(
@@ -35,12 +49,31 @@ fun PhoneHome() {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(stringResource(R.string.home_title), style = MaterialTheme.typography.headlineMedium)
-                Text(stringResource(R.string.home_status_pending), style = MaterialTheme.typography.bodyLarge)
+                Text(linkTitle(state), style = MaterialTheme.typography.titleMedium)
+                if (state is LinkState.Connected) {
+                    Text(
+                        stringResource(R.string.link_connected_detail, state.roundTripMs, state.peerAppVersion),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                Button(onClick = onCheck, enabled = state != LinkState.Checking) {
+                    Text(stringResource(R.string.link_check))
+                }
             }
         }
     }
 }
 
+@Composable
+private fun linkTitle(state: LinkState): String = when (state) {
+    LinkState.Unknown, LinkState.Checking -> stringResource(R.string.link_checking)
+    LinkState.NoPeer -> stringResource(R.string.link_no_peer)
+    is LinkState.Unreachable -> stringResource(R.string.link_unreachable, state.peerName)
+    is LinkState.Connected -> stringResource(R.string.link_connected, state.peerName)
+    LinkState.Incompatible -> stringResource(R.string.link_incompatible)
+}
+
 @Preview(showBackground = true)
 @Composable
-private fun PhoneHomePreview() = PhoneHome()
+private fun PhoneHomePreview() =
+    PhoneHome(LinkState.Connected("Galaxy Watch Ultra", "0.1.0", roundTripMs = 42, checkedAt = 0), onCheck = {})

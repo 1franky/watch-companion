@@ -32,9 +32,21 @@ Toda la especificación vive en [`docs/`](docs/README.md):
 | `app-watch` | App Wear OS para el Galaxy Watch Ultra (Wear OS 6, `minSdk 36`) |
 | `app-phone` | App Android en el S26 Ultra: único puente hacia Velora y Nexora (ADR-011, ADR-013), `minSdk 31` |
 | `core:phone-communication` | Protocolo Watch ↔ Phone en Kotlin puro: sobre versionado, catálogo, validación y `LinkSession` (ping/pong y estado del enlace) |
+| `core:permissions` | Permisos por módulo: qué pide cada uno, activación por el usuario, estado y revocación al desactivar |
 | `core:data-layer` | Transporte sobre la Wear OS Data Layer (`CapabilityClient` + `MessageClient`), servicio receptor y `deviceId` seudónimo |
 
 Ambas apps comparten `applicationId` (`mx.watchcompanion`) y firma, porque la Data Layer solo comunica apps con el mismo id y certificado.
+
+## Permisos
+
+Cada módulo pide sus permisos **solo cuando el usuario lo activa**. Si se revoca un permiso desde Ajustes, el módulo muestra qué falta al volver a la app, sin cerrarse. Al desactivar un módulo, sus permisos se revocan cuando termina el proceso (`revokeSelfPermissionsOnKill`), salvo los que siga usando otro módulo activo.
+
+| Permiso | App | Módulo | Para qué | Desde |
+|---|---|---|---|---|
+| `android.permission.health.READ_HEART_RATE` | reloj | Velora | Frecuencia cardíaca en vivo y alertas por zona (WC-30, WC-31) | Fase 1 |
+| `mx.watchcompanion.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | ambas | — | Permiso interno de firma que agrega AndroidX (`core-ktx`); no muestra diálogo | Fase 0 |
+
+`INTERNET` llegará a `app-phone` con el cliente de Velora (WC-21/WC-22); el reloj no lo necesita porque no llama a los backends (ADR-013). La ubicación (modo B, WC-53), las notificaciones de Nexora (WC-41), Guardian y Smart Hub agregan sus permisos a esta tabla en la tarjeta que los necesita.
 
 ## Probar el enlace en dispositivos
 

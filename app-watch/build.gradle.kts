@@ -72,6 +72,7 @@ kotlin { jvmToolchain(21) }
 
 dependencies {
     implementation(project(":core:data-layer"))
+    implementation(project(":core:permissions"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)

@@ -33,9 +33,21 @@ Toda la especificación vive en [`docs/`](docs/README.md):
 | `app-phone` | App Android en el S26 Ultra: único puente hacia Velora y Nexora (ADR-011, ADR-013), `minSdk 31` |
 | `core:phone-communication` | Protocolo Watch ↔ Phone en Kotlin puro: sobre versionado, catálogo, validación y `LinkSession` (ping/pong y estado del enlace) |
 | `core:permissions` | Permisos por módulo: qué pide cada uno, activación por el usuario, estado y revocación al desactivar |
+| `integration:velora-contract` | Cliente de Velora API generado del contrato fijado (solo las operaciones que usa el companion); lo usa `app-phone` |
 | `core:data-layer` | Transporte sobre la Wear OS Data Layer (`CapabilityClient` + `MessageClient`), servicio receptor y `deviceId` seudónimo |
 
 Ambas apps comparten `applicationId` (`mx.watchcompanion`) y firma, porque la Data Layer solo comunica apps con el mismo id y certificado.
+
+## Contratos de los backends
+
+`contract/<backend>/openapi-v1.yaml` es una copia del contrato del backend fijada al commit de `contract/<backend>/REF` (ADR-009). El cliente se genera de esa copia en cada build: si el contrato cambia y el código no, no compila. Así el build no depende de la red y cada cambio de contrato es un PR explícito.
+
+```bash
+scripts/update-contract.sh velora <sha-de-velora-api>   # fija otro commit y descarga su contrato
+scripts/update-contract.sh --check velora               # comprueba la copia (lo corre el CI)
+```
+
+Solo se generan las operaciones que usa el companion (lista `companionOperations` en `integration/velora-contract/build.gradle.kts`) y sus modelos. Agregar una operación es parte de la tarjeta que la necesita.
 
 ## Permisos
 
@@ -46,7 +58,7 @@ Cada módulo pide sus permisos **solo cuando el usuario lo activa**. Si se revoc
 | `android.permission.health.READ_HEART_RATE` | reloj | Velora | Frecuencia cardíaca en vivo y alertas por zona (WC-30, WC-31) | Fase 1 |
 | `mx.watchcompanion.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | ambas | — | Permiso interno de firma que agrega AndroidX (`core-ktx`); no muestra diálogo | Fase 0 |
 
-`INTERNET` llegará a `app-phone` con el cliente de Velora (WC-21/WC-22); el reloj no lo necesita porque no llama a los backends (ADR-013). La ubicación (modo B, WC-53), las notificaciones de Nexora (WC-41), Guardian y Smart Hub agregan sus permisos a esta tabla en la tarjeta que los necesita.
+`INTERNET` lo declara `integration:velora-contract` y llegará a `app-phone` cuando lo use (WC-22); el reloj no lo necesita porque no llama a los backends (ADR-013). La ubicación (modo B, WC-53), las notificaciones de Nexora (WC-41), Guardian y Smart Hub agregan sus permisos a esta tabla en la tarjeta que los necesita.
 
 ## Probar el enlace en dispositivos
 

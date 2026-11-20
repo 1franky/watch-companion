@@ -2,7 +2,7 @@
 
 Aplicación Wear OS modular para **Samsung Galaxy Watch Ultra** con puente en **Galaxy S26 Ultra**, que conecta los productos existentes **Velora** (ciclismo/MTB) y **Nexora** (finanzas personales) y añade dos módulos locales: **Watch Guardian** (seguridad del teléfono) y **Smart Hub** (hogar).
 
-> Estado: **Fase 0 — especificación y auditoría.** Todavía no hay código.
+> Estado: **Fase 0 — infraestructura.**
 >
 > Backlog: tablero en Notion **Backlog Watch Companion** (tarjetas `WC-n`, enlazadas a los hallazgos de `docs/09`).
 
@@ -24,6 +24,25 @@ Toda la especificación vive en [`docs/`](docs/README.md):
 | [`09-revision-y-auditoria.md`](docs/09-revision-y-auditoria.md) | Revisión y desviaciones frente a los repos reales |
 
 **Lee primero `09-revision-y-auditoria.md`**: registra dónde la especificación no coincide con el código actual de Velora y Nexora y qué decisiones están pendientes.
+
+## Módulos
+
+| Módulo | Qué contiene |
+|---|---|
+| `app-watch` | App Wear OS para el Galaxy Watch Ultra (Wear OS 6, `minSdk 36`) |
+| `app-phone` | App Android en el S26 Ultra: único puente hacia Velora y Nexora (ADR-011, ADR-013), `minSdk 31` |
+
+Ambas apps comparten `applicationId` (`mx.watchcompanion`) y firma, porque la Data Layer solo comunica apps con el mismo id y certificado.
+
+## Desarrollo
+
+Requiere JDK 21 y el SDK de Android con la plataforma 37 (`local.properties` con `sdk.dir`).
+
+```bash
+./gradlew assembleDebug        # APK de reloj y teléfono
+./gradlew testDebugUnitTest    # pruebas (JVM y Robolectric)
+./gradlew lintDebug            # lint: las advertencias fallan el build
+```
 
 ## Repositorios relacionados
 

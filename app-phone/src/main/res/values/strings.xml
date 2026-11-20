@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Watch Companion</string>
+    <string name="home_title">Watch Companion</string>
+    <string name="home_status_pending">Fase 0: el puente con el reloj todavía no está activo.</string>
+</resources>

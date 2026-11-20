@@ -96,3 +96,30 @@ Decisión:
 - Perder la clave de firma rompe la comunicación entre las dos apps: hay que guardarla igual que las de las apps existentes.
 
 **Motivo:** es la única opción soportada por la plataforma sin acoplar el companion a las apps existentes.
+
+## ADR-012 — Primera entrega = Fase 0 + Fase 1
+
+**Estado:** Aceptada (2026-11-20).
+
+La primera entrega incluye la infraestructura (Fase 0) y Velora Watch en modo A (Fase 1). Cada módulo posterior se publica como release propio.
+
+**Motivo:** el README y `06` se contradecían; entregar cuatro módulos a la vez retrasa la validación en dispositivo real.
+
+## ADR-013 — El reloj no guarda tokens de backend en el MVP
+
+**Estado:** Aceptada (2026-11-20).
+
+- Solo `app-phone` inicia sesión en Velora y Nexora (sesiones independientes, refresh tokens cifrados con Android Keystore).
+- El reloj pide datos y envía acciones por Data Layer; nunca recibe access ni refresh tokens.
+- Si el teléfono no está disponible, el reloj muestra datos locales con su antigüedad y no simula operaciones remotas.
+
+**Motivo:** ningún backend soporta hoy device flow ni pairing; ambos usan login por contraseña con refresh rotatorio (en Velora, de un solo uso). Mantener una sola sesión por backend evita carreras de renovación y reduce la superficie de ataque.
+
+## ADR-014 — Versiones mínimas de plataforma
+
+**Estado:** Aceptada (2026-11-20).
+
+- `app-watch`: `minSdk 36` (Wear OS 6 / One UI 8 Watch, versión verificada en el Galaxy Watch Ultra del propietario).
+- `app-phone`: `minSdk 31`, igual que `velora-android`.
+- `compileSdk`/`targetSdk 37` y catálogo de versiones alineado con `velora-android` (AGP 9.5.x, Kotlin 2.4.21, Gradle 9.9.x).
+

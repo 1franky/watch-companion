@@ -1,0 +1,34 @@
+# watch-companion
+
+Aplicación Wear OS modular para **Samsung Galaxy Watch Ultra** con puente en **Galaxy S26 Ultra**, que conecta los productos existentes **Velora** (ciclismo/MTB) y **Nexora** (finanzas personales) y añade dos módulos locales: **Watch Guardian** (seguridad del teléfono) y **Smart Hub** (hogar).
+
+> Estado: **Fase 0 — especificación y auditoría.** Todavía no hay código.
+
+## Documentación
+
+Toda la especificación vive en [`docs/`](docs/README.md):
+
+| Archivo | Contenido |
+|---|---|
+| [`00-architecture.md`](docs/00-architecture.md) | Arquitectura general, límites y contratos |
+| [`01-velora-watch.md`](docs/01-velora-watch.md) | Requisitos de ciclismo |
+| [`02-activity-recording-and-reconciliation.md`](docs/02-activity-recording-and-reconciliation.md) | iGPSPORT + Watch + Strava + Velora |
+| [`03-nexora-watch.md`](docs/03-nexora-watch.md) | Módulo financiero |
+| [`04-watch-guardian.md`](docs/04-watch-guardian.md) | Seguridad del teléfono |
+| [`05-smart-hub.md`](docs/05-smart-hub.md) | SmartThings y TTLock |
+| [`06-roadmap-and-testing.md`](docs/06-roadmap-and-testing.md) | Fases, criterios y pruebas |
+| [`07-security-and-privacy.md`](docs/07-security-and-privacy.md) | Seguridad y privacidad |
+| [`08-architecture-decisions.md`](docs/08-architecture-decisions.md) | ADR |
+| [`09-revision-y-auditoria.md`](docs/09-revision-y-auditoria.md) | Revisión y desviaciones frente a los repos reales |
+
+**Lee primero `09-revision-y-auditoria.md`**: registra dónde la especificación no coincide con el código actual de Velora y Nexora y qué decisiones están pendientes.
+
+## Repositorios relacionados
+
+[velora-api](https://github.com/1franky/velora-api) · [velora-android](https://github.com/1franky/velora-android) · [velora-web](https://github.com/1franky/velora-web) · [nexora-api](https://github.com/1franky/nexora-api) · [nexora-android](https://github.com/1franky/nexora-android) · [nexora-web](https://github.com/1franky/nexora-web)
+
+Este repositorio no modifica esos proyectos; las integraciones se hacen mediante PRs acotados en cada uno.
+
+## Idioma
+
+Producto y documentación en español (México).

@@ -114,19 +114,44 @@ flowchart TB
 
 Usar Wear OS Data Layer API para sincronizar mensajes, estados y pequeñas cargas entre dispositivos emparejados. No tratar Data Layer como sustituto de HTTPS hacia los backends.
 
-Definir mensajes versionados:
+Los mensajes se definen en `core/phone-communication` (`Envelope`, `Payload`, `ProtocolCodec`) y se serializan como JSON con discriminador `type`. El nombre de `type` es parte del contrato: no se renombra, se agrega uno nuevo.
 
-- `WorkoutCommand`
-- `WorkoutStatus`
-- `WatchTelemetryBatch`
-- `FinanceSnapshotRequest`
-- `FinanceSnapshotResponse`
-- `QuickTransactionDraft`
-- `GuardianEvent`
-- `SmartHomeCommand`
-- `IntegrationStatus`
+### Sobre común
 
-Todo mensaje debe incluir `messageId`, `schemaVersion`, `createdAt`, `deviceId` y `correlationId` cuando aplique.
+| Campo | Obligatorio | Uso |
+|---|---|---|
+| `messageId` | sí | UUID del mensaje |
+| `schemaVersion` | sí | versión del protocolo |
+| `createdAt` | sí | ms epoch UTC |
+| `deviceId` | sí | identificador seudónimo del emisor |
+| `correlationId` | si responde a otro | une solicitud y respuesta |
+| `nonce` | en mensajes sensibles | un solo uso; el receptor rechaza repeticiones |
+| `expiresAt` | en mensajes sensibles | ms epoch; un mensaje caducado no se ejecuta |
+
+Un mensaje **sensible** es el que produce un efecto (bloquear el teléfono, ejecutar una escena, confirmar un movimiento). Sin `nonce` y `expiresAt` no se codifica ni se acepta.
+
+### Compatibilidad de versiones
+
+Se acepta la versión actual del protocolo y la anterior (N y N-1). Fuera de ese rango, el receptor descarta el mensaje y responde `IntegrationStatus(PHONE_LINK, INCOMPATIBLE)`, que el usuario ve como «actualiza la app en el reloj o en el teléfono». Los campos opcionales desconocidos se ignoran.
+
+### Catálogo
+
+| Mensaje | Dirección | Sensible | Estado |
+|---|---|---|---|
+| `Ping` / `Pong` | ambas | no | implementado (Fase 0) |
+| `IntegrationStatus` | ambas | no | implementado (Fase 0) |
+| `WorkoutStatus` | reloj → teléfono | no | Fase 1 |
+| `ActivitySyncStatus` | teléfono → reloj | no | Fase 1 |
+| `HeartRateZones` | teléfono → reloj | no | Fase 1 |
+| `FinanceSnapshotRequest` / `FinanceSnapshotResponse` | reloj ↔ teléfono | no | Fase 2 |
+| `QuickTransactionDraft` | reloj → teléfono | no (la confirmación ocurre en el teléfono) | Fase 2 |
+| `TransactionResult` | teléfono → reloj | no | Fase 2 |
+| `GuardianCommand` / `GuardianCommandResult` | reloj ↔ teléfono | sí / no | Fase 3 |
+| `GuardianEvent` | ambas | no | Fase 3 |
+| `SmartHomeCommand` / `SmartHomeCommandResult` | reloj ↔ teléfono | sí / no | Fase 4 |
+| `WatchTelemetryBatch` | reloj → teléfono | no | Fase 5 |
+
+Cada mensaje se agrega al código en la tarjeta que lo necesita, no antes.
 
 No enviar credenciales ni tokens de acceso en mensajes de Data Layer. El teléfono obtiene credenciales de forma segura y realiza las llamadas remotas cuando sea la opción más segura.
 

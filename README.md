@@ -31,6 +31,7 @@ Toda la especificación vive en [`docs/`](docs/README.md):
 |---|---|
 | `app-watch` | App Wear OS para el Galaxy Watch Ultra (Wear OS 6, `minSdk 36`) |
 | `app-phone` | App Android en el S26 Ultra: único puente hacia Velora y Nexora (ADR-011, ADR-013), `minSdk 31` |
+| `core:phone-communication` | Protocolo Watch ↔ Phone en Kotlin puro: sobre versionado, catálogo y validación (`00` §5) |
 
 Ambas apps comparten `applicationId` (`mx.watchcompanion`) y firma, porque la Data Layer solo comunica apps con el mismo id y certificado.
 
@@ -40,7 +41,7 @@ Requiere JDK 21 y el SDK de Android con la plataforma 37 (`local.properties` con
 
 ```bash
 ./gradlew assembleDebug        # APK de reloj y teléfono
-./gradlew testDebugUnitTest    # pruebas (JVM y Robolectric)
+./gradlew testDebugUnitTest :core:phone-communication:test   # pruebas (JVM y Robolectric)
 ./gradlew lintDebug            # lint: las advertencias fallan el build
 ```
 

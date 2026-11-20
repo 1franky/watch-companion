@@ -24,7 +24,7 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v6
       - name: Compilar, pruebas y lint
-        run: ./gradlew assembleDebug testDebugUnitTest lintDebug
+        run: ./gradlew assembleDebug testDebugUnitTest lintDebug :core:phone-communication:check
       - uses: actions/upload-artifact@v7
         if: failure()
         with:

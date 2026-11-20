@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Watch Companion</string>
+    <string name="home_status_pending">Fase 0: sin conexión con el teléfono todavía</string>
+</resources>

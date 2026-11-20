@@ -8,4 +8,15 @@
     <string name="link_connected_detail">%1$d ms · v%2$s</string>
     <string name="link_incompatible">Actualiza la app en el reloj o en el teléfono</string>
     <string name="link_check">Probar conexión</string>
+    <string name="module_velora">Velora</string>
+    <string name="module_status_disabled">Desactivado</string>
+    <string name="module_status_ready">Listo</string>
+    <string name="module_status_missing">Falta el permiso de %1$s</string>
+    <string name="module_status_denied">Permiso de %1$s denegado: actívalo en Ajustes</string>
+    <string name="permission_heart_rate">frecuencia cardíaca</string>
+    <string name="permission_other">un sensor</string>
+    <string name="module_action_enable">Activar</string>
+    <string name="module_action_grant">Conceder permiso</string>
+    <string name="module_action_settings">Abrir Ajustes</string>
+    <string name="module_action_disable">Desactivar</string>
 </resources>

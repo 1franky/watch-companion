@@ -7,6 +7,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mx.watchcompanion.core.communication.LinkState
+import mx.watchcompanion.core.permissions.ModulePermissions
+import mx.watchcompanion.core.permissions.ModuleStatus
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -50,5 +52,43 @@ class WatchHomeTest {
     fun mientrasCompruebaNoSePuedeRepetir() {
         compose.setContent { WatchHome(LinkState.Checking, onCheck = {}) }
         compose.onNodeWithText("Probar conexión").assertIsNotEnabled()
+    }
+
+    @Test
+    fun veloraDesactivadoOfreceActivar() {
+        var accion: ModuleAction? = null
+        compose.setContent { WatchHome(LinkState.NoPeer, onCheck = {}, velora = ModuleStatus.Disabled, onVeloraAction = { accion = it }) }
+        compose.onNodeWithText("Velora · Desactivado").assertIsDisplayed()
+        compose.onNodeWithText("Activar").performClick()
+        assertEquals(ModuleAction.ENABLE, accion)
+    }
+
+    @Test
+    fun veloraSinPermisoPideConcederlo() {
+        var accion: ModuleAction? = null
+        val falta = ModuleStatus.NeedsPermissions(listOf(ModulePermissions.READ_HEART_RATE), permanentlyDenied = false)
+        compose.setContent { WatchHome(LinkState.NoPeer, onCheck = {}, velora = falta, onVeloraAction = { accion = it }) }
+        compose.onNodeWithText("Velora · Falta el permiso de frecuencia cardíaca").assertIsDisplayed()
+        compose.onNodeWithText("Conceder permiso").performClick()
+        assertEquals(ModuleAction.REQUEST, accion)
+    }
+
+    @Test
+    fun veloraConPermisoDenegadoLlevaAAjustes() {
+        var accion: ModuleAction? = null
+        val denegado = ModuleStatus.NeedsPermissions(listOf(ModulePermissions.READ_HEART_RATE), permanentlyDenied = true)
+        compose.setContent { WatchHome(LinkState.NoPeer, onCheck = {}, velora = denegado, onVeloraAction = { accion = it }) }
+        compose.onNodeWithText("Velora · Permiso de frecuencia cardíaca denegado: actívalo en Ajustes").assertIsDisplayed()
+        compose.onNodeWithText("Abrir Ajustes").performClick()
+        assertEquals(ModuleAction.OPEN_SETTINGS, accion)
+    }
+
+    @Test
+    fun veloraListoPermiteDesactivar() {
+        var accion: ModuleAction? = null
+        compose.setContent { WatchHome(LinkState.NoPeer, onCheck = {}, velora = ModuleStatus.Ready, onVeloraAction = { accion = it }) }
+        compose.onNodeWithText("Velora · Listo").assertIsDisplayed()
+        compose.onNodeWithText("Desactivar").performClick()
+        assertEquals(ModuleAction.DISABLE, accion)
     }
 }

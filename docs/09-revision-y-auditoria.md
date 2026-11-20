@@ -68,7 +68,9 @@ Hoy, subir la grabación del Watch por `/activities/imports` crea **una segunda 
 | ¿Qué scopes tiene concedidos? | Se guardan por conexión en `strava_connections.scope`; hay que consultar el valor en producción. |
 | Idempotencia del webhook (`02` §6) | Ya implementada de otra forma: todos los eventos se guardan (`strava_webhook_events`) y la deduplicación semántica ocurre en `strava_sync_items (user_id, strava_activity_id)`. **No hay que reespecificarla**: `02` §6 debe referenciar ADR-030 de Velora. |
 
-### A-05 · Bloqueante — Ningún backend soporta la sesión «emparejada» del reloj
+### A-05 · Resuelto — Ningún backend soporta la sesión «emparejada» del reloj
+
+> **Actualización 2026-11-20 (WC-3):** aceptado; ver ADR-013.
 
 `00` §6 pide evaluar OAuth Device Authorization o pairing de un solo uso. Ambos backends solo tienen login por email + contraseña:
 - **Velora:** un único usuario propietario (ADR-010), access token de 15 min y refresh de 30 días **de un solo uso** (reutilizarlo revoca la sesión).
@@ -116,7 +118,9 @@ ADR-009 (OpenAPI como contrato y generación de clientes) choca con dos cosas: `
 
 El README de esta especificación pide «auditar la rama principal». En `nexora-api` y `nexora-web` la rama de integración es `develop`, y `main` está protegida y despliega a producción. Las tareas de integración para Nexora deben abrir PR contra `develop`.
 
-### A-12 · Media — Versiones de toolchain divergentes
+### A-12 · Resuelto — Versiones de toolchain divergentes
+
+> **Actualización 2026-11-20 (WC-14):** Galaxy Watch Ultra con One UI 8 Watch / Wear OS 6; ver ADR-014.
 
 `velora-android` usa AGP 9.5.1 / Kotlin 2.4.21; `nexora-android` usa AGP 9.2.0 / Kotlin 2.4.0.
 
@@ -132,7 +136,9 @@ El README de esta especificación pide «auditar la rama principal». En `nexora
 
 ## 3. Hallazgos de revisión interna (consistencia de la especificación)
 
-### R-01 · Alta — El alcance del «MVP» se contradice
+### R-01 · Resuelto — El alcance del «MVP» se contradice
+
+> **Actualización 2026-11-20 (WC-2):** aceptado; ver ADR-012.
 
 El README («Alcance de la primera entrega») mete Velora, Nexora, Guardian y Smart Hub en la primera entrega. `06` los reparte en las Fases 1–4 con salidas independientes.
 
@@ -186,7 +192,9 @@ Existe `schemaVersion`, pero no se dice qué ocurre si el reloj y el teléfono t
 
 **Propuesta:** decisión explícita entre (a) un BFF mínimo propio para Smart Hub, (b) un token personal del usuario guardado en el Keystore del teléfono, si el proveedor lo permite (verificar caducidad y alcance actuales de los PAT de SmartThings), o (c) posponer.
 
-### R-10 · Media — Contradicción sobre la sesión del reloj
+### R-10 · Resuelto — Contradicción sobre la sesión del reloj
+
+> **Actualización 2026-11-20 (WC-3):** `00` §6 reescrito según ADR-013.
 
 `00` §6 («el reloj debe usar una sesión emparejada y acotada») contradice el diagrama de `00` §3 y la regla de no tokens por Data Layer. Ver A-05.
 
@@ -212,8 +220,8 @@ Velora ya aplica privacidad de inicio y fin de recorrido (ADR-016 de Velora, mig
 ## 4. Decisiones que debe tomar el propietario
 
 1. ~~¿El modo A depende de Strava o del FIT directo?~~ **Resuelto:** Strava, operativo en producción; FIT directo como respaldo opcional. (A-01, WC-1)
-2. ¿Primera entrega = Fase 0 + Fase 1? (R-01, WC-2)
-3. ¿El reloj sin tokens de backend en el MVP? (A-05, WC-3)
+2. ~~¿Primera entrega = Fase 0 + Fase 1?~~ **Resuelto:** sí, ADR-012. (R-01, WC-2)
+3. ~~¿El reloj sin tokens de backend en el MVP?~~ **Resuelto:** sí, ADR-013. (A-05, WC-3)
 4. ~~¿Puente de Data Layer?~~ **Resuelto:** `app-phone` propia, ADR-011. (A-06, WC-4)
 5. ¿Estrategia de secretos para Smart Hub: BFF, PAT o posponer? (R-09, WC-12)
 6. ¿Prefijo `WC-ADR` y renumeración? (A-13, WC-5)

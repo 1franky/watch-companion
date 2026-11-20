@@ -59,14 +59,13 @@ Antes de modificar código:
 
 ## Alcance de la primera entrega
 
-La primera entrega debe priorizar:
+Decidido el 2026-11-20 (ADR-012): la primera entrega es **Fase 0 + Fase 1** de `06-roadmap-and-testing.md`:
 
-- Aplicación Wear OS instalable en Galaxy Watch Ultra.
-- Comunicación fiable Watch ↔ S26 Ultra.
+- Aplicación Wear OS instalable en Galaxy Watch Ultra (Wear OS 6).
+- Comunicación fiable Watch ↔ S26 Ultra a través de `app-phone` (ADR-011).
 - Módulo Velora en modo iGPSPORT-primary.
-- Módulo Nexora de solo lectura y recordatorios.
-- Guardian con acciones permitidas por Android/Samsung.
-- Smart Hub inicialmente de consulta/acciones no críticas.
 - Registro local de errores y estado de sincronización.
+
+Nexora (Fase 2), Guardian (Fase 3), Smart Hub (Fase 4) y la grabación dual (Fase 5) se publican como releases posteriores, cada uno con su propio criterio de salida.
 
 La fusión de rutas, operaciones financieras sensibles, desbloqueo remoto y apertura remota de cerradura quedan fuera del MVP.

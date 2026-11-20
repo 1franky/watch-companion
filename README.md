@@ -3,6 +3,8 @@
 Aplicación Wear OS modular para **Samsung Galaxy Watch Ultra** con puente en **Galaxy S26 Ultra**, que conecta los productos existentes **Velora** (ciclismo/MTB) y **Nexora** (finanzas personales) y añade dos módulos locales: **Watch Guardian** (seguridad del teléfono) y **Smart Hub** (hogar).
 
 > Estado: **Fase 0 — especificación y auditoría.** Todavía no hay código.
+>
+> Backlog: tablero en Notion **Backlog Watch Companion** (tarjetas `WC-n`, enlazadas a los hallazgos de `docs/09`).
 
 ## Documentación
 

@@ -27,7 +27,11 @@ Ninguno de los seis repos contiene módulos Wear OS, Data Layer ni Health Servic
 
 ## 2. Hallazgos de la auditoría (spec vs. código)
 
-### A-01 · Alta — Strava no es un flujo «que ya funciona y debe preservarse»; es un conector opcional con riesgo legal asumido
+### A-01 · Resuelto — Strava en producción
+
+> **Actualización 2026-11-20 (WC-1):** el propietario confirma que en producción el conector de Strava **está activado y ya envía las rodadas a Velora correctamente**. El `false` es solo el valor por omisión del repositorio. Por lo tanto, el flujo de `01` §1 / `02` §1 es real y se mantiene como camino principal del modo A. La importación directa del FIT del BSC100S queda como respaldo opcional (WC-13, prioridad baja). El riesgo frente al Strava API Agreement sigue documentado en ADR-030 de Velora y no cambia el diseño del companion.
+
+Hallazgo original:
 
 La especificación (`01` §1, `02` §1, ADR-005) trata **BSC100S → iGPSPORT → Strava → webhook → Velora** como la columna vertebral ya operativa.
 
@@ -72,7 +76,9 @@ Hoy, subir la grabación del Watch por `/activities/imports` crea **una segunda 
 
 **Propuesta (simplificación):** en el MVP el reloj **nunca** tiene tokens de backend. Solo el `app-phone` inicia sesión en Velora y en Nexora, con sesiones propias e independientes, y el reloj habla exclusivamente por Data Layer. Esto ya coincide con el diagrama de `00` §3 y con «no enviar tokens por Data Layer». La sesión directa del reloj queda como evolución.
 
-### A-06 · Bloqueante — Data Layer no permite hablar con `velora-android` ni con `nexora-android`
+### A-06 · Resuelto — Data Layer no permite hablar con `velora-android` ni con `nexora-android`
+
+> **Actualización 2026-11-20 (WC-4):** aprobado. `app-phone` es el puente; ver ADR-011 en `08`.
 
 La Wear OS Data Layer solo comunica apps con el **mismo `applicationId` y el mismo certificado de firma**. `velora-android` (`mx.velora.android`) y `nexora-android` (`com.nexora.android`) son apps distintas.
 
@@ -205,11 +211,12 @@ Velora ya aplica privacidad de inicio y fin de recorrido (ADR-016 de Velora, mig
 
 ## 4. Decisiones que debe tomar el propietario
 
-1. ¿El modo A depende de Strava (conector activado con riesgo asumido) o del FIT directo del BSC100S? (A-01)
-2. ¿Primera entrega = Fase 0 + Fase 1? (R-01)
-3. ¿El reloj sin tokens de backend en el MVP? (A-05)
-4. ¿Estrategia de secretos para Smart Hub: BFF, PAT o posponer? (R-09)
-5. ¿Prefijo `WC-ADR` y renumeración? (A-13)
+1. ~~¿El modo A depende de Strava o del FIT directo?~~ **Resuelto:** Strava, operativo en producción; FIT directo como respaldo opcional. (A-01, WC-1)
+2. ¿Primera entrega = Fase 0 + Fase 1? (R-01, WC-2)
+3. ¿El reloj sin tokens de backend en el MVP? (A-05, WC-3)
+4. ~~¿Puente de Data Layer?~~ **Resuelto:** `app-phone` propia, ADR-011. (A-06, WC-4)
+5. ¿Estrategia de secretos para Smart Hub: BFF, PAT o posponer? (R-09, WC-12)
+6. ¿Prefijo `WC-ADR` y renumeración? (A-13, WC-5)
 
 ## 5. Siguientes pasos
 

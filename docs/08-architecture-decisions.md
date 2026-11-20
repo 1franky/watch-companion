@@ -40,6 +40,8 @@ Velora conserva el webhook existente de Strava y recupera detalle/streams median
 
 **Motivo:** no duplicar integración con el dispositivo si el flujo actual ya opera correctamente.
 
+**Verificado (2026-11-20):** el conector está activado en producción y las rodadas del BSC100S llegan a Velora vía Strava. En el repositorio, `velora.strava.enabled` sigue en `false` como valor por omisión. El riesgo contractual con Strava está registrado en ADR-030 de Velora. La importación directa del FIT del dispositivo queda como respaldo opcional, no como camino principal.
+
 ## ADR-006 — Nexora API es la autoridad financiera
 
 **Estado:** Aceptada.
@@ -76,3 +78,21 @@ No existe una única fuente universal para todas las métricas:
 - publicación social: flujo actual iGPSPORT → Strava
 
 Toda métrica debe conservar `sourceType` y timestamp.
+
+## ADR-011 — `app-phone` propia como puente Watch ↔ backends
+
+**Estado:** Aceptada (2026-11-20).
+
+La Wear OS Data Layer solo comunica apps con el mismo `applicationId` y el mismo certificado de firma. `velora-android` (`mx.velora.android`) y `nexora-android` (`com.nexora.android`) no pueden actuar como puente del reloj.
+
+Decisión:
+- `watch-companion` incluye dos apps: `app-watch` (Wear OS) y `app-phone` (Android, S26 Ultra), con el mismo `applicationId` y la misma firma, tanto en debug como en release.
+- `app-phone` es el único componente que llama a Velora API y Nexora API, con sesiones propias e independientes por backend.
+- `velora-android` y `nexora-android` no se modifican para el companion; siguen siendo las apps completas de cada producto.
+
+**Consecuencias:**
+- El usuario inicia sesión en Velora y en Nexora también dentro de `app-phone`. Son sesiones separadas de las apps existentes y se pueden revocar por separado.
+- La Fase 1 consulta el estado de las actividades directamente en Velora API desde `app-phone`, no a través de `velora-android`.
+- Perder la clave de firma rompe la comunicación entre las dos apps: hay que guardarla igual que las de las apps existentes.
+
+**Motivo:** es la única opción soportada por la plataforma sin acoplar el companion a las apps existentes.

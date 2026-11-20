@@ -19,7 +19,7 @@
 - Implementar modo iGPSPORT-primary.
 - UI de métricas y estado.
 - Heart rate y alertas locales.
-- Comunicación con Velora Android/API para consultar estado de actividad.
+- Consulta del estado de actividad en Velora API desde `app-phone` (ADR-011).
 - No duplicar publicación a Strava.
 - Pruebas de una ruta real.
 

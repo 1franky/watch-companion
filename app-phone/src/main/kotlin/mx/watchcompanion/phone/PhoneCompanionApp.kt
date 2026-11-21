@@ -39,6 +39,8 @@ class PhoneCompanionApp : Application(), LinkSessionOwner {
             deviceId = DeviceId.get(this),
             appVersion = appVersion,
             diagnostics = diagnostics,
+            // Lo que el reloj muestra en su pantalla Resumen (WC-29).
+            syncSummary = { veloraSyncSummary(veloraSession.state.value, diagnostics.events.value) },
         )
     }
 

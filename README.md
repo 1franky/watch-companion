@@ -58,6 +58,15 @@ Solo `app-phone` inicia sesión en Velora (y, desde la Fase 2, en Nexora), con s
 - Se guardan los últimos 200 eventos de los últimos 7 días, en `noBackupFilesDir` (no sale del teléfono). «Borrar registro» lo vacía.
 - El reloj no tiene registro propio en la Fase 0; sus problemas de enlace se ven desde el teléfono.
 
+## Reloj: pantalla Resumen
+
+Al abrir la app, el reloj muestra el **Resumen** (01 §5): conexión con el teléfono, modo activo (en el MVP siempre el modo A, iGPSPORT principal) y estado de sincronización con Velora.
+
+- El estado de sincronización lo informa el teléfono en cada `Pong` (`SyncSummary`): sesión cerrada o vencida, nunca sincronizado, sincronizado hace N min o error con su código. Sale de la sesión de `app-phone` y del registro de diagnóstico, así que no lleva datos personales.
+- Sin enlace con el teléfono no se muestra ningún estado de sincronización: un dato viejo no se presenta como vigente.
+- Soporta modo ambiente (`AmbientLifecycleObserver`): solo quedan los textos, en gris sobre negro y sin botones.
+- El bisel giratorio y la corona desplazan la pantalla; con letra grande todo sigue al alcance desplazando.
+
 ## Contratos de los backends
 
 `contract/<backend>/openapi-v1.yaml` es una copia del contrato del backend fijada al commit de `contract/<backend>/REF` (ADR-009). El cliente se genera de esa copia en cada build: si el contrato cambia y el código no, no compila. Así el build no depende de la red y cada cambio de contrato es un PR explícito.

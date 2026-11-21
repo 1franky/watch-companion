@@ -5,7 +5,6 @@
     <string name="link_no_peer">No encuentro el teléfono. Instala Watch Companion en él.</string>
     <string name="link_unreachable">%1$s no responde</string>
     <string name="link_connected">Conectado a %1$s</string>
-    <string name="link_connected_detail">%1$d ms · v%2$s</string>
     <string name="link_incompatible">Actualiza la app en el reloj o en el teléfono</string>
     <string name="link_check">Probar conexión</string>
     <string name="module_velora">Velora</string>
@@ -19,4 +18,24 @@
     <string name="module_action_grant">Conceder permiso</string>
     <string name="module_action_settings">Abrir Ajustes</string>
     <string name="module_action_disable">Desactivar</string>
+    <string name="summary_title">Resumen</string>
+    <string name="summary_phone">Teléfono</string>
+    <string name="summary_mode">Modo</string>
+    <!-- MVP: solo modo A (01 §2, ADR-012). El BSC100S graba; el reloj muestra métricas y alertas. -->
+    <string name="summary_mode_a">A · iGPSPORT principal</string>
+    <string name="summary_velora">Velora</string>
+    <string name="sync_no_data">Sin datos del teléfono</string>
+    <string name="sync_signed_out">Inicia sesión en el teléfono</string>
+    <string name="sync_session_expired">Sesión vencida: entra de nuevo en el teléfono</string>
+    <string name="sync_never">Aún sin sincronizar</string>
+    <string name="sync_ok">Sincronizado %1$s</string>
+    <string name="sync_error">Error al sincronizar (%1$s)</string>
+    <string name="elapsed_now">hace un momento</string>
+    <string name="elapsed_minutes">hace %1$d min</string>
+    <string name="elapsed_hours">hace %1$d h</string>
+    <plurals name="elapsed_days">
+        <item quantity="one">hace %1$d día</item>
+        <item quantity="many">hace %1$d días</item>
+        <item quantity="other">hace %1$d días</item>
+    </plurals>
 </resources>

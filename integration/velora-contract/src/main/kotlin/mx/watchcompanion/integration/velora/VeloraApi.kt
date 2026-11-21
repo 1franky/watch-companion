@@ -1,10 +1,14 @@
 package mx.watchcompanion.integration.velora
 
 import io.ktor.client.engine.HttpClientEngine
+import io.ktor.client.plugins.api.createClientPlugin
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
+import kotlin.coroutines.AbstractCoroutineContextElement
+import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.serialization.json.Json
 import mx.watchcompanion.integration.velora.api.apis.DefaultApi
 
@@ -46,10 +50,27 @@ object VeloraApi {
         httpClientEngine = engine,
         httpClientConfig = {
             it.install(ContentNegotiation) { json(json) }
+            it.install(RequestIdPlugin)
             it.install(HttpTimeout) {
                 connectTimeoutMillis = 10_000
                 requestTimeoutMillis = 20_000
             }
         },
     )
+}
+
+/**
+ * Correlation ID de la solicitud en curso: viaja a Velora como `X-Request-Id` y Velora lo usa en sus logs y en el
+ * `instance` de sus errores, así un evento del registro local se encuentra en el servidor.
+ */
+class RequestId(val value: String) : AbstractCoroutineContextElement(Key) {
+    companion object Key : CoroutineContext.Key<RequestId> {
+        const val HEADER = "X-Request-Id"
+    }
+}
+
+private val RequestIdPlugin = createClientPlugin("RequestId") {
+    onRequest { request, _ ->
+        currentCoroutineContext()[RequestId]?.let { request.headers[RequestId.HEADER] = it.value }
+    }
 }

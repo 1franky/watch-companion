@@ -26,7 +26,7 @@ jobs:
       - name: Contrato de Velora al día con el commit fijado
         run: scripts/update-contract.sh --check velora
       - name: Compilar, pruebas y lint
-        run: ./gradlew assembleDebug testDebugUnitTest lintDebug :core:phone-communication:check
+        run: ./gradlew assembleDebug testDebugUnitTest lintDebug :core:phone-communication:check :core:diagnostics:check
       - uses: actions/upload-artifact@v7
         if: failure()
         with:

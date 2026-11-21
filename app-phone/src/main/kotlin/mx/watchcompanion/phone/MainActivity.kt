@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,8 +44,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             val link by app.linkSession.state.collectAsStateWithLifecycle()
             val velora by app.veloraSession.state.collectAsStateWithLifecycle()
+            val events by app.diagnostics.events.collectAsStateWithLifecycle()
             val scope = rememberCoroutineScope()
             var showLogin by rememberSaveable { mutableStateOf(false) }
+            var showDiagnostics by rememberSaveable { mutableStateOf(false) }
             var busy by remember { mutableStateOf(false) }
             var loginError by remember { mutableStateOf<LoginResult?>(null) }
             LaunchedEffect(Unit) { app.linkSession.refresh() }
@@ -52,7 +55,13 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 Scaffold { padding ->
                     Column(Modifier.fillMaxSize().padding(padding).padding(24.dp).verticalScroll(rememberScrollState())) {
-                        if (showLogin && velora !is SessionState.SignedIn) {
+                        if (showDiagnostics) {
+                            DiagnosticsScreen(
+                                events = events,
+                                onClear = { scope.launch { app.diagnostics.clear() } },
+                                onBack = { showDiagnostics = false },
+                            )
+                        } else if (showLogin && velora !is SessionState.SignedIn) {
                             VeloraLogin(
                                 showServerField = BuildConfig.DEBUG,
                                 busy = busy,
@@ -81,6 +90,7 @@ class MainActivity : ComponentActivity() {
                                     showLogin = true
                                 },
                                 onVeloraLogout = { scope.launch { app.veloraSession.logout() } },
+                                onDiagnostics = { showDiagnostics = true },
                             )
                         }
                     }
@@ -98,6 +108,7 @@ fun PhoneHome(
     velora: SessionState = SessionState.SignedOut(),
     onVeloraLogin: () -> Unit = {},
     onVeloraLogout: () -> Unit = {},
+    onDiagnostics: () -> Unit = {},
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.home_title), style = MaterialTheme.typography.headlineMedium)
@@ -128,6 +139,8 @@ fun PhoneHome(
                 OutlinedButton(onClick = onVeloraLogout) { Text(stringResource(R.string.velora_logout)) }
             }
         }
+        HorizontalDivider()
+        TextButton(onClick = onDiagnostics) { Text(stringResource(R.string.diagnostics_open)) }
     }
 }
 

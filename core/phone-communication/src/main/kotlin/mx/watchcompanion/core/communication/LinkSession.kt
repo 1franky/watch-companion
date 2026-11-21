@@ -8,12 +8,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withTimeoutOrNull
+import mx.watchcompanion.core.diagnostics.DiagnosticEvent
+import mx.watchcompanion.core.diagnostics.DiagnosticModule
+import mx.watchcompanion.core.diagnostics.DiagnosticsRecorder
+import mx.watchcompanion.core.diagnostics.Outcome
+import mx.watchcompanion.core.diagnostics.start
 
 /**
  * Enlace de un extremo (reloj o teléfono) con el otro: comprueba la conexión con Ping/Pong, responde los pings que
  * recibe y avisa de incompatibilidades de versión. Es igual en ambos lados; solo cambia el [transport].
  *
  * @param clock milisegundos epoch; inyectable para pruebas.
+ * @param diagnostics registro técnico (WC-23): cada comprobación y cada mensaje descartado.
  */
 class LinkSession(
     private val transport: LinkTransport,
@@ -23,6 +29,7 @@ class LinkSession(
     private val clock: () -> Long = System::currentTimeMillis,
     private val newId: () -> String = { UUID.randomUUID().toString() },
     private val pingTimeoutMs: Long = PING_TIMEOUT_MS,
+    private val diagnostics: DiagnosticsRecorder = DiagnosticsRecorder.NONE,
 ) {
     private val _state = MutableStateFlow<LinkState>(LinkState.Unknown)
     val state: StateFlow<LinkState> = _state.asStateFlow()
@@ -33,8 +40,16 @@ class LinkSession(
     /** Busca al otro dispositivo y le manda un Ping; el estado final queda en [state] y se devuelve. */
     suspend fun refresh(): LinkState {
         _state.value = LinkState.Checking
+        val span = diagnostics.start(DiagnosticModule.LINK, "link.ping", clock)
         val result = check()
         _state.value = result
+        when (result) {
+            is LinkState.Connected -> span.ok("CONNECTED")
+            LinkState.NoPeer -> span.error("NO_PEER")
+            is LinkState.Unreachable -> span.error("UNREACHABLE")
+            LinkState.Incompatible -> span.error("INCOMPATIBLE")
+            LinkState.Unknown, LinkState.Checking -> Unit
+        }
         return result
     }
 
@@ -72,10 +87,14 @@ class LinkSession(
             is DecodeResult.Accepted -> handle(fromPeerId, result.envelope)
             is DecodeResult.Incompatible -> {
                 _state.value = LinkState.Incompatible
+                rejected("INCOMPATIBLE")
                 replyIncompatible(fromPeerId)
             }
-            // Ilegible, caducado o repetido: se descarta sin ejecutar nada (el registro llega con WC-23).
-            else -> Unit
+            // Ilegible, caducado o repetido: se descarta sin ejecutar nada y queda registrado.
+            DecodeResult.Malformed -> rejected("MALFORMED")
+            DecodeResult.Expired -> rejected("EXPIRED")
+            DecodeResult.Replayed -> rejected("REPLAYED")
+            DecodeResult.MissingSecurityFields -> rejected("MISSING_SECURITY_FIELDS")
         }
     }
 
@@ -91,6 +110,10 @@ class LinkSession(
                 }
         }
     }
+
+    /** Solo el motivo: el contenido del mensaje rechazado no se registra. */
+    private suspend fun rejected(code: String) =
+        diagnostics.record(DiagnosticModule.LINK, "link.receive", DiagnosticEvent.newCorrelationId(), Outcome.ERROR, code, 0)
 
     /** Como mucho una respuesta por minuto y dispositivo, para no entrar en un ciclo con la otra app. */
     private suspend fun replyIncompatible(peerId: String) {

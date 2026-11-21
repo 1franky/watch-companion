@@ -33,6 +33,7 @@ Toda la especificación vive en [`docs/`](docs/README.md):
 | `app-phone` | App Android en el S26 Ultra: único puente hacia Velora y Nexora (ADR-011, ADR-013), `minSdk 31` |
 | `core:phone-communication` | Protocolo Watch ↔ Phone en Kotlin puro: sobre versionado, catálogo, validación y `LinkSession` (ping/pong y estado del enlace) |
 | `core:permissions` | Permisos por módulo: qué pide cada uno, activación por el usuario, estado y revocación al desactivar |
+| `core:diagnostics` | Registro técnico local en Kotlin puro: eventos con módulo, versión, operación, correlation ID, código y duración, y estado de sincronización por módulo |
 | `core:session` | Almacén de sesión por backend: refresh token cifrado con AES-GCM y una llave del Android Keystore distinta por backend |
 | `integration:velora-contract` | Cliente de Velora API generado del contrato fijado (solo las operaciones que usa el companion) y `VeloraSession` (login, renovación serializada y cierre); lo usa `app-phone` |
 | `core:data-layer` | Transporte sobre la Wear OS Data Layer (`CapabilityClient` + `MessageClient`), servicio receptor y `deviceId` seudónimo |
@@ -47,6 +48,15 @@ Solo `app-phone` inicia sesión en Velora (y, desde la Fase 2, en Nexora), con s
 - Las renovaciones se serializan: en Velora el refresh token es de un solo uso y reutilizarlo revoca toda la sesión.
 - La versión release solo acepta servidores `https://`. En debug se puede usar `http://10.0.2.2` o `http://localhost` contra una API local; el campo «Servidor» solo aparece en debug.
 - El cifrado real con Keystore se prueba en dispositivo o emulador: `./gradlew :core:session:connectedDebugAndroidTest`.
+
+## Diagnóstico
+
+`app-phone` guarda un registro técnico local (00 §8, 07 §4) y lo muestra en **Inicio → Diagnóstico**, junto con el estado de sincronización de cada módulo:
+
+- Cada evento tiene solo módulo, versión, operación, correlation ID, resultado, código y duración. Ningún campo admite texto libre: un token, un correo, unas coordenadas o un importe no caben en ninguno, y lo que no cumple el formato se guarda como `INVALID_CODE`.
+- Las solicitudes a Velora llevan el correlation ID como `X-Request-Id`: con él se encuentra la misma solicitud en los logs de Velora.
+- Se guardan los últimos 200 eventos de los últimos 7 días, en `noBackupFilesDir` (no sale del teléfono). «Borrar registro» lo vacía.
+- El reloj no tiene registro propio en la Fase 0; sus problemas de enlace se ven desde el teléfono.
 
 ## Contratos de los backends
 

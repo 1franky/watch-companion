@@ -8,6 +8,7 @@ plugins {
 kotlin { jvmToolchain(21) }
 
 dependencies {
+    api(project(":core:diagnostics"))
     api(libs.kotlinx.serialization.json)
     api(libs.kotlinx.coroutines.core)
     testImplementation(libs.junit4)

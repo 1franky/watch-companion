@@ -67,6 +67,16 @@ Al abrir la app, el reloj muestra el **Resumen** (01 §5): conexión con el tel�
 - Soporta modo ambiente (`AmbientLifecycleObserver`): solo quedan los textos, en gris sobre negro y sin botones.
 - El bisel giratorio y la corona desplazan la pantalla; con letra grande todo sigue al alcance desplazando.
 
+## Reloj: métricas en vivo
+
+Desde el Resumen, **Iniciar métricas** abre la sesión de métricas en vivo del modo A (01 §3.1). Solo aparece con el módulo Velora activo y su permiso concedido.
+
+- Es un ejercicio de ciclismo de Health Services `ExerciseClient` con solo frecuencia cardíaca: **sin GPS, sin guardar muestras y sin subir nada**. No depende del teléfono ni de internet.
+- Sin lectura válida se muestra `--` con el motivo (buscando pulso, reloj fuera de la muñeca, sensor no disponible), **nunca un 0**.
+- Un foreground service de tipo `health` mantiene el proceso vivo con la pantalla apagada o en ambiente. Si la app se cierra, el ejercicio sigue en Health Services y se recupera al abrirla.
+- Si otra app (p. ej. Samsung Health) tiene un ejercicio en curso, no se le quita: se avisa.
+- Terminar pide confirmación; al terminar se muestra la duración y nada más se conserva.
+
 ## Contratos de los backends
 
 `contract/<backend>/openapi-v1.yaml` es una copia del contrato del backend fijada al commit de `contract/<backend>/REF` (ADR-009). El cliente se genera de esa copia en cada build: si el contrato cambia y el código no, no compila. Así el build no depende de la red y cada cambio de contrato es un PR explícito.
@@ -85,6 +95,7 @@ Cada módulo pide sus permisos **solo cuando el usuario lo activa**. Si se revoc
 | Permiso | App | Módulo | Para qué | Desde |
 |---|---|---|---|---|
 | `android.permission.health.READ_HEART_RATE` | reloj | Velora | Frecuencia cardíaca en vivo y alertas por zona (WC-30, WC-31) | Fase 1 |
+| `android.permission.FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_HEALTH` (normales, sin diálogo) | reloj | Velora | Mantener viva la sesión de métricas en vivo con la pantalla apagada o en ambiente (WC-30) | Fase 1 |
 | `android.permission.INTERNET` (normal, sin diálogo) | teléfono | Velora | Llamar a Velora API por HTTPS (WC-22) | Fase 0 |
 | `mx.watchcompanion.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | ambas | — | Permiso interno de firma que agrega AndroidX (`core-ktx`); no muestra diálogo | Fase 0 |
 

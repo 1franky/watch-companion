@@ -77,6 +77,15 @@ Desde el Resumen, **Iniciar métricas** abre la sesión de métricas en vivo del
 - Si otra app (p. ej. Samsung Health) tiene un ejercicio en curso, no se le quita: se avisa.
 - Terminar pide confirmación; al terminar se muestra la duración y nada más se conserva.
 
+## Zonas de frecuencia cardíaca
+
+En el teléfono, **Inicio → Zonas de frecuencia cardíaca** (WC-32):
+
+- **Usar la FC máxima de Velora** la trae de `GET /me` (`preferences.maxHeartRateBpm`) y calcula las zonas con la misma regla que las analíticas de Velora (`hr-zones/1`, ADR-020): Z1 desde el 50 %, Z2 60 %, Z3 70 %, Z4 80 % y Z5 90 %. Si Velora no la tiene, se escribe a mano.
+- Cada zona se puede ajustar a mano; se valida que la FC máxima esté entre 100 y 230 y que las zonas vayan de menor a mayor.
+- **Guardar y enviar al reloj** las guarda en el teléfono y las manda al reloj (`HeartRateZonesConfig`). Si el reloj no está al alcance, las recibe en la siguiente comprobación de enlace: el `Pong` del teléfono siempre lleva las zonas vigentes.
+- El reloj guarda la versión más reciente en un archivo local y muestra la zona en **Métricas**: funciona sin teléfono ni internet.
+
 ## Contratos de los backends
 
 `contract/<backend>/openapi-v1.yaml` es una copia del contrato del backend fijada al commit de `contract/<backend>/REF` (ADR-009). El cliente se genera de esa copia en cada build: si el contrato cambia y el código no, no compila. Así el build no depende de la red y cada cambio de contrato es un PR explícito.

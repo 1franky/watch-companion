@@ -48,6 +48,10 @@ class MainActivity : ComponentActivity() {
             val scope = rememberCoroutineScope()
             var showLogin by rememberSaveable { mutableStateOf(false) }
             var showDiagnostics by rememberSaveable { mutableStateOf(false) }
+            var showZones by rememberSaveable { mutableStateOf(false) }
+            val zones by app.zones.zones.collectAsStateWithLifecycle()
+            var veloraMax by remember { mutableStateOf<VeloraMax?>(null) }
+            var zonesDelivery by remember { mutableStateOf<ZonesDelivery?>(null) }
             var busy by remember { mutableStateOf(false) }
             var loginError by remember { mutableStateOf<LoginResult?>(null) }
             LaunchedEffect(Unit) { app.linkSession.refresh() }
@@ -55,7 +59,24 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 Scaffold { padding ->
                     Column(Modifier.fillMaxSize().padding(padding).padding(24.dp).verticalScroll(rememberScrollState())) {
-                        if (showDiagnostics) {
+                        if (showZones) {
+                            ZonesScreen(
+                                saved = zones,
+                                veloraMax = veloraMax,
+                                delivery = zonesDelivery,
+                                now = System::currentTimeMillis,
+                                onUseVelora = {
+                                    veloraMax = VeloraMax.Loading
+                                    scope.launch { veloraMax = app.zones.veloraMax() }
+                                },
+                                onSave = { scope.launch { zonesDelivery = app.zones.save(it) } },
+                                onBack = {
+                                    showZones = false
+                                    veloraMax = null
+                                    zonesDelivery = null
+                                },
+                            )
+                        } else if (showDiagnostics) {
                             DiagnosticsScreen(
                                 events = events,
                                 onClear = { scope.launch { app.diagnostics.clear() } },
@@ -91,6 +112,7 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onVeloraLogout = { scope.launch { app.veloraSession.logout() } },
                                 onDiagnostics = { showDiagnostics = true },
+                                onZones = { showZones = true },
                             )
                         }
                     }
@@ -109,6 +131,7 @@ fun PhoneHome(
     onVeloraLogin: () -> Unit = {},
     onVeloraLogout: () -> Unit = {},
     onDiagnostics: () -> Unit = {},
+    onZones: () -> Unit = {},
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.home_title), style = MaterialTheme.typography.headlineMedium)
@@ -139,6 +162,7 @@ fun PhoneHome(
                 OutlinedButton(onClick = onVeloraLogout) { Text(stringResource(R.string.velora_logout)) }
             }
         }
+        OutlinedButton(onClick = onZones) { Text(stringResource(R.string.zones_open)) }
         HorizontalDivider()
         TextButton(onClick = onDiagnostics) { Text(stringResource(R.string.diagnostics_open)) }
     }

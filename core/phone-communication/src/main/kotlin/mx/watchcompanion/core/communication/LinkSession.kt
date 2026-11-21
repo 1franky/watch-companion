@@ -22,6 +22,8 @@ import mx.watchcompanion.core.diagnostics.start
  * @param diagnostics registro técnico (WC-23): cada comprobación y cada mensaje descartado.
  * @param syncSummary estado de sincronización que se envía en cada Pong (WC-29). Solo lo da el teléfono; si falla, el
  *   Pong sale igual, sin él: la conexión no depende del estado de los backends.
+ * @param zonesProvider zonas de FC vigentes que se envían en cada Pong (WC-32); solo las da el teléfono.
+ * @param onZones recibe las zonas que llegan del otro lado (WC-32); solo lo usa el reloj, que decide si las guarda.
  */
 class LinkSession(
     private val transport: LinkTransport,
@@ -33,6 +35,8 @@ class LinkSession(
     private val pingTimeoutMs: Long = PING_TIMEOUT_MS,
     private val diagnostics: DiagnosticsRecorder = DiagnosticsRecorder.NONE,
     private val syncSummary: suspend () -> List<SyncSummary> = { emptyList() },
+    private val zonesProvider: suspend () -> HeartRateZones? = { null },
+    private val onZones: suspend (HeartRateZones) -> Unit = {},
 ) {
     private val _state = MutableStateFlow<LinkState>(LinkState.Unknown)
     val state: StateFlow<LinkState> = _state.asStateFlow()
@@ -103,8 +107,17 @@ class LinkSession(
 
     private suspend fun handle(fromPeerId: String, envelope: Envelope) {
         when (val payload = envelope.payload) {
-            Ping -> sendQuietly(fromPeerId, envelope(Pong(appVersion, currentSync()), correlationId = envelope.messageId))
-            is Pong -> envelope.correlationId?.let { pendingPings[it]?.complete(payload) }
+            Ping -> sendQuietly(
+                fromPeerId,
+                envelope(Pong(appVersion, currentSync(), currentZones()), correlationId = envelope.messageId),
+            )
+            is Pong -> {
+                // Solo se acepta lo que viene en respuesta a un ping propio.
+                val pending = envelope.correlationId?.let { pendingPings[it] } ?: return
+                payload.zones?.let { deliverZones(it) }
+                pending.complete(payload)
+            }
+            is HeartRateZonesConfig -> deliverZones(payload.zones)
             is IntegrationStatus ->
                 if (payload.integration == IntegrationStatus.Integration.PHONE_LINK &&
                     payload.state == IntegrationStatus.State.INCOMPATIBLE
@@ -112,6 +125,44 @@ class LinkSession(
                     _state.value = LinkState.Incompatible
                 }
         }
+    }
+
+    /**
+     * Envía [payload] al otro dispositivo sin esperar respuesta. Devuelve `false` si no hay a quién o el envío falla:
+     * quien llama decide si reintenta (las zonas, por ejemplo, vuelven a viajar en el próximo Pong).
+     */
+    suspend fun sendToPeer(payload: Payload): Boolean {
+        val peer = try {
+            transport.reachablePeers().firstOrNull()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
+        } ?: return false
+        return try {
+            transport.send(peer.id, codec.encode(envelope(payload)))
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private suspend fun currentZones(): HeartRateZones? = try {
+        zonesProvider()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        null
+    }
+
+    private suspend fun deliverZones(zones: HeartRateZones) = try {
+        onZones(zones)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        // Si no se pudieron guardar, el próximo Pong las trae de nuevo.
     }
 
     private suspend fun currentSync(): List<SyncSummary> = try {

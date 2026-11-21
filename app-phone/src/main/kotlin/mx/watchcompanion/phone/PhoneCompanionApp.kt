@@ -6,6 +6,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import mx.watchcompanion.core.communication.HeartRateZonesStore
 import mx.watchcompanion.core.communication.InMemoryNonceRegistry
 import mx.watchcompanion.core.communication.LinkSession
 import mx.watchcompanion.core.communication.ProtocolCodec
@@ -41,8 +42,15 @@ class PhoneCompanionApp : Application(), LinkSessionOwner {
             diagnostics = diagnostics,
             // Lo que el reloj muestra en su pantalla Resumen (WC-29).
             syncSummary = { veloraSyncSummary(veloraSession.state.value, diagnostics.events.value) },
+            // El reloj recibe las zonas vigentes en cada Pong (WC-32).
+            zonesProvider = { zonesStore.zones.value },
         )
     }
+
+    /** Zonas de FC configuradas (WC-32). Fuera del respaldo, como el resto de los datos locales. */
+    private val zonesStore: HeartRateZonesStore by lazy { HeartRateZonesStore.inFile(File(noBackupFilesDir, "zonas.json")) }
+
+    val zones: PhoneZones by lazy { PhoneZones(zonesStore, linkSession) { veloraMaxHeartRate(veloraSession) } }
 
     /** Sesión propia de Velora (ADR-013): independiente de velora-android y de Nexora. */
     val veloraSession: VeloraSession by lazy {
@@ -57,6 +65,7 @@ class PhoneCompanionApp : Application(), LinkSessionOwner {
     override fun onCreate() {
         super.onCreate()
         appScope.launch { diagnostics.load() }
+        appScope.launch { zonesStore.load() }
         appScope.launch { veloraSession.restore() }
     }
 }

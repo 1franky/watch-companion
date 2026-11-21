@@ -53,7 +53,11 @@ android {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
-    buildFeatures { compose = true }
+    // BuildConfig.DEBUG decide si se permite un servidor http:// (solo desarrollo, contra una API local).
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
     testOptions {
         unitTests.isIncludeAndroidResources = true
         // Robolectric con SDK 36 sobre JDK 21 necesita acceso a los internos de FileDescriptor (SharedSecrets).
@@ -72,6 +76,7 @@ kotlin { jvmToolchain(21) }
 
 dependencies {
     implementation(project(":core:data-layer"))
+    implementation(project(":integration:velora-contract"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)

@@ -8,14 +8,22 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -23,42 +31,101 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import mx.watchcompanion.core.communication.LinkState
-import mx.watchcompanion.core.datalayer.LinkSessionOwner
+import mx.watchcompanion.integration.velora.LoginResult
+import mx.watchcompanion.integration.velora.SessionState
+import mx.watchcompanion.integration.velora.SignOutReason
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        val session = (application as LinkSessionOwner).linkSession
+        val app = application as PhoneCompanionApp
         setContent {
-            val state by session.state.collectAsStateWithLifecycle()
+            val link by app.linkSession.state.collectAsStateWithLifecycle()
+            val velora by app.veloraSession.state.collectAsStateWithLifecycle()
             val scope = rememberCoroutineScope()
-            LaunchedEffect(Unit) { session.refresh() }
-            PhoneHome(state = state, onCheck = { scope.launch { session.refresh() } })
+            var showLogin by rememberSaveable { mutableStateOf(false) }
+            var busy by remember { mutableStateOf(false) }
+            var loginError by remember { mutableStateOf<LoginResult?>(null) }
+            LaunchedEffect(Unit) { app.linkSession.refresh() }
+
+            MaterialTheme {
+                Scaffold { padding ->
+                    Column(Modifier.fillMaxSize().padding(padding).padding(24.dp).verticalScroll(rememberScrollState())) {
+                        if (showLogin && velora !is SessionState.SignedIn) {
+                            VeloraLogin(
+                                showServerField = BuildConfig.DEBUG,
+                                busy = busy,
+                                error = loginError,
+                                onSubmit = { server, email, password ->
+                                    busy = true
+                                    scope.launch {
+                                        val result = app.veloraSession.login(server, email, password)
+                                        busy = false
+                                        loginError = result.takeUnless { it == LoginResult.Success }
+                                        if (result == LoginResult.Success) showLogin = false
+                                    }
+                                },
+                                onCancel = {
+                                    showLogin = false
+                                    loginError = null
+                                },
+                            )
+                        } else {
+                            PhoneHome(
+                                link = link,
+                                onCheck = { scope.launch { app.linkSession.refresh() } },
+                                velora = velora,
+                                onVeloraLogin = {
+                                    loginError = null
+                                    showLogin = true
+                                },
+                                onVeloraLogout = { scope.launch { app.veloraSession.logout() } },
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
-/** Pantalla inicial de Fase 0: estado del enlace con el reloj. Después mostrará también las sesiones de Velora y Nexora. */
+/** Pantalla inicial: estado del enlace con el reloj y de la sesión de Velora. */
 @Composable
-fun PhoneHome(state: LinkState, onCheck: () -> Unit) {
-    MaterialTheme {
-        Scaffold { padding ->
-            Column(
-                modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Text(stringResource(R.string.home_title), style = MaterialTheme.typography.headlineMedium)
-                Text(linkTitle(state), style = MaterialTheme.typography.titleMedium)
-                if (state is LinkState.Connected) {
-                    Text(
-                        stringResource(R.string.link_connected_detail, state.roundTripMs, state.peerAppVersion),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-                Button(onClick = onCheck, enabled = state != LinkState.Checking) {
-                    Text(stringResource(R.string.link_check))
-                }
+fun PhoneHome(
+    link: LinkState,
+    onCheck: () -> Unit,
+    velora: SessionState = SessionState.SignedOut(),
+    onVeloraLogin: () -> Unit = {},
+    onVeloraLogout: () -> Unit = {},
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(stringResource(R.string.home_title), style = MaterialTheme.typography.headlineMedium)
+        Text(linkTitle(link), style = MaterialTheme.typography.titleMedium)
+        if (link is LinkState.Connected) {
+            Text(
+                stringResource(R.string.link_connected_detail, link.roundTripMs, link.peerAppVersion),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+        Button(onClick = onCheck, enabled = link != LinkState.Checking) {
+            Text(stringResource(R.string.link_check))
+        }
+        HorizontalDivider()
+        Text(stringResource(R.string.velora_section), style = MaterialTheme.typography.titleMedium)
+        when (velora) {
+            SessionState.Restoring -> Text(stringResource(R.string.velora_restoring))
+            is SessionState.SignedOut -> {
+                Text(
+                    stringResource(
+                        if (velora.reason == SignOutReason.EXPIRED) R.string.velora_expired else R.string.velora_signed_out,
+                    ),
+                )
+                Button(onClick = onVeloraLogin) { Text(stringResource(R.string.velora_login)) }
+            }
+            is SessionState.SignedIn -> {
+                Text(stringResource(R.string.velora_signed_in, velora.email))
+                OutlinedButton(onClick = onVeloraLogout) { Text(stringResource(R.string.velora_logout)) }
             }
         }
     }
@@ -75,5 +142,10 @@ private fun linkTitle(state: LinkState): String = when (state) {
 
 @Preview(showBackground = true)
 @Composable
-private fun PhoneHomePreview() =
-    PhoneHome(LinkState.Connected("Galaxy Watch Ultra", "0.1.0", roundTripMs = 42, checkedAt = 0), onCheck = {})
+private fun PhoneHomePreview() = MaterialTheme {
+    PhoneHome(
+        LinkState.Connected("Galaxy Watch Ultra", "0.1.0", roundTripMs = 42, checkedAt = 0),
+        onCheck = {},
+        velora = SessionState.SignedIn("https://velora.example", "propietario@example.com"),
+    )
+}

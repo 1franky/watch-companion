@@ -33,10 +33,20 @@ Toda la especificación vive en [`docs/`](docs/README.md):
 | `app-phone` | App Android en el S26 Ultra: único puente hacia Velora y Nexora (ADR-011, ADR-013), `minSdk 31` |
 | `core:phone-communication` | Protocolo Watch ↔ Phone en Kotlin puro: sobre versionado, catálogo, validación y `LinkSession` (ping/pong y estado del enlace) |
 | `core:permissions` | Permisos por módulo: qué pide cada uno, activación por el usuario, estado y revocación al desactivar |
-| `integration:velora-contract` | Cliente de Velora API generado del contrato fijado (solo las operaciones que usa el companion); lo usa `app-phone` |
+| `core:session` | Almacén de sesión por backend: refresh token cifrado con AES-GCM y una llave del Android Keystore distinta por backend |
+| `integration:velora-contract` | Cliente de Velora API generado del contrato fijado (solo las operaciones que usa el companion) y `VeloraSession` (login, renovación serializada y cierre); lo usa `app-phone` |
 | `core:data-layer` | Transporte sobre la Wear OS Data Layer (`CapabilityClient` + `MessageClient`), servicio receptor y `deviceId` seudónimo |
 
 Ambas apps comparten `applicationId` (`mx.watchcompanion`) y firma, porque la Data Layer solo comunica apps con el mismo id y certificado.
+
+## Sesiones de los backends
+
+Solo `app-phone` inicia sesión en Velora (y, desde la Fase 2, en Nexora), con sesiones propias e independientes de las apps de cada producto (ADR-013):
+
+- El access token vive solo en memoria; el refresh token se guarda cifrado (`core:session`). La contraseña nunca se guarda.
+- Las renovaciones se serializan: en Velora el refresh token es de un solo uso y reutilizarlo revoca toda la sesión.
+- La versión release solo acepta servidores `https://`. En debug se puede usar `http://10.0.2.2` o `http://localhost` contra una API local; el campo «Servidor» solo aparece en debug.
+- El cifrado real con Keystore se prueba en dispositivo o emulador: `./gradlew :core:session:connectedDebugAndroidTest`.
 
 ## Contratos de los backends
 
@@ -56,9 +66,10 @@ Cada módulo pide sus permisos **solo cuando el usuario lo activa**. Si se revoc
 | Permiso | App | Módulo | Para qué | Desde |
 |---|---|---|---|---|
 | `android.permission.health.READ_HEART_RATE` | reloj | Velora | Frecuencia cardíaca en vivo y alertas por zona (WC-30, WC-31) | Fase 1 |
+| `android.permission.INTERNET` (normal, sin diálogo) | teléfono | Velora | Llamar a Velora API por HTTPS (WC-22) | Fase 0 |
 | `mx.watchcompanion.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | ambas | — | Permiso interno de firma que agrega AndroidX (`core-ktx`); no muestra diálogo | Fase 0 |
 
-`INTERNET` lo declara `integration:velora-contract` y llegará a `app-phone` cuando lo use (WC-22); el reloj no lo necesita porque no llama a los backends (ADR-013). La ubicación (modo B, WC-53), las notificaciones de Nexora (WC-41), Guardian y Smart Hub agregan sus permisos a esta tabla en la tarjeta que los necesita.
+El reloj no declara `INTERNET`: no llama a los backends (ADR-013). La ubicación (modo B, WC-53), las notificaciones de Nexora (WC-41), Guardian y Smart Hub agregan sus permisos a esta tabla en la tarjeta que los necesita.
 
 ## Probar el enlace en dispositivos
 

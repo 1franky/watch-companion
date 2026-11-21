@@ -7,6 +7,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mx.watchcompanion.core.communication.LinkState
+import mx.watchcompanion.integration.velora.SessionState
+import mx.watchcompanion.integration.velora.SignOutReason
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -50,5 +52,36 @@ class PhoneHomeTest {
     fun mientrasCompruebaNoSePuedeRepetir() {
         compose.setContent { PhoneHome(LinkState.Checking, onCheck = {}) }
         compose.onNodeWithText("Probar conexión").assertIsNotEnabled()
+    }
+
+    @Test
+    fun sinSesionDeVeloraOfreceEntrar() {
+        var entrar = 0
+        compose.setContent { PhoneHome(LinkState.NoPeer, onCheck = {}, velora = SessionState.SignedOut(), onVeloraLogin = { entrar++ }) }
+        compose.onNodeWithText("Sin sesión").assertIsDisplayed()
+        compose.onNodeWithText("Iniciar sesión en Velora").performClick()
+        assertEquals(1, entrar)
+    }
+
+    @Test
+    fun unaSesionVencidaLoExplica() {
+        compose.setContent { PhoneHome(LinkState.NoPeer, onCheck = {}, velora = SessionState.SignedOut(SignOutReason.EXPIRED)) }
+        compose.onNodeWithText("Tu sesión de Velora terminó. Vuelve a entrar.").assertIsDisplayed()
+    }
+
+    @Test
+    fun conSesionMuestraElCorreoYPermiteSalir() {
+        var salir = 0
+        compose.setContent {
+            PhoneHome(
+                LinkState.NoPeer,
+                onCheck = {},
+                velora = SessionState.SignedIn("https://velora.example", "propietario@example.com"),
+                onVeloraLogout = { salir++ },
+            )
+        }
+        compose.onNodeWithText("Conectado como propietario@example.com").assertIsDisplayed()
+        compose.onNodeWithText("Cerrar sesión").performClick()
+        assertEquals(1, salir)
     }
 }

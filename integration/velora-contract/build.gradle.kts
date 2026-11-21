@@ -87,6 +87,7 @@ androidComponents {
 tasks.named("preBuild") { dependsOn(generateVeloraApi) }
 
 dependencies {
+    api(project(":core:session"))
     api(libs.ktor.client.core)
     api(libs.kotlinx.serialization.json)
     implementation(libs.ktor.client.okhttp)

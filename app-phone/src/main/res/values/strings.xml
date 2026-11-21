@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="es">
     <string name="app_name">Watch Companion</string>
     <string name="home_title">Watch Companion</string>
     <string name="link_checking">Buscando el reloj…</string>
@@ -9,4 +9,24 @@
     <string name="link_connected_detail">%1$d ms · v%2$s</string>
     <string name="link_incompatible">Actualiza la app en el reloj o en el teléfono</string>
     <string name="link_check">Probar conexión</string>
+    <string name="velora_section">Velora</string>
+    <string name="velora_restoring">Revisando la sesión…</string>
+    <string name="velora_signed_out">Sin sesión</string>
+    <string name="velora_expired">Tu sesión de Velora terminó. Vuelve a entrar.</string>
+    <string name="velora_signed_in">Conectado como %1$s</string>
+    <string name="velora_login">Iniciar sesión en Velora</string>
+    <string name="velora_logout">Cerrar sesión</string>
+    <string name="login_title">Entrar a Velora</string>
+    <string name="login_server">Servidor (solo desarrollo)</string>
+    <string name="login_email">Correo</string>
+    <string name="login_password">Contraseña</string>
+    <string name="login_submit">Entrar</string>
+    <string name="login_cancel">Cancelar</string>
+    <string name="login_error_credentials">Correo o contraseña incorrectos.</string>
+    <string name="login_error_too_many">Demasiados intentos. Espera %1$d s.</string>
+    <string name="login_error_too_many_generic">Demasiados intentos. Espera un momento.</string>
+    <string name="login_error_input">Revisa el correo.</string>
+    <string name="login_error_insecure">El servidor debe usar HTTPS.</string>
+    <string name="login_error_unreachable">No hay conexión con Velora.</string>
+    <string name="login_error_unavailable">Velora no está disponible. Intenta más tarde.</string>
 </resources>

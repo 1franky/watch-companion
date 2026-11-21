@@ -1,6 +1,7 @@
 package mx.watchcompanion.phone
 
 import android.app.Application
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -12,6 +13,8 @@ import mx.watchcompanion.core.datalayer.Capabilities
 import mx.watchcompanion.core.datalayer.DataLayerTransport
 import mx.watchcompanion.core.datalayer.DeviceId
 import mx.watchcompanion.core.datalayer.LinkSessionOwner
+import mx.watchcompanion.core.diagnostics.Diagnostics
+import mx.watchcompanion.core.diagnostics.FileDiagnosticsStorage
 import mx.watchcompanion.core.session.Backend
 import mx.watchcompanion.core.session.createSessionStore
 import mx.watchcompanion.integration.velora.VeloraApi
@@ -22,12 +25,20 @@ class PhoneCompanionApp : Application(), LinkSessionOwner {
     /** Vive lo que el proceso: tareas que deben terminar aunque se cierre la pantalla (p. ej. avisar el logout). */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    private val appVersion: String by lazy { packageManager.getPackageInfo(packageName, 0).versionName.orEmpty() }
+
+    /** Registro técnico local (WC-23), fuera del respaldo: no sale del teléfono. */
+    val diagnostics: Diagnostics by lazy {
+        Diagnostics(FileDiagnosticsStorage(File(noBackupFilesDir, "diagnostico.json")), appVersion)
+    }
+
     override val linkSession: LinkSession by lazy {
         LinkSession(
             transport = DataLayerTransport(this, peerCapability = Capabilities.WATCH_APP),
             codec = ProtocolCodec(InMemoryNonceRegistry()),
             deviceId = DeviceId.get(this),
-            appVersion = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty(),
+            appVersion = appVersion,
+            diagnostics = diagnostics,
         )
     }
 
@@ -37,11 +48,13 @@ class PhoneCompanionApp : Application(), LinkSessionOwner {
             store = createSessionStore(this, Backend.VELORA),
             appScope = appScope,
             apiFor = { VeloraApi.create(it, allowCleartext = BuildConfig.DEBUG) },
+            diagnostics = diagnostics,
         )
     }
 
     override fun onCreate() {
         super.onCreate()
+        appScope.launch { diagnostics.load() }
         appScope.launch { veloraSession.restore() }
     }
 }

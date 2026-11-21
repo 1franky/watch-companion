@@ -29,4 +29,17 @@
     <string name="login_error_insecure">El servidor debe usar HTTPS.</string>
     <string name="login_error_unreachable">No hay conexión con Velora.</string>
     <string name="login_error_unavailable">Velora no está disponible. Intenta más tarde.</string>
+    <string name="diagnostics_open">Diagnóstico</string>
+    <string name="diagnostics_title">Diagnóstico</string>
+    <string name="diagnostics_back">Volver</string>
+    <string name="diagnostics_empty">Sin eventos registrados.</string>
+    <string name="diagnostics_sync">Estado de sincronización</string>
+    <string name="diagnostics_module_link">Enlace con el reloj</string>
+    <string name="diagnostics_module_nexora">Nexora</string>
+    <string name="diagnostics_last_success">Último éxito: %1$s</string>
+    <string name="diagnostics_no_success">Sin éxitos registrados</string>
+    <string name="diagnostics_pending_error">Error %1$s (%2$s)</string>
+    <string name="diagnostics_events">Eventos (%1$d)</string>
+    <string name="diagnostics_event_detail">%1$s · %2$d ms · %3$s</string>
+    <string name="diagnostics_clear">Borrar registro</string>
 </resources>

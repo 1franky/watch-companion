@@ -1,6 +1,9 @@
 package mx.watchcompanion.core.communication
 
 import kotlinx.coroutines.test.TestScope
+import mx.watchcompanion.core.diagnostics.DiagnosticModule
+import mx.watchcompanion.core.diagnostics.DiagnosticsRecorder
+import mx.watchcompanion.core.diagnostics.Outcome
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -103,5 +106,39 @@ class LinkSessionTest {
         }
         reloj = session(responde, "0.1.0")
         assertEquals(LinkState.Incompatible, reloj.refresh())
+    }
+
+    private class Recorded : DiagnosticsRecorder {
+        val events = mutableListOf<Triple<String, Outcome, String>>()
+        override suspend fun record(
+            module: DiagnosticModule,
+            operation: String,
+            correlationId: String,
+            outcome: Outcome,
+            code: String,
+            durationMs: Long,
+        ) {
+            assertEquals(DiagnosticModule.LINK, module)
+            events += Triple(operation, outcome, code)
+        }
+    }
+
+    @Test
+    fun registraCadaComprobacionYLosMensajesDescartados() = runTest {
+        val recorded = Recorded()
+        val reloj = LinkSession(
+            Loopback(emptyList()), codec, deviceId = "dev", appVersion = "0.1.0",
+            clock = { testScheduler.currentTime }, diagnostics = recorded,
+        )
+        reloj.refresh()
+        reloj.onMessage("nodo-telefono", "{basura".encodeToByteArray())
+
+        assertEquals(
+            listOf(
+                Triple("link.ping", Outcome.ERROR, "NO_PEER"),
+                Triple("link.receive", Outcome.ERROR, "MALFORMED"),
+            ),
+            recorded.events,
+        )
     }
 }

@@ -17,6 +17,10 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import mx.watchcompanion.core.diagnostics.Diagnostics
+import mx.watchcompanion.core.diagnostics.DiagnosticsRecorder
+import mx.watchcompanion.core.diagnostics.DiagnosticsStorage
+import mx.watchcompanion.core.diagnostics.Outcome
 import mx.watchcompanion.core.session.SessionStore
 import mx.watchcompanion.core.session.StoredSession
 import org.junit.Assert.assertEquals
@@ -50,8 +54,11 @@ class VeloraSessionTest {
     private val me = """{"id":"6f1c3c62-5a0e-4a4e-9a51-0b2c8f8d2f10","email":"p@example.com","preferences":{"locale":"es-MX",
         "timeZone":"America/Mexico_City","distanceUnit":"km","elevationUnit":"m","trackPrivacyMeters":300,"maxHeartRateBpm":185}}"""
 
-    private fun TestScope.session(store: SessionStore, velora: FakeVelora) =
-        VeloraSession(store, backgroundScope, apiFor = { VeloraApi.create(it, engine = velora.engine) }, now = { clock })
+    private fun TestScope.session(store: SessionStore, velora: FakeVelora, diagnostics: Diagnostics? = null) =
+        VeloraSession(
+            store, backgroundScope, apiFor = { VeloraApi.create(it, engine = velora.engine) }, now = { clock },
+            diagnostics = diagnostics ?: DiagnosticsRecorder.NONE,
+        )
 
     @Test
     fun loginGuardaSoloElRefreshTokenCifradoYQuedaDentro() = runTest {
@@ -182,5 +189,46 @@ class VeloraSessionTest {
         // El aviso corre en el alcance de la app y el motor simulado en su propio hilo: se espera en tiempo real.
         val cuerpo = withContext(Dispatchers.Default) { withTimeout(5_000) { avisoRecibido.await() } }
         assertTrue(cuerpo.contains("\"r1\""))
+    }
+
+    private class MemoryStorage : DiagnosticsStorage {
+        var text = ""
+        override suspend fun read() = text.ifEmpty { null }
+        override suspend fun write(text: String) { this.text = text }
+    }
+
+    @Test
+    fun elRegistroLlevaElRequestIdYNoGuardaSecretos() = runTest {
+        val storage = MemoryStorage()
+        val diagnostics = Diagnostics(storage, appVersion = "0.1.0", clock = { clock })
+        val requestIds = mutableListOf<String?>()
+        val velora = FakeVelora { request ->
+            requestIds += request.headers["X-Request-Id"]
+            when {
+                request.url.encodedPath.endsWith("/auth/login") ->
+                    respond(tokens("acceso-secreto-1", "refresco-secreto-1", expiresIn = 1), HttpStatusCode.OK, json)
+                request.url.encodedPath.endsWith("/auth/refresh") ->
+                    respond(tokens("acceso-secreto-2", "refresco-secreto-2"), HttpStatusCode.OK, json)
+                else -> respond("""{"status":503,"title":"x"}""", HttpStatusCode.ServiceUnavailable, json)
+            }
+        }
+        val session = session(MemoryStore(), velora, diagnostics)
+
+        session.login(server, "propietario@example.com", "contraseña-secreta")
+        session.call("velora.getMe") { getMe() } // el access token ya venció: renueva y luego Velora responde 503
+
+        val eventos = diagnostics.events.value.reversed()
+        assertEquals(
+            listOf("velora.login" to "OK", "velora.refresh" to "OK", "velora.getMe" to "HTTP_503"),
+            eventos.map { it.operation to it.code },
+        )
+        assertEquals(Outcome.ERROR, eventos.last().outcome)
+        // Cada solicitud lleva el correlation ID de su evento: con él se encuentra en los logs de Velora.
+        assertEquals(eventos.map { it.correlationId }, requestIds)
+
+        val guardado = storage.text
+        for (secreto in listOf("secreto", "propietario@example.com", "contraseña", "Bearer", server)) {
+            assertTrue("se guardó «$secreto»", !guardado.contains(secreto))
+        }
     }
 }

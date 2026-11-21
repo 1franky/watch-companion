@@ -55,6 +55,8 @@ class MainActivity : ComponentActivity() {
             var busy by remember { mutableStateOf(false) }
             var loginError by remember { mutableStateOf<LoginResult?>(null) }
             LaunchedEffect(Unit) { app.linkSession.refresh() }
+            // Al iniciar sesión (o abrir la app con sesión) se consulta la última actividad para el reloj (WC-33).
+            LaunchedEffect(velora is SessionState.SignedIn) { if (velora is SessionState.SignedIn) app.refreshActivityForWatch() }
 
             MaterialTheme {
                 Scaffold { padding ->

@@ -31,7 +31,7 @@ android {
 val companionOperations = listOf(
     "login", "refreshTokens", "logout", // sesión de app-phone (WC-22)
     "getMe", // FC máxima para las zonas (WC-32)
-    "listActivities", "getImportJob", // estado de la última actividad (WC-33)
+    "listActivities", "getStravaStatus", // estado de la última actividad (WC-33)
 )
 
 val generatedApi = layout.buildDirectory.dir("generated/openapi")
@@ -60,9 +60,9 @@ val generateVeloraApi by tasks.registering(GenerateTask::class) {
             "models" to listOf(
                 "LoginRequest", "RefreshRequest", "TokenResponse", "Problem",
                 "Me", "Preferences",
-                "ActivitySummary", "ActivitySubType", "ImportJob",
+                "ActivitySummary", "ActivitySubType", "StravaStatus",
                 // Esquemas en línea: se nombran por su clave interna, no por la clase que generan.
-                "listActivities_200_response", "ImportJob_warnings_inner",
+                "listActivities_200_response",
             ).joinToString(","),
         ),
     )

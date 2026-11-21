@@ -24,6 +24,10 @@ import mx.watchcompanion.core.diagnostics.start
  *   Pong sale igual, sin él: la conexión no depende del estado de los backends.
  * @param zonesProvider zonas de FC vigentes que se envían en cada Pong (WC-32); solo las da el teléfono.
  * @param onZones recibe las zonas que llegan del otro lado (WC-32); solo lo usa el reloj, que decide si las guarda.
+ * @param activityProvider último estado de la actividad en Velora, para el Pong (WC-33); solo lo da el teléfono.
+ * @param onActivity recibe ese estado en el reloj (WC-33).
+ * @param onPeerPing se llama tras responder un Ping: el teléfono lo usa para refrescar en segundo plano lo que el Pong
+ *   no pudo traer actualizado (no hay tiempo de consultar la red dentro del ping).
  */
 class LinkSession(
     private val transport: LinkTransport,
@@ -37,6 +41,9 @@ class LinkSession(
     private val syncSummary: suspend () -> List<SyncSummary> = { emptyList() },
     private val zonesProvider: suspend () -> HeartRateZones? = { null },
     private val onZones: suspend (HeartRateZones) -> Unit = {},
+    private val activityProvider: suspend () -> ActivityStatus? = { null },
+    private val onActivity: suspend (ActivityStatus) -> Unit = {},
+    private val onPeerPing: suspend () -> Unit = {},
 ) {
     private val _state = MutableStateFlow<LinkState>(LinkState.Unknown)
     val state: StateFlow<LinkState> = _state.asStateFlow()
@@ -107,17 +114,20 @@ class LinkSession(
 
     private suspend fun handle(fromPeerId: String, envelope: Envelope) {
         when (val payload = envelope.payload) {
-            Ping -> sendQuietly(
-                fromPeerId,
-                envelope(Pong(appVersion, currentSync(), currentZones()), correlationId = envelope.messageId),
-            )
+            Ping -> {
+                val pong = Pong(appVersion, currentSync(), currentZones(), guardedValue { activityProvider() })
+                sendQuietly(fromPeerId, envelope(pong, correlationId = envelope.messageId))
+                guardedValue { onPeerPing() }
+            }
             is Pong -> {
                 // Solo se acepta lo que viene en respuesta a un ping propio.
                 val pending = envelope.correlationId?.let { pendingPings[it] } ?: return
                 payload.zones?.let { deliverZones(it) }
+                payload.activity?.let { status -> guardedValue { onActivity(status) } }
                 pending.complete(payload)
             }
             is HeartRateZonesConfig -> deliverZones(payload.zones)
+            is ActivityStatusReport -> guardedValue { onActivity(payload.status) }
             is IntegrationStatus ->
                 if (payload.integration == IntegrationStatus.Integration.PHONE_LINK &&
                     payload.state == IntegrationStatus.State.INCOMPATIBLE
@@ -147,6 +157,15 @@ class LinkSession(
         } catch (_: Exception) {
             false
         }
+    }
+
+    /** Un fallo de quien provee o recibe datos no rompe el enlace. */
+    private suspend fun <T> guardedValue(block: suspend () -> T): T? = try {
+        block()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        null
     }
 
     private suspend fun currentZones(): HeartRateZones? = try {

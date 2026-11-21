@@ -69,6 +69,7 @@ class MainActivity : ComponentActivity() {
             val link by session.state.collectAsStateWithLifecycle()
             val liveState by live.state.collectAsStateWithLifecycle()
             val zones by (application as WatchCompanionApp).zones.zones.collectAsStateWithLifecycle()
+            val activity by (application as WatchCompanionApp).activity.collectAsStateWithLifecycle()
             // Con una sesión en curso, la app abre directamente en Métricas.
             var screen by rememberSaveable { mutableStateOf(Screen.SUMMARY) }
             val scope = rememberCoroutineScope()
@@ -115,6 +116,7 @@ class MainActivity : ComponentActivity() {
                 return@setContent
             }
             SummaryScreen(
+                activity = activity,
                 live = liveState,
                 onLive = {
                     if (liveState == LiveMetricsState.Idle) scope.launch { live.start() }

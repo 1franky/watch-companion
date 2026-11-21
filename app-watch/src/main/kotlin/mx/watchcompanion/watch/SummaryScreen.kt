@@ -34,6 +34,11 @@ import mx.watchcompanion.core.communication.IntegrationStatus
 import mx.watchcompanion.core.communication.LinkState
 import mx.watchcompanion.core.communication.SyncSummary
 import mx.watchcompanion.core.permissions.ModuleStatus
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import mx.watchcompanion.core.communication.ActivityStatus
 import mx.watchcompanion.watch.live.LiveMetricsState
 
 /**
@@ -44,6 +49,8 @@ import mx.watchcompanion.watch.live.LiveMetricsState
  * muestra ninguno, para no presentar como vigente un dato viejo.
  *
  * @param now instante actual (ms epoch), para el «hace N min»; inyectable para pruebas.
+ * @param activity último estado de la actividad en Velora que informó el teléfono (WC-33).
+ * @param zoneId zona horaria para mostrar la fecha de la actividad; inyectable para pruebas.
  */
 @Composable
 fun SummaryScreen(
@@ -55,6 +62,8 @@ fun SummaryScreen(
     onVeloraAction: (ModuleAction) -> Unit = {},
     live: LiveMetricsState = LiveMetricsState.Idle,
     onLive: () -> Unit = {},
+    activity: ActivityStatus? = null,
+    zoneId: ZoneId = ZoneId.systemDefault(),
 ) {
     MaterialTheme {
         val scroll = rememberScrollState()
@@ -83,6 +92,7 @@ fun SummaryScreen(
             SummaryItem(stringResource(R.string.summary_phone), linkTitle(link), primary, secondary)
             SummaryItem(stringResource(R.string.summary_mode), stringResource(R.string.summary_mode_a), primary, secondary)
             SummaryItem(stringResource(R.string.summary_velora), veloraSyncText(link, now), primary, secondary)
+            ActivityItem(activity, now, zoneId, primary, secondary)
             if (live is LiveMetricsState.Active) {
                 SummaryItem(stringResource(R.string.summary_live), liveSummary(live), primary, secondary)
             }
@@ -114,6 +124,40 @@ private fun SummaryItem(label: String, value: String, primary: Color, secondary:
         Text(value, color = primary, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
     }
 }
+
+/** Última actividad en Velora con la hora de la consulta: un dato sin fecha no se presenta como vigente. */
+@Composable
+private fun ActivityItem(activity: ActivityStatus?, now: Long, zoneId: ZoneId, primary: Color, secondary: Color) {
+    Column(
+        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(stringResource(R.string.summary_activity), color = secondary, style = MaterialTheme.typography.labelMedium)
+        if (activity == null) {
+            Text(stringResource(R.string.sync_no_data), color = primary, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+            return@Column
+        }
+        val value = when (activity.state) {
+            ActivityStatus.State.SYNCED -> stringResource(R.string.activity_synced)
+            ActivityStatus.State.SYNCING -> stringResource(R.string.activity_syncing)
+            ActivityStatus.State.PENDING -> stringResource(R.string.activity_pending)
+            ActivityStatus.State.ERROR -> stringResource(R.string.activity_error, activity.errorCode ?: "?")
+        }
+        Text(value, color = primary, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+        activity.activityStartedAt?.let { startedAt ->
+            Text(activityDetail(startedAt, activity.distanceMeters, zoneId), color = primary, textAlign = TextAlign.Center)
+        }
+        Text(stringResource(R.string.activity_checked, elapsed(now - activity.checkedAt)), color = secondary, textAlign = TextAlign.Center)
+    }
+}
+
+@Composable
+private fun activityDetail(startedAt: Long, distanceMeters: Double?, zoneId: ZoneId): String {
+    val date = ACTIVITY_DATE.format(Instant.ofEpochMilli(startedAt).atZone(zoneId))
+    return distanceMeters?.let { stringResource(R.string.activity_detail_km, date, it / 1000) } ?: date
+}
+
+private val ACTIVITY_DATE = DateTimeFormatter.ofPattern("d MMM HH:mm", Locale.forLanguageTag("es-MX"))
 
 @Composable
 private fun liveSummary(live: LiveMetricsState.Active): String = when {

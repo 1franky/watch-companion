@@ -64,6 +64,8 @@ Al abrir la app, el reloj muestra el **Resumen** (01 §5): conexión con el tel�
 
 - El estado de sincronización lo informa el teléfono en cada `Pong` (`SyncSummary`): sesión cerrada o vencida, nunca sincronizado, sincronizado hace N min o error con su código. Sale de la sesión de `app-phone` y del registro de diagnóstico, así que no lleva datos personales.
 - Sin enlace con el teléfono no se muestra ningún estado de sincronización: un dato viejo no se presenta como vigente.
+- **Última actividad** (WC-33): el teléfono combina `GET /activities?limit=1` con el estado del conector de Strava (`GET /integrations/strava`) y la informa como *sincronizada* (con fecha y distancia), *sincronizando*, *pendiente* o *error* con su código; siempre con la hora de la consulta. Nunca se simula un éxito. En el modo A no hay `jobId` de importación (las rodadas llegan por Strava), por eso no se usa `GET /imports/{jobId}`.
+- El teléfono responde el ping con el último estado conocido y, si tiene más de 2 minutos, consulta a Velora en segundo plano y se lo manda al reloj al terminar.
 - Soporta modo ambiente (`AmbientLifecycleObserver`): solo quedan los textos, en gris sobre negro y sin botones.
 - El bisel giratorio y la corona desplazan la pantalla; con letra grande todo sigue al alcance desplazando.
 

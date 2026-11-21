@@ -14,6 +14,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import mx.watchcompanion.core.communication.ActivityStatus
 import mx.watchcompanion.core.communication.IntegrationStatus
 import mx.watchcompanion.core.communication.SyncSummary
 import org.junit.Assert.assertTrue
@@ -77,16 +78,53 @@ class SummaryScreenTest {
         }
     }
 
+    private val utc = java.time.ZoneId.of("UTC")
+
+    @Test
+    fun ultimaActividadSincronizadaConFechaDistanciaYHoraDeConsulta() {
+        // 2027-01-15 08:12 UTC
+        val inicio = java.time.Instant.parse("2027-01-15T08:12:00Z").toEpochMilli()
+        val actividad = ActivityStatus(ActivityStatus.State.SYNCED, checkedAt = AHORA - 3 * MIN, activityStartedAt = inicio, distanceMeters = 42_300.0)
+        compose.setContent { SummaryScreen(now = AHORA, link = LinkState.NoPeer, onCheck = {}, activity = actividad, zoneId = utc) }
+        compose.onNodeWithText("Sincronizada").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("15 ene 08:12", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("km", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Consultado hace 3 min").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun cadaEstadoDeLaActividadTieneSuTextoYNuncaSimulaExito() {
+        var actividad by mutableStateOf<ActivityStatus?>(null)
+        compose.setContent { SummaryScreen(now = AHORA, link = LinkState.NoPeer, onCheck = {}, activity = actividad, zoneId = utc) }
+        val casos = listOf(
+            ActivityStatus(ActivityStatus.State.PENDING, AHORA) to "Pendiente: aún no hay actividades",
+            ActivityStatus(ActivityStatus.State.SYNCING, AHORA) to "Sincronizando con Strava",
+            ActivityStatus(ActivityStatus.State.ERROR, AHORA, errorCode = "STRAVA_UNAVAILABLE") to "Error (STRAVA_UNAVAILABLE)",
+        )
+        for ((estado, texto) in casos) {
+            actividad = estado
+            compose.onNodeWithText(texto).performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("Sincronizada").assertDoesNotExist()
+            compose.onNodeWithText("Consultado hace un momento").performScrollTo().assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun sinInformeDeActividadLoDice() {
+        compose.setContent { SummaryScreen(now = AHORA, link = conectado(), onCheck = {}) }
+        compose.onNode(hasText("Última actividad") and hasText("Sin datos del teléfono")).performScrollTo().assertExists()
+    }
+
     @Test
     fun sinEnlaceNoMuestraUnEstadoDeSincronizacionViejo() {
         compose.setContent { SummaryScreen(now = AHORA, link = LinkState.Unreachable("Galaxy S26 Ultra"), onCheck = {}) }
-        compose.onNodeWithText("Sin datos del teléfono").assertIsDisplayed()
+        compose.onNode(hasText("Velora") and hasText("Sin datos del teléfono")).assertIsDisplayed()
     }
 
     @Test
     fun conectadoSinInformeDeVeloraNoInventaUnEstado() {
         compose.setContent { SummaryScreen(now = AHORA, link = conectado(), onCheck = {}) }
-        compose.onNodeWithText("Sin datos del teléfono").assertIsDisplayed()
+        compose.onNode(hasText("Velora") and hasText("Sin datos del teléfono")).assertIsDisplayed()
     }
 
     @Test

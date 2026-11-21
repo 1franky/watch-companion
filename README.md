@@ -89,6 +89,19 @@ En el teléfono, **Inicio → Zonas de frecuencia cardíaca** (WC-32):
 - **Guardar y enviar al reloj** las guarda en el teléfono y las manda al reloj (`HeartRateZonesConfig`). Si el reloj no está al alcance, las recibe en la siguiente comprobación de enlace: el `Pong` del teléfono siempre lleva las zonas vigentes.
 - El reloj guarda la versión más reciente en un archivo local y muestra la zona en **Métricas**: funciona sin teléfono ni internet.
 
+## Garantía del modo A: no se crea ni sube ninguna actividad
+
+En el modo A, la única actividad es la del BSC100S (iGPSPORT → Strava → Velora). Cuatro pruebas lo vigilan en CI (WC-34); si alguien agrega una importación o una escritura, fallan:
+
+| Prueba | Qué vigila |
+|---|---|
+| `ModeAContractTest` (`integration:velora-contract`) | Cada operación del cliente generado es `GET` o de sesión (`/auth/`); ninguna de importación, reproceso ni escritura en Strava. Lee el `openapi-v1.yaml` fijado. |
+| `ModeANoUploadsTest` (`app-phone`) | Corre los flujos reales del teléfono (sesión, zonas, última actividad, cierre) contra una Velora simulada y exige que cada petición esté en la lista de lecturas y sesión. |
+| `ModeAProtocolTest` (`core:phone-communication`) | El catálogo de mensajes Watch ↔ Phone es una lista cerrada: un mensaje nuevo obliga a justificar que no transporta muestras ni archivos. |
+| `ModeAWatchTest` (`app-watch`) | El reloj no declara `INTERNET` ni permisos de ubicación. |
+
+Las lecturas sí están permitidas: p. ej. `GET /integrations/strava` para mostrar el estado de la sincronización.
+
 ## Contratos de los backends
 
 `contract/<backend>/openapi-v1.yaml` es una copia del contrato del backend fijada al commit de `contract/<backend>/REF` (ADR-009). El cliente se genera de esa copia en cada build: si el contrato cambia y el código no, no compila. Así el build no depende de la red y cada cambio de contrato es un PR explícito.

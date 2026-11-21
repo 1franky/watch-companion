@@ -34,6 +34,7 @@ import mx.watchcompanion.core.communication.IntegrationStatus
 import mx.watchcompanion.core.communication.LinkState
 import mx.watchcompanion.core.communication.SyncSummary
 import mx.watchcompanion.core.permissions.ModuleStatus
+import mx.watchcompanion.watch.live.LiveMetricsState
 
 /**
  * Pantalla Resumen (01 §5, WC-29): conexión con el teléfono, modo activo y estado de sincronización con Velora.
@@ -52,6 +53,8 @@ fun SummaryScreen(
     ambient: Boolean = false,
     velora: ModuleStatus = ModuleStatus.Disabled,
     onVeloraAction: (ModuleAction) -> Unit = {},
+    live: LiveMetricsState = LiveMetricsState.Idle,
+    onLive: () -> Unit = {},
 ) {
     MaterialTheme {
         val scroll = rememberScrollState()
@@ -80,7 +83,16 @@ fun SummaryScreen(
             SummaryItem(stringResource(R.string.summary_phone), linkTitle(link), primary, secondary)
             SummaryItem(stringResource(R.string.summary_mode), stringResource(R.string.summary_mode_a), primary, secondary)
             SummaryItem(stringResource(R.string.summary_velora), veloraSyncText(link, now), primary, secondary)
+            if (live is LiveMetricsState.Active) {
+                SummaryItem(stringResource(R.string.summary_live), liveSummary(live), primary, secondary)
+            }
             if (!ambient) {
+                // Las métricas no dependen del teléfono: solo de que Velora tenga su permiso (01 §3.1).
+                if (velora == ModuleStatus.Ready || live != LiveMetricsState.Idle) {
+                    Button(onClick = onLive) {
+                        Text(stringResource(if (live == LiveMetricsState.Idle) R.string.live_start else R.string.live_open))
+                    }
+                }
                 Button(onClick = onCheck, enabled = link != LinkState.Checking) {
                     Text(stringResource(R.string.link_check))
                 }
@@ -101,6 +113,13 @@ private fun SummaryItem(label: String, value: String, primary: Color, secondary:
         Text(label, color = secondary, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
         Text(value, color = primary, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
     }
+}
+
+@Composable
+private fun liveSummary(live: LiveMetricsState.Active): String = when {
+    live.paused -> stringResource(R.string.live_paused)
+    live.heartRateBpm != null -> stringResource(R.string.live_bpm_value, live.heartRateBpm)
+    else -> stringResource(R.string.live_running)
 }
 
 @Composable

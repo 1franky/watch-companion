@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-feature android:name="android.hardware.type.watch" />
 
     <!-- Velora: frecuencia cardíaca en vivo (WC-30). Se pide solo al activar el módulo (core:permissions). -->
     <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+    <!-- Sesión de métricas en vivo (WC-30): mantiene el proceso vivo con la pantalla apagada. Permisos normales. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
 
     <application
         android:name=".WatchCompanionApp"
@@ -19,6 +23,14 @@
         <meta-data
             android:name="com.google.android.wearable.standalone"
             android:value="false" />
+
+        <!-- En API 36 el tipo health se cumple con health.READ_HEART_RATE (sustituye a BODY_SENSORS); la regla de lint
+             aún no lo conoce. Se verifica en el reloj físico (WC-24). -->
+        <service
+            android:name=".live.LiveMetricsService"
+            android:exported="false"
+            android:foregroundServiceType="health"
+            tools:ignore="ForegroundServicePermission" />
 
         <activity
             android:name=".MainActivity"

@@ -48,6 +48,43 @@ class LinkSessionTest {
         assertEquals(estado, reloj.state.value)
     }
 
+    private val veloraAlDia =
+        SyncSummary(IntegrationStatus.Integration.VELORA, SyncSummary.State.SYNCED, lastSuccessAt = 1_000)
+
+    @Test
+    fun elPongDelTelefonoTraeSuEstadoDeSincronizacion() = runTest {
+        val haciaTelefono = Loopback(listOf(telefono))
+        val haciaReloj = Loopback(listOf(Peer("nodo-reloj", "Galaxy Watch Ultra", true)))
+        val reloj = session(haciaTelefono, "0.1.0")
+        val phone = LinkSession(
+            haciaReloj, codec, deviceId = "dev-tel", appVersion = "0.1.0",
+            clock = { testScheduler.currentTime }, syncSummary = { listOf(veloraAlDia) },
+        )
+        haciaTelefono.other = phone
+        haciaReloj.other = reloj
+
+        val estado = reloj.refresh() as LinkState.Connected
+
+        assertEquals(listOf(veloraAlDia), estado.peerSync)
+    }
+
+    @Test
+    fun siElEstadoDeSincronizacionFallaElPongSaleIgualSinEl() = runTest {
+        val haciaTelefono = Loopback(listOf(telefono))
+        val haciaReloj = Loopback(listOf(Peer("nodo-reloj", "Galaxy Watch Ultra", true)))
+        val reloj = session(haciaTelefono, "0.1.0")
+        val phone = LinkSession(
+            haciaReloj, codec, deviceId = "dev-tel", appVersion = "0.1.0",
+            clock = { testScheduler.currentTime }, syncSummary = { error("sin acceso al registro") },
+        )
+        haciaTelefono.other = phone
+        haciaReloj.other = reloj
+
+        val estado = reloj.refresh() as LinkState.Connected
+
+        assertEquals(emptyList<SyncSummary>(), estado.peerSync)
+    }
+
     @Test
     fun sinDispositivosQuedaSinPar() = runTest {
         assertEquals(LinkState.NoPeer, session(Loopback(emptyList()), "0.1.0").refresh())

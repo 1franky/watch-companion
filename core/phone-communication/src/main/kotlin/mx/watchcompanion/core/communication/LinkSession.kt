@@ -20,6 +20,8 @@ import mx.watchcompanion.core.diagnostics.start
  *
  * @param clock milisegundos epoch; inyectable para pruebas.
  * @param diagnostics registro técnico (WC-23): cada comprobación y cada mensaje descartado.
+ * @param syncSummary estado de sincronización que se envía en cada Pong (WC-29). Solo lo da el teléfono; si falla, el
+ *   Pong sale igual, sin él: la conexión no depende del estado de los backends.
  */
 class LinkSession(
     private val transport: LinkTransport,
@@ -30,6 +32,7 @@ class LinkSession(
     private val newId: () -> String = { UUID.randomUUID().toString() },
     private val pingTimeoutMs: Long = PING_TIMEOUT_MS,
     private val diagnostics: DiagnosticsRecorder = DiagnosticsRecorder.NONE,
+    private val syncSummary: suspend () -> List<SyncSummary> = { emptyList() },
 ) {
     private val _state = MutableStateFlow<LinkState>(LinkState.Unknown)
     val state: StateFlow<LinkState> = _state.asStateFlow()
@@ -71,7 +74,7 @@ class LinkSession(
             val pong = withTimeoutOrNull(pingTimeoutMs) { reply.await() }
                 ?: return if (_state.value == LinkState.Incompatible) LinkState.Incompatible else LinkState.Unreachable(peer.displayName)
             val now = clock()
-            return LinkState.Connected(peer.displayName, pong.appVersion, now - sentAt, now)
+            return LinkState.Connected(peer.displayName, pong.appVersion, now - sentAt, now, pong.sync)
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
@@ -100,7 +103,7 @@ class LinkSession(
 
     private suspend fun handle(fromPeerId: String, envelope: Envelope) {
         when (val payload = envelope.payload) {
-            Ping -> sendQuietly(fromPeerId, envelope(Pong(appVersion), correlationId = envelope.messageId))
+            Ping -> sendQuietly(fromPeerId, envelope(Pong(appVersion, currentSync()), correlationId = envelope.messageId))
             is Pong -> envelope.correlationId?.let { pendingPings[it]?.complete(payload) }
             is IntegrationStatus ->
                 if (payload.integration == IntegrationStatus.Integration.PHONE_LINK &&
@@ -109,6 +112,14 @@ class LinkSession(
                     _state.value = LinkState.Incompatible
                 }
         }
+    }
+
+    private suspend fun currentSync(): List<SyncSummary> = try {
+        syncSummary()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        emptyList()
     }
 
     /** Solo el motivo: el contenido del mensaje rechazado no se registra. */

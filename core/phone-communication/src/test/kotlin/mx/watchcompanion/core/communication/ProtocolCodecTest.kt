@@ -57,6 +57,27 @@ class ProtocolCodecTest {
     }
 
     @Test
+    fun unPongDeLaVersionAnteriorSinSyncSeLeeConLaListaVacia() {
+        val anterior = """{"messageId":"m","schemaVersion":1,"createdAt":0,"deviceId":"d","payload":{"type":"Pong","appVersion":"0.1.0"}}"""
+        val leido = codec.decode(anterior.encodeToByteArray(), now = 0) as DecodeResult.Accepted
+        assertEquals(Pong("0.1.0", sync = emptyList()), leido.envelope.payload)
+    }
+
+    @Test
+    fun elEstadoDeSincronizacionViajaCompleto() {
+        val sync = SyncSummary(IntegrationStatus.Integration.VELORA, SyncSummary.State.ERROR, lastSuccessAt = 5, errorCode = "HTTP_503")
+        val original = envelope(Pong("0.1.0", listOf(sync)))
+        assertEquals(DecodeResult.Accepted(original), codec.decode(codec.encode(original), now = 0))
+    }
+
+    @Test
+    fun unCodigoDeErrorConTextoLibreSeRechaza() {
+        val conCorreo = """{"messageId":"m","schemaVersion":1,"createdAt":0,"deviceId":"d","payload":{"type":"Pong","appVersion":"0.1.0",""" +
+            """"sync":[{"integration":"VELORA","state":"ERROR","errorCode":"user@example.com"}]}}"""
+        assertEquals(DecodeResult.Malformed, codec.decode(conCorreo.encodeToByteArray(), now = 0))
+    }
+
+    @Test
     fun rechazaMensajesCaducados() {
         assertEquals(DecodeResult.Expired, codec.decode(codec.encode(envelope(expiresAt = now)), now))
     }

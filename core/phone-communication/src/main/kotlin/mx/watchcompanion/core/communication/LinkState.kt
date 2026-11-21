@@ -13,9 +13,14 @@ sealed interface LinkState {
     /** Hay dispositivo, pero no respondió a tiempo o el envío falló. */
     data class Unreachable(val peerName: String) : LinkState
 
-    /** Respondió con un Pong válido. */
-    data class Connected(val peerName: String, val peerAppVersion: String, val roundTripMs: Long, val checkedAt: Long) :
-        LinkState
+    /** Respondió con un Pong válido; [peerSync] es el estado de sincronización que informó (vacío si no informó). */
+    data class Connected(
+        val peerName: String,
+        val peerAppVersion: String,
+        val roundTripMs: Long,
+        val checkedAt: Long,
+        val peerSync: List<SyncSummary> = emptyList(),
+    ) : LinkState
 
     /** La otra app habla una versión del protocolo fuera de rango: hay que actualizar una de las dos (R-05). */
     data object Incompatible : LinkState

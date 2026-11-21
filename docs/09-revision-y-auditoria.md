@@ -150,11 +150,15 @@ El README («Alcance de la primera entrega») mete Velora, Nexora, Guardian y Sm
 
 **Propuesta:** sacar del MVP de `01` todo lo que dependa del modo B.
 
+> **Resuelto 2026-11-21 (WC-6):** el MVP de `01` §2 solo contiene funciones del modo A. La grabación del reloj, la persistencia local y el inicio/pausa/fin de grabación pasan a Evolución (modo B, Fase 5). `01` §5 y §7 separan MVP y modo B.
+
 ### R-03 · Alta — No existe fuente para «velocidad/distancia recibidas del teléfono» en el modo A
 
 `01` §2/§5 muestra métricas «recibidas del teléfono», pero el propio `01` §4 dice que no hay API ni BLE abierto del BSC100S. En el modo A, el teléfono no tiene de dónde obtener la velocidad ni la distancia en vivo.
 
 **Propuesta:** en el MVP, las métricas en vivo son solo las del reloj (HR, duración). La velocidad y la distancia requieren GPS del reloj (modo B) o un sensor BLE propio, a decidir en un PoC.
+
+> **Resuelto 2026-11-21 (WC-6):** las métricas en vivo del MVP son HR, zona y duración del propio reloj, dentro de una *sesión de métricas en vivo* (`01` §3.1): ejercicio de `ExerciseClient` sin ubicación, sin persistir muestras y sin subidas. La velocidad y la distancia quedan en Evolución. También se quita el «estado BSC100S» de la pantalla Resumen, porque no hay fuente para él.
 
 ### R-04 · Media — El sobre de mensajes no cubre lo que exige Guardian/Smart Hub
 

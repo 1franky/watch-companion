@@ -12,23 +12,24 @@ El BSC100S sigue siendo el ciclocomputador principal en la configuración predet
 
 ### MVP
 
-- Pantalla de estado de ruta y conexión con el teléfono.
-- Mostrar frecuencia cardíaca disponible desde el reloj.
-- Mostrar tiempo de actividad y métricas recibidas del teléfono cuando estén disponibles.
-- Alertas hápticas por zonas de frecuencia cardíaca configuradas.
-- Registrar telemetría del reloj localmente cuando se habilite el modo dual.
-- Mostrar estado de sincronización con Velora.
-- No publicar una segunda actividad en Strava por defecto.
-- Permitir iniciar/pausar/finalizar una sesión del reloj únicamente si el usuario habilitó el modo de grabación dual o de respaldo.
+El MVP solo contiene funciones del **modo A** (ADR-012; hallazgos R-02 y R-03 de `09`).
+
+- Pantalla de resumen: conexión con el teléfono, modo activo y estado de sincronización.
+- **Sesión de métricas en vivo** (§3.1): frecuencia cardíaca, zona y duración medidas por el propio reloj.
+- Alertas hápticas por zonas de frecuencia cardíaca, sin depender de internet.
+- Configuración de las zonas de frecuencia cardíaca desde el teléfono.
+- Mostrar el estado de la última actividad importada en Velora (vía Strava).
+- No crear ni subir ninguna actividad desde el reloj: ni a Velora ni a Strava.
 
 ### Evolución
 
-- Registro GPS independiente.
+- **Modo B:** grabación del reloj (GPS + telemetría) con persistencia local e inicio/pausa/fin de sesión de grabación (Fase 5).
+- **Velocidad y distancia en vivo:** en el modo A no existen fuentes para ellas (el BSC100S no expone API ni BLE abierto, §4). Requieren el GPS del reloj (modo B) o un sensor BLE de velocidad propio, a decidir en un PoC.
 - Exportación FIT/GPX/TCX si la librería y el formato elegido lo permiten.
 - Comparación de rutas de BSC100S y Watch.
 - Recuperación de actividad cuando el ciclocomputador falla.
 - Analítica de carga y segmentos en Velora.
-- Configuración de sensores y zonas cardíacas.
+- Configuración de sensores adicionales.
 
 ## 3. Modos de operación
 
@@ -40,10 +41,23 @@ La selección se configura en el reloj y se refleja en la aplicación Android.
 - BSC100S se sincroniza con iGPSPORT y Strava según la configuración actual del usuario.
 - Strava dispara el webhook de Velora.
 - Velora importa y procesa esa actividad.
-- El Watch se utiliza para mostrar información, registrar telemetría propia opcional y generar alertas.
+- El Watch se utiliza para mostrar información y generar alertas mediante la sesión de métricas en vivo (§3.1).
 - El Watch no crea ni sube una segunda actividad de ciclismo.
 
-Si el reloj registra HR por separado, almacenar esa serie como fuente auxiliar y no sustituir automáticamente la HR del ciclocomputador o de la banda conectada.
+Guardar la HR del reloj como serie auxiliar en Velora queda fuera del MVP. Si se hace en el futuro, no debe sustituir automáticamente la HR del ciclocomputador o de la banda conectada.
+
+#### 3.1 Sesión de métricas en vivo (modo A)
+
+Para leer HR y duración de forma continua, el reloj necesita un ejercicio activo de Health Services (`ExerciseClient`; `MeasureClient` no sirve para captura continua, §4). En el modo A ese ejercicio es una **sesión de métricas en vivo**, que **no es una grabación**:
+
+- **La inicia y la termina el usuario** en el reloj. La duración mostrada es la del ejercicio de Health Services; pausar y reanudar solo afectan a esa duración.
+- **Datos:** solo frecuencia cardíaca (y la zona derivada) y duración. Sin GPS ni ubicación: no se solicita el permiso de ubicación para esta sesión.
+- **Sin persistencia de muestras:** las lecturas viven en memoria para la pantalla y las alertas. Al terminar se descartan. Solo se conservan los eventos técnicos del registro de diagnóstico (WC-23), sin muestras de HR.
+- **Sin subidas:** no se envía nada a Velora, a Strava ni a ningún backend. Tampoco se envían las muestras al teléfono.
+- **Sin dependencia del teléfono ni de internet:** las zonas configuradas se guardan en el reloj y las alertas hápticas se evalúan localmente.
+- **Coexistencia con el BSC100S:** la sesión no altera el flujo BSC100S → iGPSPORT → Strava → Velora. La única actividad lógica sigue siendo la del ciclocomputador.
+
+Esta definición es la que verifica la prueba automatizada «el modo A no sube ni crea actividades» (WC-34).
 
 ### Modo B — Grabación dual / respaldo
 
@@ -88,13 +102,17 @@ No asumir que existe una API pública o un protocolo BLE abierto del BSC100S par
 
 ## 5. UI del reloj
 
-Pantallas sugeridas:
+Pantallas del MVP (modo A):
 
-1. **Resumen:** estado BSC100S, estado del teléfono, modo de grabación.
-2. **Métricas:** BPM, zona, duración, velocidad/distancia si se reciben.
+1. **Resumen:** estado del teléfono, modo activo y estado de sincronización. No muestra el estado del BSC100S: ni el reloj ni el teléfono tienen forma de conocerlo (§4).
+2. **Métricas:** BPM, zona y duración de la sesión de métricas en vivo, con controles para iniciarla, pausarla y terminarla.
 3. **Alertas:** zona cardíaca alta/baja, pérdida de conexión, batería baja.
-4. **Sesión:** iniciar, pausar, reanudar y finalizar grabación Watch cuando el modo lo permita.
-5. **Sincronización:** pendiente, sincronizando, sincronizada, error.
+4. **Sincronización:** estado de la última actividad en Velora (pendiente, procesada, error).
+
+Evolución (modo B):
+
+- **Sesión de grabación:** iniciar, pausar, reanudar y finalizar la grabación del reloj, y ver si se guardó.
+- **Métricas:** velocidad y distancia cuando exista una fuente (GPS del reloj o sensor BLE).
 
 Evitar una pantalla saturada. Priorizar lectura rápida, contraste, tipografía grande y controles de pocos toques.
 
@@ -114,11 +132,18 @@ Todas las operaciones de ingestión deben ser idempotentes.
 
 ## 7. Criterios de aceptación
 
+### MVP (modo A)
+
 - Una salida normal con BSC100S produce una sola actividad en Strava y una sola actividad lógica en Velora.
-- Activar el modo A no inicia una segunda subida de actividad desde el Watch.
-- El Watch no pierde toda la sesión al perder conexión con el S26 Ultra.
-- En modo B, la sesión local sobrevive al reinicio de la app y puede sincronizarse posteriormente.
+- La sesión de métricas en vivo no crea ni sube ninguna actividad, y no envía muestras a ningún backend ni al teléfono.
+- La sesión de métricas en vivo no solicita ni usa la ubicación.
+- Al terminar la sesión no quedan muestras de HR persistidas en el reloj.
+- La sesión de métricas en vivo sigue funcionando al perder la conexión con el S26 Ultra.
+- Las alertas cardíacas funcionan sin depender de internet ni del teléfono.
+- Un estado de sincronización fallido no se presenta como sincronizado.
+
+### Evolución (modo B)
+
+- La sesión local sobrevive al reinicio de la app y puede sincronizarse posteriormente.
 - Las muestras tienen timestamps y fuente identificable.
-- Las alertas cardíacas funcionan sin depender de internet.
 - El usuario puede detener la grabación y ver claramente si se guardó.
-- Una sesión fallida no se presenta como sincronizada.

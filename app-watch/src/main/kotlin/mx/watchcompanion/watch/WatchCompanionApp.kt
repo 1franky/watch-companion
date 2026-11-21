@@ -14,6 +14,8 @@ import mx.watchcompanion.core.datalayer.Capabilities
 import mx.watchcompanion.core.datalayer.DataLayerTransport
 import mx.watchcompanion.core.datalayer.DeviceId
 import mx.watchcompanion.core.datalayer.LinkSessionOwner
+import mx.watchcompanion.watch.alerts.VibratorHaptics
+import mx.watchcompanion.watch.alerts.ZoneAlerts
 import mx.watchcompanion.watch.live.HealthServicesBackend
 import mx.watchcompanion.watch.live.LiveMetricsSession
 import mx.watchcompanion.watch.live.ServiceForegroundKeeper
@@ -39,6 +41,8 @@ class WatchCompanionApp : Application(), LinkSessionOwner {
     override fun onCreate() {
         super.onCreate()
         appScope.launch { zones.load() }
+        // Alertas hápticas por zona (WC-31): solo actúan con una sesión de métricas activa; todo es local.
+        ZoneAlerts(liveMetrics.state, zones.zones, VibratorHaptics(this)).start(appScope)
     }
 
     /** Sesión de métricas en vivo (WC-30): una sola por proceso, la comparten la pantalla y el servicio. */

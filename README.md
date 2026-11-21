@@ -76,6 +76,7 @@ Desde el Resumen, **Iniciar métricas** abre la sesión de métricas en vivo del
 - Un foreground service de tipo `health` mantiene el proceso vivo con la pantalla apagada o en ambiente. Si la app se cierra, el ejercicio sigue en Health Services y se recupera al abrirla.
 - Si otra app (p. ej. Samsung Health) tiene un ejercicio en curso, no se le quita: se avisa.
 - Terminar pide confirmación; al terminar se muestra la duración y nada más se conserva.
+- **Alertas hápticas por zona** (WC-31): tres pulsos cortos al subir de zona y uno largo al bajar. Para no repetirlas cuando la FC oscila en un límite, solo se baja al quedar 3 lpm por debajo y el cambio se confirma tras 5 s en la nueva zona. Usan las zonas guardadas en el reloj: funcionan en modo avión.
 
 ## Zonas de frecuencia cardíaca
 
@@ -105,6 +106,7 @@ Cada módulo pide sus permisos **solo cuando el usuario lo activa**. Si se revoc
 |---|---|---|---|---|
 | `android.permission.health.READ_HEART_RATE` | reloj | Velora | Frecuencia cardíaca en vivo y alertas por zona (WC-30, WC-31) | Fase 1 |
 | `android.permission.FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_HEALTH` (normales, sin diálogo) | reloj | Velora | Mantener viva la sesión de métricas en vivo con la pantalla apagada o en ambiente (WC-30) | Fase 1 |
+| `android.permission.VIBRATE` (normal, sin diálogo) | reloj | Velora | Alertas hápticas al cambiar de zona de FC (WC-31) | Fase 1 |
 | `android.permission.INTERNET` (normal, sin diálogo) | teléfono | Velora | Llamar a Velora API por HTTPS (WC-22) | Fase 0 |
 | `mx.watchcompanion.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | ambas | — | Permiso interno de firma que agrega AndroidX (`core-ktx`); no muestra diálogo | Fase 0 |
 

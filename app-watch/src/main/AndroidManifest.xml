@@ -9,6 +9,8 @@
     <!-- Sesión de métricas en vivo (WC-30): mantiene el proceso vivo con la pantalla apagada. Permisos normales. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
+    <!-- Alertas hápticas por zona (WC-31). Permiso normal. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:name=".WatchCompanionApp"

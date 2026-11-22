@@ -93,4 +93,6 @@ dependencies {
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.compose.ui.test.junit4)
     testImplementation(libs.kotlinx.coroutines.test)
+    // WC-34: Velora simulada que registra cada petición de los flujos reales del teléfono.
+    testImplementation(libs.ktor.client.mock)
 }

@@ -24,10 +24,21 @@ data object Ping : Payload
  *
  * @property sync estado de sincronización de cada integración del emisor (WC-29). Solo el teléfono lo llena, porque es
  *   el único que habla con los backends (ADR-011). Es opcional: un emisor sin él manda la lista vacía.
+ *   Las zonas (WC-32) viajan igual: solo las manda el teléfono.
  */
 @Serializable
 @SerialName("Pong")
-data class Pong(val appVersion: String, val sync: List<SyncSummary> = emptyList()) : Payload
+data class Pong(
+    val appVersion: String,
+    val sync: List<SyncSummary> = emptyList(),
+    /** Zonas vigentes del teléfono (WC-32): el reloj las recibe en cada comprobación aunque se perdiera el envío directo. */
+    val zones: HeartRateZones? = null,
+) : Payload
+
+/** El teléfono envía las zonas en cuanto el usuario las guarda (WC-32). Si el reloj no está, llegan con el próximo Pong. */
+@Serializable
+@SerialName("HeartRateZonesConfig")
+data class HeartRateZonesConfig(val zones: HeartRateZones) : Payload
 
 /**
  * Estado de sincronización de una integración con su backend, tal como lo ve el teléfono. Sin datos personales: solo

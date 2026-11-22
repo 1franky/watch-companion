@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mx.watchcompanion.core.communication.HeartRateZones
 import mx.watchcompanion.core.communication.LinkState
 import mx.watchcompanion.core.permissions.ModuleStatus
 import mx.watchcompanion.watch.live.ActiveDuration
@@ -114,6 +115,29 @@ class MetricsScreenTest {
     fun otraAppConEjercicioEnCursoSeExplica() {
         compose.setContent { MetricsScreen(LiveMetricsState.OtherAppInProgress, now = 0, onAction = {}) }
         compose.onNodeWithText("Otra app tiene un ejercicio en curso. Termínalo para usar las métricas.").assertIsDisplayed()
+    }
+
+    private val zonas = HeartRateZones.fromMax(200, HeartRateZones.Source.VELORA, 0) // 100, 120, 140, 160, 180
+
+    @Test
+    fun conZonasMuestraEnCualVa() {
+        compose.setContent { MetricsScreen(active(152), now = 0, zones = zonas, onAction = {}) }
+        compose.onNodeWithText("Zona 3").assertIsDisplayed()
+        compose.onNode(
+            SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Frecuencia cardíaca, 152 latidos por minuto, zona 3")),
+        ).assertExists()
+    }
+
+    @Test
+    fun sinZonasPideConfigurarlasEnElTelefono() {
+        compose.setContent { MetricsScreen(active(152), now = 0, onAction = {}) }
+        compose.onNodeWithText("Sin zonas: configúralas en el teléfono").assertIsDisplayed()
+    }
+
+    @Test
+    fun porDebajoDeZ1NoMuestraZona() {
+        compose.setContent { MetricsScreen(active(90), now = 0, zones = zonas, onAction = {}) }
+        compose.onNodeWithText("Zona", substring = true).assertDoesNotExist()
     }
 
     @Test

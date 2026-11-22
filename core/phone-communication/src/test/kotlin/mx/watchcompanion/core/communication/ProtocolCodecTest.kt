@@ -78,6 +78,20 @@ class ProtocolCodecTest {
     }
 
     @Test
+    fun lasZonasViajanCompletas() {
+        val zonas = HeartRateZones(182, listOf(95, 112, 128, 147, 165), HeartRateZones.Source.MANUAL, updatedAt = 9)
+        val original = envelope(HeartRateZonesConfig(zonas))
+        assertEquals(DecodeResult.Accepted(original), codec.decode(codec.encode(original), now = 0))
+    }
+
+    @Test
+    fun unasZonasInvalidasHacenIlegibleElMensaje() {
+        val malas = """{"messageId":"m","schemaVersion":1,"createdAt":0,"deviceId":"d","payload":{"type":"HeartRateZonesConfig",""" +
+            """"zones":{"maxHeartRateBpm":180,"lowerBoundsBpm":[150,140,130,120,110],"source":"MANUAL","updatedAt":1}}}"""
+        assertEquals(DecodeResult.Malformed, codec.decode(malas.encodeToByteArray(), now = 0))
+    }
+
+    @Test
     fun rechazaMensajesCaducados() {
         assertEquals(DecodeResult.Expired, codec.decode(codec.encode(envelope(expiresAt = now)), now))
     }

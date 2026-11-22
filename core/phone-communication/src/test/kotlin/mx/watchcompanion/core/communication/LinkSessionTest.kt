@@ -85,6 +85,62 @@ class LinkSessionTest {
         assertEquals(emptyList<SyncSummary>(), estado.peerSync)
     }
 
+    private val zonas = HeartRateZones.fromMax(185, HeartRateZones.Source.VELORA, updatedAt = 7)
+
+    @Test
+    fun elRelojRecibeLasZonasEnElPongDelTelefono() = runTest {
+        val haciaTelefono = Loopback(listOf(telefono))
+        val haciaReloj = Loopback(listOf(Peer("nodo-reloj", "Galaxy Watch Ultra", true)))
+        val recibidas = mutableListOf<HeartRateZones>()
+        val reloj = LinkSession(
+            haciaTelefono, codec, deviceId = "dev-reloj", appVersion = "0.1.0",
+            clock = { testScheduler.currentTime }, onZones = { recibidas += it },
+        )
+        val phone = LinkSession(
+            haciaReloj, codec, deviceId = "dev-tel", appVersion = "0.1.0",
+            clock = { testScheduler.currentTime }, zonesProvider = { zonas },
+        )
+        haciaTelefono.other = phone
+        haciaReloj.other = reloj
+
+        assertTrue(reloj.refresh() is LinkState.Connected)
+        assertEquals(listOf(zonas), recibidas)
+    }
+
+    @Test
+    fun elTelefonoEnviaLasZonasAlGuardar() = runTest {
+        val haciaReloj = Loopback(listOf(Peer("nodo-reloj", "Galaxy Watch Ultra", true)))
+        val recibidas = mutableListOf<HeartRateZones>()
+        val reloj = LinkSession(
+            Loopback(emptyList()), codec, deviceId = "dev-reloj", appVersion = "0.1.0",
+            clock = { testScheduler.currentTime }, onZones = { recibidas += it },
+        )
+        val phone = session(haciaReloj, "0.1.0")
+        haciaReloj.other = reloj
+
+        assertTrue(phone.sendToPeer(HeartRateZonesConfig(zonas)))
+        assertEquals(listOf(zonas), recibidas)
+    }
+
+    @Test
+    fun sinRelojAlcanzableElEnvioDirectoDevuelveFalse() = runTest {
+        assertEquals(false, session(Loopback(emptyList()), "0.1.0").sendToPeer(HeartRateZonesConfig(zonas)))
+        val fallido = Loopback(listOf(telefono)).apply { failSend = true }
+        assertEquals(false, session(fallido, "0.1.0").sendToPeer(HeartRateZonesConfig(zonas)))
+    }
+
+    @Test
+    fun unPongNoSolicitadoNoEntregaZonas() = runTest {
+        val recibidas = mutableListOf<HeartRateZones>()
+        val reloj = LinkSession(
+            Loopback(listOf(telefono)), codec, deviceId = "dev-reloj", appVersion = "0.1.0",
+            clock = { testScheduler.currentTime }, onZones = { recibidas += it },
+        )
+        val pong = Envelope("m", ProtocolVersion.CURRENT, 0, "d", Pong("0.1.0", zones = zonas), correlationId = "desconocido")
+        reloj.onMessage("nodo-telefono", codec.encode(pong))
+        assertEquals(emptyList<HeartRateZones>(), recibidas)
+    }
+
     @Test
     fun sinDispositivosQuedaSinPar() = runTest {
         assertEquals(LinkState.NoPeer, session(Loopback(emptyList()), "0.1.0").refresh())

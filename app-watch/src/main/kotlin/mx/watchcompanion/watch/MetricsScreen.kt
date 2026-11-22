@@ -37,6 +37,7 @@ import androidx.wear.compose.material3.OutlinedButton
 import androidx.wear.compose.material3.Text
 import androidx.wear.tooling.preview.devices.WearDevices
 import java.util.Locale
+import mx.watchcompanion.core.communication.HeartRateZones
 import mx.watchcompanion.watch.live.ActiveDuration
 import mx.watchcompanion.watch.live.EndReason
 import mx.watchcompanion.watch.live.HeartRateAvailability
@@ -52,9 +53,16 @@ enum class LiveAction { START, PAUSE, RESUME, END, DISMISS, BACK }
  * nunca un 0. En ambiente solo quedan las cifras, sin segundos ni botones.
  *
  * @param now instante actual (ms epoch) para extrapolar la duración entre actualizaciones.
+ * @param zones zonas recibidas del teléfono (WC-32); sin ellas no se muestra zona.
  */
 @Composable
-fun MetricsScreen(state: LiveMetricsState, now: Long, ambient: Boolean = false, onAction: (LiveAction) -> Unit) {
+fun MetricsScreen(
+    state: LiveMetricsState,
+    now: Long,
+    ambient: Boolean = false,
+    zones: HeartRateZones? = null,
+    onAction: (LiveAction) -> Unit,
+) {
     MaterialTheme {
         val scroll = rememberScrollState()
         val focus = remember { FocusRequester() }
@@ -73,7 +81,7 @@ fun MetricsScreen(state: LiveMetricsState, now: Long, ambient: Boolean = false, 
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             when (state) {
-                is LiveMetricsState.Active -> Active(state, now, ambient, primary, secondary, onAction)
+                is LiveMetricsState.Active -> Active(state, now, ambient, zones, primary, secondary, onAction)
                 LiveMetricsState.Idle -> {
                     Message(stringResource(R.string.live_idle), primary)
                     if (!ambient) {
@@ -104,12 +112,16 @@ private fun Active(
     state: LiveMetricsState.Active,
     now: Long,
     ambient: Boolean,
+    zones: HeartRateZones?,
     primary: Color,
     secondary: Color,
     onAction: (LiveAction) -> Unit,
 ) {
     val hrLabel = stringResource(R.string.live_heart_rate)
-    val hrValue = state.heartRateBpm?.let { stringResource(R.string.live_bpm_spoken, it) } ?: heartRateStatus(state.availability)
+    val zone = zones?.zoneOf(state.heartRateBpm)
+    val hrValue = state.heartRateBpm?.let { bpm ->
+        zone?.let { stringResource(R.string.live_bpm_zone_spoken, bpm, it) } ?: stringResource(R.string.live_bpm_spoken, bpm)
+    } ?: heartRateStatus(state.availability)
     Column(
         modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = "$hrLabel, $hrValue" },
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -121,6 +133,10 @@ private fun Active(
         }
         if (state.heartRateBpm == null) {
             Text(heartRateStatus(state.availability), color = secondary, textAlign = TextAlign.Center)
+        } else if (zone != null) {
+            Text(stringResource(R.string.live_zone, zone), color = primary, style = MaterialTheme.typography.titleLarge)
+        } else if (zones == null && !ambient) {
+            Text(stringResource(R.string.live_no_zones), color = secondary, textAlign = TextAlign.Center)
         }
     }
     val durationText = formatDuration(state.duration.at(now), seconds = !ambient)

@@ -6,6 +6,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
+import mx.watchcompanion.core.communication.ActivityStatus
 import mx.watchcompanion.core.communication.HeartRateZonesStore
 import mx.watchcompanion.core.communication.InMemoryNonceRegistry
 import mx.watchcompanion.core.communication.LinkSession
@@ -30,8 +33,13 @@ class WatchCompanionApp : Application(), LinkSessionOwner {
             appVersion = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty(),
             // Zonas del teléfono (WC-32): llegan al guardarlas allá o en cada Pong; se queda la más reciente.
             onZones = { zones.saveIfNewer(it) },
+            // Última actividad en Velora (WC-33): solo en memoria; gana la consulta más reciente.
+            onActivity = { status -> activity.update { current -> if (current == null || status.checkedAt >= current.checkedAt) status else current } },
         )
     }
+
+    /** Último estado de la actividad en Velora que informó el teléfono (WC-33). */
+    val activity = MutableStateFlow<ActivityStatus?>(null)
 
     /** Zonas de FC recibidas del teléfono, guardadas aquí para usarlas sin teléfono ni internet (01 §3.1). */
     val zones: HeartRateZonesStore by lazy { HeartRateZonesStore.inFile(File(noBackupFilesDir, "zonas.json")) }

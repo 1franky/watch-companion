@@ -92,6 +92,16 @@ class ProtocolCodecTest {
     }
 
     @Test
+    fun elEstadoDeActividadViajaCompletoYRechazaCodigosLibres() {
+        val estado = ActivityStatus(ActivityStatus.State.ERROR, checkedAt = 5, errorCode = "STRAVA_UNAVAILABLE")
+        val original = envelope(ActivityStatusReport(estado))
+        assertEquals(DecodeResult.Accepted(original), codec.decode(codec.encode(original), now = 0))
+        val libre = """{"messageId":"m","schemaVersion":1,"createdAt":0,"deviceId":"d","payload":{"type":"ActivityStatusReport",""" +
+            """"status":{"state":"ERROR","checkedAt":1,"errorCode":"Falló en Calle 5"}}}"""
+        assertEquals(DecodeResult.Malformed, codec.decode(libre.encodeToByteArray(), now = 0))
+    }
+
+    @Test
     fun rechazaMensajesCaducados() {
         assertEquals(DecodeResult.Expired, codec.decode(codec.encode(envelope(expiresAt = now)), now))
     }

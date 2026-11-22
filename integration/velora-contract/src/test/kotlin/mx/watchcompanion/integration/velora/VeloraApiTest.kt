@@ -7,8 +7,8 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
-import mx.watchcompanion.integration.velora.api.models.ImportJob
 import mx.watchcompanion.integration.velora.api.models.LoginRequest
+import mx.watchcompanion.integration.velora.api.models.StravaStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -102,27 +102,25 @@ class VeloraApiTest {
         assertNull(rodada.bikeId)
     }
 
-    @Test
     /**
      * El generador 7.14 ignora `enumUnknownDefaultCase` con kotlinx.serialization: un estado nuevo de Velora no se puede
      * leer. Debe fallar (y mostrarse como error), nunca convertirse en un estado conocido.
      */
-    fun leeUnTrabajoDeImportacionRechazadoYFallaConEstadosDesconocidos() = runTest {
+    @Test
+    fun leeElEstadoDeStravaYFallaConErroresDesconocidos() = runTest {
         var respuesta = """
-            {"jobId":"b0000000-0000-4000-8000-000000000002","kind":"IMPORT","status":"REJECTED","warnings":[],
-             "possibleDuplicateActivityIds":[],"activityId":null,"errorCode":"NO_SAMPLES","errorDetail":"El archivo no tiene muestras"}
+            {"enabled":true,"connected":true,"athleteId":123,"connectedAt":"2026-11-01T10:00:00Z","importedActivities":250,
+             "backfillDone":true,"lastSyncAt":"2026-11-20T08:00:00Z","lastSyncError":"STRAVA_UNAVAILABLE"}
         """.trimIndent()
         val engine = MockEngine { respond(respuesta, HttpStatusCode.OK, jsonHeaders) }
         val api = VeloraApi.create("https://servidor", engine = engine)
 
-        val rechazado = api.getImportJob(java.util.UUID.fromString("b0000000-0000-4000-8000-000000000002")).body()
-        assertEquals(ImportJob.Status.REJECTED, rechazado.status)
-        assertEquals("NO_SAMPLES", rechazado.errorCode)
+        val estado = api.getStravaStatus().body()
+        assertTrue(estado.connected)
+        assertEquals(StravaStatus.LastSyncError.STRAVA_UNAVAILABLE, estado.lastSyncError)
 
-        respuesta = respuesta.replace("REJECTED", "ESTADO_FUTURO")
-        val error = runCatching {
-            api.getImportJob(java.util.UUID.fromString("b0000000-0000-4000-8000-000000000002")).body()
-        }.exceptionOrNull()
+        respuesta = respuesta.replace("STRAVA_UNAVAILABLE", "ERROR_FUTURO")
+        val error = runCatching { api.getStravaStatus().body() }.exceptionOrNull()
         assertTrue("Un estado desconocido no debe leerse como uno conocido", error != null)
     }
 

@@ -141,6 +141,57 @@ class LinkSessionTest {
         assertEquals(emptyList<HeartRateZones>(), recibidas)
     }
 
+    private val actividad = ActivityStatus(ActivityStatus.State.SYNCED, checkedAt = 50, activityStartedAt = 10, distanceMeters = 42_300.0)
+
+    @Test
+    fun elPongTraeElUltimoEstadoDeActividadYAvisaDelPingParaRefrescar() = runTest {
+        val haciaTelefono = Loopback(listOf(telefono))
+        val haciaReloj = Loopback(listOf(Peer("nodo-reloj", "Galaxy Watch Ultra", true)))
+        val recibidas = mutableListOf<ActivityStatus>()
+        var pingsRecibidos = 0
+        val reloj = LinkSession(
+            haciaTelefono, codec, deviceId = "dev-reloj", appVersion = "0.1.0",
+            clock = { testScheduler.currentTime }, onActivity = { recibidas += it },
+        )
+        val phone = LinkSession(
+            haciaReloj, codec, deviceId = "dev-tel", appVersion = "0.1.0",
+            clock = { testScheduler.currentTime }, activityProvider = { actividad }, onPeerPing = { pingsRecibidos++ },
+        )
+        haciaTelefono.other = phone
+        haciaReloj.other = reloj
+
+        assertTrue(reloj.refresh() is LinkState.Connected)
+        assertEquals(listOf(actividad), recibidas)
+        assertEquals(1, pingsRecibidos)
+    }
+
+    @Test
+    fun elRelojRecibeElInformeDeActividadEnviadoAparte() = runTest {
+        val haciaReloj = Loopback(listOf(Peer("nodo-reloj", "Galaxy Watch Ultra", true)))
+        val recibidas = mutableListOf<ActivityStatus>()
+        val reloj = LinkSession(
+            Loopback(emptyList()), codec, deviceId = "dev-reloj", appVersion = "0.1.0",
+            clock = { testScheduler.currentTime }, onActivity = { recibidas += it },
+        )
+        haciaReloj.other = reloj
+        assertTrue(session(haciaReloj, "0.1.0").sendToPeer(ActivityStatusReport(actividad)))
+        assertEquals(listOf(actividad), recibidas)
+    }
+
+    @Test
+    fun siRefrescarFallaElPingSigueRespondido() = runTest {
+        val haciaTelefono = Loopback(listOf(telefono))
+        val haciaReloj = Loopback(listOf(Peer("nodo-reloj", "Galaxy Watch Ultra", true)))
+        val reloj = session(haciaTelefono, "0.1.0")
+        val phone = LinkSession(
+            haciaReloj, codec, deviceId = "dev-tel", appVersion = "0.1.0",
+            clock = { testScheduler.currentTime }, activityProvider = { error("x") }, onPeerPing = { error("sin red") },
+        )
+        haciaTelefono.other = phone
+        haciaReloj.other = reloj
+        assertTrue(reloj.refresh() is LinkState.Connected)
+    }
+
     @Test
     fun sinDispositivosQuedaSinPar() = runTest {
         assertEquals(LinkState.NoPeer, session(Loopback(emptyList()), "0.1.0").refresh())

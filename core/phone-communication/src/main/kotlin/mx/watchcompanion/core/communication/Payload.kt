@@ -33,6 +33,8 @@ data class Pong(
     val sync: List<SyncSummary> = emptyList(),
     /** Zonas vigentes del teléfono (WC-32): el reloj las recibe en cada comprobación aunque se perdiera el envío directo. */
     val zones: HeartRateZones? = null,
+    /** Último estado conocido de la actividad en Velora (WC-33); el teléfono lo actualiza aparte y lo reenvía. */
+    val activity: ActivityStatus? = null,
 ) : Payload
 
 /** El teléfono envía las zonas en cuanto el usuario las guarda (WC-32). Si el reloj no está, llegan con el próximo Pong. */

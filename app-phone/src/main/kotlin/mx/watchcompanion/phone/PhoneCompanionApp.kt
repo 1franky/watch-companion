@@ -6,6 +6,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import mx.watchcompanion.core.communication.ActivityStatusReport
 import mx.watchcompanion.core.communication.HeartRateZonesStore
 import mx.watchcompanion.core.communication.InMemoryNonceRegistry
 import mx.watchcompanion.core.communication.LinkSession
@@ -44,7 +45,20 @@ class PhoneCompanionApp : Application(), LinkSessionOwner {
             syncSummary = { veloraSyncSummary(veloraSession.state.value, diagnostics.events.value) },
             // El reloj recibe las zonas vigentes en cada Pong (WC-32).
             zonesProvider = { zonesStore.zones.value },
+            // Última actividad en Velora (WC-33): el Pong lleva lo último conocido y, si es viejo, se consulta aparte
+            // y se reenvía al reloj al terminar.
+            activityProvider = { activity.status.value },
+            onPeerPing = { refreshActivityForWatch() },
         )
+    }
+
+    val activity: PhoneActivity by lazy {
+        PhoneActivity(fetchStrava = { veloraStrava(veloraSession) }, fetchLatest = { veloraLatestActivity(veloraSession) })
+    }
+
+    /** Refresca el estado de la actividad si es viejo y lo manda al reloj; no bloquea a quien llama. */
+    fun refreshActivityForWatch() {
+        appScope.launch { activity.refreshIfStale()?.let { linkSession.sendToPeer(ActivityStatusReport(it)) } }
     }
 
     /** Zonas de FC configuradas (WC-32). Fuera del respaldo, como el resto de los datos locales. */

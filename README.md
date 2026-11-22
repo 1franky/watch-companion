@@ -22,6 +22,7 @@ Toda la especificación vive en [`docs/`](docs/README.md):
 | [`07-security-and-privacy.md`](docs/07-security-and-privacy.md) | Seguridad y privacidad |
 | [`08-architecture-decisions.md`](docs/08-architecture-decisions.md) | ADR |
 | [`09-revision-y-auditoria.md`](docs/09-revision-y-auditoria.md) | Revisión y desviaciones frente a los repos reales |
+| [`10-pruebas-de-campo-fase-1.md`](docs/10-pruebas-de-campo-fase-1.md) | Protocolo de las pruebas de campo de la Fase 1 |
 
 **Lee primero `09-revision-y-auditoria.md`**: registra dónde la especificación no coincide con el código actual de Velora y Nexora y qué decisiones están pendientes.
 

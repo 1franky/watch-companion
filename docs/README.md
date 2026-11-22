@@ -32,6 +32,7 @@ La aplicación del reloj será un cliente especializado. No duplicará reglas de
 | `07-security-and-privacy.md` | Seguridad, permisos y privacidad |
 | `08-architecture-decisions.md` | ADR y decisiones explícitas |
 | `09-revision-y-auditoria.md` | Revisión de la especificación y desviaciones frente a los repos reales (2026-11-20) |
+| `10-pruebas-de-campo-fase-1.md` | Protocolo, verificaciones en el reloj y plantilla de resultados de las salidas de la Fase 1 (WC-35) |
 
 ## Repositorios existentes
 

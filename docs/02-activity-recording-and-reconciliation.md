@@ -130,14 +130,16 @@ No guardar todos los campos como si estuvieran siempre disponibles. Los valores 
 
 ## 6. Idempotencia y deduplicación
 
-- Webhook idempotency key: combinación de `subscription_id`, `object_type`, `object_id`, `aspect_type`, `event_time` y/o identificador de evento disponible.
-- Fuente Strava: `athlete_id + strava_activity_id`.
-- Fuente Watch: UUID de sesión generado localmente y estable.
-- Archivo: SHA-256 para detectar reenvíos idénticos, no como única clave semántica.
-- Nunca fusionar solo porque dos actividades tienen fecha y distancia parecidas.
-- La detección de posible duplicado debe producir una sugerencia, no borrar automáticamente.
+**Strava → Velora ya está resuelto en Velora** (ADR-030 de Velora) y el companion no lo reespecifica (A-04):
+- cada evento del webhook se guarda tal cual en `strava_webhook_events` antes de procesarse; el endpoint responde de inmediato;
+- la deduplicación semántica ocurre en `strava_sync_items (user_id, strava_activity_id)`: un reintento o un evento repetido no crea otra actividad;
+- `update` y `delete` actualizan o marcan `DELETED` ese mismo ítem.
 
-Los webhooks pueden reintentarse. El endpoint debe responder rápidamente y procesar en background; guardar el evento antes de encolarlo.
+Lo que sí define el companion, para cuando exista la grabación del Watch (Fase 5):
+- Fuente Watch: UUID de sesión generado localmente y estable.
+- Archivo: SHA-256 para detectar reenvíos idénticos, no como única clave semántica (Velora ya guarda el SHA-256 en `activity_files`).
+- Nunca fusionar solo porque dos actividades tienen fecha y distancia parecidas.
+- La detección de posible duplicado produce una sugerencia, no borra automáticamente (igual que `DuplicateHeuristic` y `GET /activities/{id}/possible-duplicates` de Velora).
 
 ## 7. Publicación en Strava
 
@@ -161,15 +163,32 @@ Si en el futuro se decide publicar una ruta reconciliada:
 - Track del BSC100S contiene altitud barométrica.
 - Distancias difieren de forma significativa.
 - El usuario cancela una reconciliación.
-- Un evento Strava `delete` o `update` no elimina datos locales de respaldo sin política de retención.
+- Un evento Strava `delete` o `update` **no** elimina datos de **origen Watch** sin política de retención, y **sí** elimina lo que provenga de Strava en los plazos de ADR-030 de Velora (ver §8.1).
 
-## 9. Preguntas técnicas que deben resolverse en una prueba de concepto
+### 8.1 Borrado: qué protege la regla y qué no (A-02)
 
-- ¿La app iGPSPORT permite exportar el FIT original del BSC100S y en qué condiciones?
-- ¿Velora ya descarga streams de Strava o solo resumen y polyline?
-- ¿Qué scopes de Strava tiene concedidos la aplicación actual?
-- ¿Qué intervalo de muestreo y precisión GPS entrega el Watch en rutas reales?
-- ¿La HR del Watch y la HR del BSC100S/banda difieren de forma relevante?
-- ¿Qué dispositivo se considera autoridad para distancia, elevación y HR en el modo A?
+| Dato | Origen | Ante un `delete` de Strava |
+|---|---|---|
+| Actividad importada de Strava, sus streams y metadatos | Strava Data | Se borra según ADR-030 de Velora (compromiso de 48 h, `strava_sync_items` → `DELETED`). El companion no conserva copias. |
+| Última actividad que muestra el reloj (`ActivityStatus`, WC-33) | Resumen derivado que el teléfono consulta a Velora | No se guarda en disco; la siguiente consulta ya no la encuentra. |
+| Grabación del Watch (modo B, Fase 5) | Watch, no es Strava Data | Se conserva según su propia política de retención; el `delete` de Strava no la toca. |
+| FIT original del BSC100S importado directo (respaldo, WC-13) | Dispositivo, no es Strava Data | Igual que la grabación del Watch. |
 
-No bloquear el MVP por las preguntas de fusión: el modo A puede funcionar sin ellas.
+En el modo A el companion no almacena datos de Strava: el teléfono consulta a Velora y el reloj solo guarda zonas de FC y su propia sesión en curso.
+
+
+
+## 9. Preguntas técnicas de la prueba de concepto
+
+Estado al 2026-11-23 (A-04, WC-7):
+
+| Pregunta | Respuesta | Dónde se sigue |
+|---|---|---|
+| ¿La app iGPSPORT permite exportar el FIT original del BSC100S y en qué condiciones? | **Abierta.** Ya no bloquea: el camino principal es Strava (WC-ADR-005) y el FIT directo es respaldo. | WC-13 (spike, baja) |
+| ¿Velora ya descarga streams de Strava o solo resumen y polyline? | **Sí descarga streams:** `HttpStravaApi.streams()` pide `/activities/{id}/streams?key_by_type=true`; sin stream de tiempo, el ítem queda `NO_DATA`. | Resuelta |
+| ¿Qué scopes de Strava tiene concedidos la aplicación actual? | Se guardan por conexión en `strava_connections.scope`; **falta leer el valor de producción**. El companion solo usa `GET /integrations/strava` de Velora, sin scopes propios. | WC-26 |
+| ¿Qué intervalo de muestreo y precisión GPS entrega el Watch en rutas reales? | **Abierta**, solo aplica al modo B; el MVP no usa GPS del reloj. | WC-53, WC-57 |
+| ¿La HR del Watch y la HR del BSC100S/banda difieren de forma relevante? | **En medición:** la plantilla de las salidas de la Fase 1 compara la FC del reloj con la del BSC100S/banda. | WC-35 (`10` §5) |
+| ¿Qué dispositivo es autoridad para distancia, elevación y HR en el modo A? | **Resuelta por WC-ADR-010:** track, distancia y elevación del BSC100S; HR de la fuente configurada y etiquetada; la actividad lógica es la de Velora. La FC en vivo del reloj solo se muestra y alerta, no se guarda ni se sube. | Resuelta |
+
+No bloquear el MVP por las preguntas de fusión: el modo A funciona sin ellas.

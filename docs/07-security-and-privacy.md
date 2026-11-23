@@ -15,6 +15,14 @@
 ### Velora
 Ubicación, rutas, frecuencia cardíaca y métricas deportivas. Permitir desactivar telemetría del reloj y borrar sesiones locales no sincronizadas.
 
+#### Privacidad de inicio y fin de ruta (R-13, WC-11)
+
+Velora ya oculta el inicio y el fin de cada recorrido (ADR-016 de Velora, migración `V7__track_privacy`). El companion se apoya en esa política y no la duplica:
+- **Herencia:** cualquier track del reloj que llegue a Velora (modo B, Fase 5) entra por la misma importación y hereda la privacidad de inicio y fin de Velora. El companion no pide ni ofrece desactivarla.
+- **Sin coordenadas exactas fuera de la app:** el companion no muestra ni comparte coordenadas exactas en notificaciones, complicaciones, tiles, logs, diagnósticos ni mensajes de la Data Layer. Si alguna vez hace falta indicar un lugar fuera de la app, se usa la geometría que Velora ya recortó, nunca el track crudo.
+- **Track crudo local:** mientras una grabación del reloj no se haya subido, el track crudo vive solo en el almacenamiento privado de la app del reloj, excluido de copias de seguridad, y se borra al confirmarse la subida o cuando el usuario lo pide.
+- **Modo A (MVP):** hoy el companion no maneja coordenadas. El reloj no tiene permiso de ubicación (`ModeAWatchTest`) y la última actividad que muestra solo lleva fecha y distancia (WC-33).
+
 ### Nexora
 Saldos, tarjetas, movimientos y pagos. Ocultar contenido sensible de notificaciones por defecto.
 

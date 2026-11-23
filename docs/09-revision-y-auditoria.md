@@ -225,7 +225,9 @@ Existe `schemaVersion`, pero no se dice qué ocurre si el reloj y el teléfono t
 - una prueba de que Data Layer no transporta secretos;
 - la importación FIT directa (A-01).
 
-### R-13 · Baja — Privacidad de inicio/fin de ruta
+### R-13 · Resuelto — Privacidad de inicio/fin de ruta
+
+> **Actualización 2026-11-23 (WC-11):** `07` §2 (Velora) incorpora la herencia de ADR-016 de Velora, la regla de no mostrar coordenadas exactas fuera de la app y el manejo del track crudo local.
 
 Velora ya aplica privacidad de inicio y fin de recorrido (ADR-016 de Velora, migración `V7__track_privacy`). `07` debe indicar que cualquier track del Watch que llegue a Velora hereda esa política y que el companion no muestra coordenadas exactas fuera de la app.
 

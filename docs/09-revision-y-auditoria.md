@@ -69,7 +69,7 @@ Hoy, subir la grabación del Watch por `/activities/imports` crea **una segunda 
 | Pregunta | Respuesta |
 |---|---|
 | ¿Velora ya descarga streams de Strava? | **Sí.** `HttpStravaApi.streams()` llama a `/activities/{id}/streams?key_by_type=true`; si no hay streams de tiempo, el ítem queda `NO_DATA`. |
-| ¿Qué scopes tiene concedidos? | Se guardan por conexión en `strava_connections.scope`; hay que consultar el valor en producción. |
+| ¿Qué scopes tiene concedidos? | Se guardan por conexión en `strava_connections.scope`. **Producción (23/11/2026, WC-26):** `read,activity:read_all`, el mínimo que pide el conector y sin permisos de escritura. |
 | Idempotencia del webhook (`02` §6) | Ya implementada de otra forma: todos los eventos se guardan (`strava_webhook_events`) y la deduplicación semántica ocurre en `strava_sync_items (user_id, strava_activity_id)`. **No hay que reespecificarla**: `02` §6 debe referenciar ADR-030 de Velora. |
 
 ### A-05 · Resuelto — Ningún backend soporta la sesión «emparejada» del reloj

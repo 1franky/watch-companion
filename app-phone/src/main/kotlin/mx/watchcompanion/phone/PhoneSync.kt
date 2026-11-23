@@ -10,7 +10,7 @@ import mx.watchcompanion.integration.velora.SignOutReason
 
 /**
  * Estado de sincronización de Velora que el teléfono informa al reloj en cada Pong (WC-29). Sale de la sesión propia
- * de app-phone (ADR-013) y del registro de diagnóstico (WC-23); por eso solo lleva el estado, instantes y códigos.
+ * de app-phone (WC-ADR-013) y del registro de diagnóstico (WC-23); por eso solo lleva el estado, instantes y códigos.
  *
  * Mientras se lee la sesión guardada no se informa nada: el reloj lo muestra como «sin datos», no como un error.
  */

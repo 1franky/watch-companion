@@ -21,7 +21,7 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.DeviceDefault">
 
-        <!-- Requiere el teléfono: app-phone es el único puente hacia Velora y Nexora (ADR-011, ADR-013). -->
+        <!-- Requiere el teléfono: app-phone es el único puente hacia Velora y Nexora (WC-ADR-011, WC-ADR-013). -->
         <meta-data
             android:name="com.google.android.wearable.standalone"
             android:value="false" />

@@ -23,7 +23,7 @@ data object Ping : Payload
  * Respuesta a [Ping]; viaja con el `correlationId` del ping.
  *
  * @property sync estado de sincronización de cada integración del emisor (WC-29). Solo el teléfono lo llena, porque es
- *   el único que habla con los backends (ADR-011). Es opcional: un emisor sin él manda la lista vacía.
+ *   el único que habla con los backends (WC-ADR-011). Es opcional: un emisor sin él manda la lista vacía.
  *   Las zonas (WC-32) viajan igual: solo las manda el teléfono.
  */
 @Serializable

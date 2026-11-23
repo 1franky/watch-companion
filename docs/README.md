@@ -60,10 +60,10 @@ Antes de modificar código:
 
 ## Alcance de la primera entrega
 
-Decidido el 2026-11-20 (ADR-012): la primera entrega es **Fase 0 + Fase 1** de `06-roadmap-and-testing.md`:
+Decidido el 2026-11-20 (WC-ADR-012): la primera entrega es **Fase 0 + Fase 1** de `06-roadmap-and-testing.md`:
 
 - Aplicación Wear OS instalable en Galaxy Watch Ultra (Wear OS 6).
-- Comunicación fiable Watch ↔ S26 Ultra a través de `app-phone` (ADR-011).
+- Comunicación fiable Watch ↔ S26 Ultra a través de `app-phone` (WC-ADR-011).
 - Módulo Velora en modo iGPSPORT-primary.
 - Registro local de errores y estado de sincronización.
 

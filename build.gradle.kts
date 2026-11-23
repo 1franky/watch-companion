@@ -1,4 +1,4 @@
-// Versiones en gradle/libs.versions.toml (alineadas con velora-android, ADR-014). Los módulos aplican lo que necesitan.
+// Versiones en gradle/libs.versions.toml (alineadas con velora-android, WC-ADR-014). Los módulos aplican lo que necesitan.
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false

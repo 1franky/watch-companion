@@ -66,7 +66,7 @@ class PhoneCompanionApp : Application(), LinkSessionOwner {
 
     val zones: PhoneZones by lazy { PhoneZones(zonesStore, linkSession) { veloraMaxHeartRate(veloraSession) } }
 
-    /** Sesión propia de Velora (ADR-013): independiente de velora-android y de Nexora. */
+    /** Sesión propia de Velora (WC-ADR-013): independiente de velora-android y de Nexora. */
     val veloraSession: VeloraSession by lazy {
         VeloraSession(
             store = createSessionStore(this, Backend.VELORA),

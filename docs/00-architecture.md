@@ -159,7 +159,7 @@ No enviar credenciales ni tokens de acceso en mensajes de Data Layer. El teléfo
 
 - Velora y Nexora deben conservar emisores, audiencias y scopes independientes.
 - No compartir refresh tokens entre módulos.
-- El reloj **no tiene tokens de backend** en el MVP (ADR-013): solo `app-phone` se autentica contra Velora y Nexora, y el reloj se comunica únicamente por Data Layer. Una sesión propia del reloj (OAuth Device Authorization o pairing de un solo uso) queda como evolución y requiere soporte nuevo en los backends.
+- El reloj **no tiene tokens de backend** en el MVP (WC-ADR-013): solo `app-phone` se autentica contra Velora y Nexora, y el reloj se comunica únicamente por Data Layer. Una sesión propia del reloj (OAuth Device Authorization o pairing de un solo uso) queda como evolución y requiere soporte nuevo en los backends.
 - No guardar secretos de cliente OAuth en el APK.
 - Si se añade BFF/bridge, que sea mínimo y no se convierta en una API de negocio compartida.
 - El teléfono debe aplicar WorkManager para trabajos diferidos y reintentos; no depender de ejecución perpetua en background.

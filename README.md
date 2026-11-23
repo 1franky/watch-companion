@@ -31,7 +31,7 @@ Toda la especificación vive en [`docs/`](docs/README.md):
 | Módulo | Qué contiene |
 |---|---|
 | `app-watch` | App Wear OS para el Galaxy Watch Ultra (Wear OS 6, `minSdk 36`) |
-| `app-phone` | App Android en el S26 Ultra: único puente hacia Velora y Nexora (ADR-011, ADR-013), `minSdk 31` |
+| `app-phone` | App Android en el S26 Ultra: único puente hacia Velora y Nexora (WC-ADR-011, WC-ADR-013), `minSdk 31` |
 | `core:phone-communication` | Protocolo Watch ↔ Phone en Kotlin puro: sobre versionado, catálogo, validación y `LinkSession` (ping/pong y estado del enlace) |
 | `core:permissions` | Permisos por módulo: qué pide cada uno, activación por el usuario, estado y revocación al desactivar |
 | `core:diagnostics` | Registro técnico local en Kotlin puro: eventos con módulo, versión, operación, correlation ID, código y duración, y estado de sincronización por módulo |
@@ -43,7 +43,7 @@ Ambas apps comparten `applicationId` (`mx.watchcompanion`) y firma, porque la Da
 
 ## Sesiones de los backends
 
-Solo `app-phone` inicia sesión en Velora (y, desde la Fase 2, en Nexora), con sesiones propias e independientes de las apps de cada producto (ADR-013):
+Solo `app-phone` inicia sesión en Velora (y, desde la Fase 2, en Nexora), con sesiones propias e independientes de las apps de cada producto (WC-ADR-013):
 
 - El access token vive solo en memoria; el refresh token se guarda cifrado (`core:session`). La contraseña nunca se guarda.
 - Las renovaciones se serializan: en Velora el refresh token es de un solo uso y reutilizarlo revoca toda la sesión.
@@ -85,7 +85,7 @@ Desde el Resumen, **Iniciar métricas** abre la sesión de métricas en vivo del
 
 En el teléfono, **Inicio → Zonas de frecuencia cardíaca** (WC-32):
 
-- **Usar la FC máxima de Velora** la trae de `GET /me` (`preferences.maxHeartRateBpm`) y calcula las zonas con la misma regla que las analíticas de Velora (`hr-zones/1`, ADR-020): Z1 desde el 50 %, Z2 60 %, Z3 70 %, Z4 80 % y Z5 90 %. Si Velora no la tiene, se escribe a mano.
+- **Usar la FC máxima de Velora** la trae de `GET /me` (`preferences.maxHeartRateBpm`) y calcula las zonas con la misma regla que las analíticas de Velora (`hr-zones/1`, ADR-020 de Velora): Z1 desde el 50 %, Z2 60 %, Z3 70 %, Z4 80 % y Z5 90 %. Si Velora no la tiene, se escribe a mano.
 - Cada zona se puede ajustar a mano; se valida que la FC máxima esté entre 100 y 230 y que las zonas vayan de menor a mayor.
 - **Guardar y enviar al reloj** las guarda en el teléfono y las manda al reloj (`HeartRateZonesConfig`). Si el reloj no está al alcance, las recibe en la siguiente comprobación de enlace: el `Pong` del teléfono siempre lleva las zonas vigentes.
 - El reloj guarda la versión más reciente en un archivo local y muestra la zona en **Métricas**: funciona sin teléfono ni internet.
@@ -105,7 +105,7 @@ Las lecturas sí están permitidas: p. ej. `GET /integrations/strava` para mostr
 
 ## Contratos de los backends
 
-`contract/<backend>/openapi-v1.yaml` es una copia del contrato del backend fijada al commit de `contract/<backend>/REF` (ADR-009). El cliente se genera de esa copia en cada build: si el contrato cambia y el código no, no compila. Así el build no depende de la red y cada cambio de contrato es un PR explícito.
+`contract/<backend>/openapi-v1.yaml` es una copia del contrato del backend fijada al commit de `contract/<backend>/REF` (WC-ADR-009). El cliente se genera de esa copia en cada build: si el contrato cambia y el código no, no compila. Así el build no depende de la red y cada cambio de contrato es un PR explícito.
 
 ```bash
 scripts/update-contract.sh velora <sha-de-velora-api>   # fija otro commit y descarga su contrato
@@ -126,7 +126,7 @@ Cada módulo pide sus permisos **solo cuando el usuario lo activa**. Si se revoc
 | `android.permission.INTERNET` (normal, sin diálogo) | teléfono | Velora | Llamar a Velora API por HTTPS (WC-22) | Fase 0 |
 | `mx.watchcompanion.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | ambas | — | Permiso interno de firma que agrega AndroidX (`core-ktx`); no muestra diálogo | Fase 0 |
 
-El reloj no declara `INTERNET`: no llama a los backends (ADR-013). La ubicación (modo B, WC-53), las notificaciones de Nexora (WC-41), Guardian y Smart Hub agregan sus permisos a esta tabla en la tarjeta que los necesita.
+El reloj no declara `INTERNET`: no llama a los backends (WC-ADR-013). La ubicación (modo B, WC-53), las notificaciones de Nexora (WC-41), Guardian y Smart Hub agregan sus permisos a esta tabla en la tarjeta que los necesita.
 
 ## Probar el enlace en dispositivos
 
@@ -151,7 +151,7 @@ Requiere JDK 21 y el SDK de Android con la plataforma 37 (`local.properties` con
 
 - **`develop`** es la rama por defecto y de integración. Todo trabajo sale de una rama `feature/WC-n-…` (o `docs/…`, `fix/…`) creada desde `develop` y vuelve por PR a `develop`. El CI debe pasar.
 - **`main`** solo recibe releases: un PR `develop` → `main` cuando hay funcionalidad lista para liberar. Está protegida: sin push directo (ni para administradores), PR obligatorio y CI en verde.
-- **Versionado:** al liberar se sube `versionName`/`versionCode` en `app-watch` y `app-phone` (siempre iguales en ambas apps) dentro del PR de release. Después de fusionar a `main` se etiqueta `vX.Y.Z` ([SemVer](https://semver.org/lang/es/)). La primera entrega (Fase 0 + Fase 1, ADR-012) será `v0.1.0`.
+- **Versionado:** al liberar se sube `versionName`/`versionCode` en `app-watch` y `app-phone` (siempre iguales en ambas apps) dentro del PR de release. Después de fusionar a `main` se etiqueta `vX.Y.Z` ([SemVer](https://semver.org/lang/es/)). La primera entrega (Fase 0 + Fase 1, WC-ADR-012) será `v0.1.0`.
 - **Hotfix:** rama `hotfix/…` desde `main`, PR a `main` y, después, `main` se fusiona de vuelta a `develop`.
 
 ## Repositorios relacionados

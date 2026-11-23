@@ -1,4 +1,4 @@
-// Sesiones de los backends en app-phone (ADR-013): refresh token cifrado con una llave del Android Keystore, un archivo
+// Sesiones de los backends en app-phone (WC-ADR-013): refresh token cifrado con una llave del Android Keystore, un archivo
 // y una llave por backend para que Velora y Nexora no compartan nada (00-architecture.md §6).
 plugins {
     alias(libs.plugins.android.library)

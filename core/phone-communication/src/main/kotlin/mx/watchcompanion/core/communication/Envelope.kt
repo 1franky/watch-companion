@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 /**
  * Sobre común de todo mensaje entre reloj y teléfono (00-architecture.md §5).
  *
- * Nunca transporta credenciales: el reloj no tiene tokens de backend (ADR-013).
+ * Nunca transporta credenciales: el reloj no tiene tokens de backend (WC-ADR-013).
  *
  * @property messageId identificador único (UUID) del mensaje.
  * @property schemaVersion versión del protocolo con que se escribió; ver [ProtocolVersion].

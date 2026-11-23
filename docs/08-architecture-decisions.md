@@ -1,6 +1,10 @@
 # 08 — Architecture Decision Records (ADR)
 
-## ADR-001 — Aplicación Wear OS modular
+Los ADR de este proyecto se citan como **`WC-ADR-NNN`** para no confundirlos con los de Velora o Nexora, que usan su propia numeración: esos se citan siempre con el proyecto, por ejemplo «ADR-030 de Velora» (A-13, WC-5). Un ADR aceptado no se renumera; si se reemplaza, se marca como sustituido y se agrega uno nuevo.
+
+Las decisiones de grabación (WC-ADR-002 a WC-ADR-005) se desarrollan en `02-activity-recording-and-reconciliation.md`.
+
+## WC-ADR-001 — Aplicación Wear OS modular
 
 **Estado:** Aceptada.
 
@@ -8,7 +12,7 @@ Crear un repositorio nuevo `watch-companion` con módulos funcionales Velora, Ne
 
 **Motivo:** una instalación y experiencia coherentes, sin acoplar dominios de negocio.
 
-## ADR-002 — BSC100S es la fuente principal de ciclismo en MVP
+## WC-ADR-002 — BSC100S es la fuente principal de ciclismo en MVP
 
 **Estado:** Aceptada.
 
@@ -16,7 +20,7 @@ El iGPSPORT BSC100S conserva su flujo actual de grabación y sincronización a S
 
 **Motivo:** evitar duplicados y preservar el proceso que ya funciona.
 
-## ADR-003 — Grabación dual como respaldo opt-in
+## WC-ADR-003 — Grabación dual como respaldo opt-in
 
 **Estado:** Aceptada para fase posterior.
 
@@ -24,7 +28,7 @@ El Watch podrá registrar una ruta independiente y conservarla sin publicarla au
 
 **Motivo:** disponer de respaldo sin generar actividades duplicadas.
 
-## ADR-004 — Fusión de tracks no destructiva
+## WC-ADR-004 — Fusión de tracks no destructiva
 
 **Estado:** Aceptada como dirección futura.
 
@@ -32,7 +36,7 @@ Los tracks originales se preservan; la fusión crea una versión derivada, versi
 
 **Motivo:** los sensores tienen precisión, frecuencia de muestreo y relojes distintos.
 
-## ADR-005 — Strava continúa siendo el origen del evento de actividad BSC100S
+## WC-ADR-005 — Strava continúa siendo el origen del evento de actividad BSC100S
 
 **Estado:** Aceptada.
 
@@ -42,31 +46,31 @@ Velora conserva el webhook existente de Strava y recupera detalle/streams median
 
 **Verificado (2026-11-20):** el conector está activado en producción y las rodadas del BSC100S llegan a Velora vía Strava. En el repositorio, `velora.strava.enabled` sigue en `false` como valor por omisión. El riesgo contractual con Strava está registrado en ADR-030 de Velora. La importación directa del FIT del dispositivo queda como respaldo opcional, no como camino principal.
 
-## ADR-006 — Nexora API es la autoridad financiera
+## WC-ADR-006 — Nexora API es la autoridad financiera
 
 **Estado:** Aceptada.
 
 El reloj no calcula saldos ni reglas de negocio. Solo presenta snapshots y envía acciones confirmadas al backend.
 
-## ADR-007 — Guardian no usa root ni APIs ocultas
+## WC-ADR-007 — Guardian no usa root ni APIs ocultas
 
 **Estado:** Aceptada.
 
 Las funciones de bloqueo deben utilizar APIs oficiales y permisos legítimos de Android/Samsung. `DevicePolicyManager.lockNow()` requiere validar requisitos de administración.
 
-## ADR-008 — Smart Hub comienza sin apertura remota de cerradura
+## WC-ADR-008 — Smart Hub comienza sin apertura remota de cerradura
 
 **Estado:** Aceptada.
 
 La primera versión consulta estados y controla acciones domésticas de bajo riesgo. Apertura remota requiere evaluación adicional de modelo, proveedor, permisos y confirmación.
 
-## ADR-009 — OpenAPI como contrato de integración
+## WC-ADR-009 — OpenAPI como contrato de integración
 
 **Estado:** Aceptada.
 
 Los clientes del companion deben basarse en los contratos reales de Velora y Nexora. No crear endpoints especulativos ni duplicar DTOs manualmente si hay generación disponible.
 
-## ADR-010 — La fuente de verdad se define por métrica
+## WC-ADR-010 — La fuente de verdad se define por métrica
 
 **Estado:** Aceptada como regla de diseño.
 
@@ -79,7 +83,7 @@ No existe una única fuente universal para todas las métricas:
 
 Toda métrica debe conservar `sourceType` y timestamp.
 
-## ADR-011 — `app-phone` propia como puente Watch ↔ backends
+## WC-ADR-011 — `app-phone` propia como puente Watch ↔ backends
 
 **Estado:** Aceptada (2026-11-20).
 
@@ -97,7 +101,7 @@ Decisión:
 
 **Motivo:** es la única opción soportada por la plataforma sin acoplar el companion a las apps existentes.
 
-## ADR-012 — Primera entrega = Fase 0 + Fase 1
+## WC-ADR-012 — Primera entrega = Fase 0 + Fase 1
 
 **Estado:** Aceptada (2026-11-20).
 
@@ -105,7 +109,7 @@ La primera entrega incluye la infraestructura (Fase 0) y Velora Watch en modo A 
 
 **Motivo:** el README y `06` se contradecían; entregar cuatro módulos a la vez retrasa la validación en dispositivo real.
 
-## ADR-013 — El reloj no guarda tokens de backend en el MVP
+## WC-ADR-013 — El reloj no guarda tokens de backend en el MVP
 
 **Estado:** Aceptada (2026-11-20).
 
@@ -115,7 +119,7 @@ La primera entrega incluye la infraestructura (Fase 0) y Velora Watch en modo A 
 
 **Motivo:** ningún backend soporta hoy device flow ni pairing; ambos usan login por contraseña con refresh rotatorio (en Velora, de un solo uso). Mantener una sola sesión por backend evita carreras de renovación y reduce la superficie de ataque.
 
-## ADR-014 — Versiones mínimas de plataforma
+## WC-ADR-014 — Versiones mínimas de plataforma
 
 **Estado:** Aceptada (2026-11-20).
 

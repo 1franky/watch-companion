@@ -21,7 +21,7 @@
     <string name="summary_title">Resumen</string>
     <string name="summary_phone">Teléfono</string>
     <string name="summary_mode">Modo</string>
-    <!-- MVP: solo modo A (01 §2, ADR-012). El BSC100S graba; el reloj muestra métricas y alertas. -->
+    <!-- MVP: solo modo A (01 §2, WC-ADR-012). El BSC100S graba; el reloj muestra métricas y alertas. -->
     <string name="summary_mode_a">A · iGPSPORT principal</string>
     <string name="summary_velora">Velora</string>
     <string name="sync_no_data">Sin datos del teléfono</string>

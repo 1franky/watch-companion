@@ -14,7 +14,7 @@ Leyenda de severidad: **Bloqueante** (impide implementar como está escrito) · 
 
 | Repo | Rama por defecto | Último commit | Stack verificado | Contrato |
 |---|---|---|---|---|
-| `velora-api` | `main` | `c9da56c` 2026-11-17 | Java 25, Spring Boot 4.1.2, Gradle 9.9, PostGIS 18/3.7, Spring Modulith | `openapi/openapi-v1.yaml` (OpenAPI 3.1, fuente de verdad, ADR-011) validado en pruebas |
+| `velora-api` | `main` | `c9da56c` 2026-11-17 | Java 25, Spring Boot 4.1.2, Gradle 9.9, PostGIS 18/3.7, Spring Modulith | `openapi/openapi-v1.yaml` (OpenAPI 3.1, fuente de verdad, WC-ADR-011) validado en pruebas |
 | `velora-android` | `main` | `71d3efd` 2026-11-18 (v0.2.6) | AGP 9.5.1, Kotlin 2.4.21, Compose BOM 2026.09, Ktor 3.6, Room 2.8.5, WorkManager 2.12, minSdk 31, target/compile 37 | Copia fijada en `contract/openapi-v1.yaml` + `contract/REF`; cliente generado con openapi-generator 7.14.0 |
 | `velora-web` | `main` | `b1fc1c4` 2026-11-17 | Next.js + TypeScript, Node 26, pnpm 12 | Consume `velora-api` |
 | `nexora-api` | **`develop`** (`main` protegida, despliega) | `595897f` 2026-11-18 | Kotlin 2.3.21 (JVM 21), Spring Boot 4.1.1, PostgreSQL 16, springdoc 3.1.0 | **Sin archivo OpenAPI versionado**; solo springdoc en runtime y `openapi-contract-snapshot.json` (lista de endpoints) en pruebas |
@@ -33,7 +33,7 @@ Ninguno de los seis repos contiene módulos Wear OS, Data Layer ni Health Servic
 
 Hallazgo original:
 
-La especificación (`01` §1, `02` §1, ADR-005) trata **BSC100S → iGPSPORT → Strava → webhook → Velora** como la columna vertebral ya operativa.
+La especificación (`01` §1, `02` §1, WC-ADR-005) trata **BSC100S → iGPSPORT → Strava → webhook → Velora** como la columna vertebral ya operativa.
 
 Realidad en `velora-api`:
 - El conector existe (ADR-030 de Velora; migraciones `V12`–`V14`; `StravaWebhookController`, `StravaSync`), pero `velora.strava.enabled=false` por omisión.
@@ -70,17 +70,17 @@ Hoy, subir la grabación del Watch por `/activities/imports` crea **una segunda 
 
 ### A-05 · Resuelto — Ningún backend soporta la sesión «emparejada» del reloj
 
-> **Actualización 2026-11-20 (WC-3):** aceptado; ver ADR-013.
+> **Actualización 2026-11-20 (WC-3):** aceptado; ver WC-ADR-013.
 
 `00` §6 pide evaluar OAuth Device Authorization o pairing de un solo uso. Ambos backends solo tienen login por email + contraseña:
-- **Velora:** un único usuario propietario (ADR-010), access token de 15 min y refresh de 30 días **de un solo uso** (reutilizarlo revoca la sesión).
+- **Velora:** un único usuario propietario (ADR-010 de Velora), access token de 15 min y refresh de 30 días **de un solo uso** (reutilizarlo revoca la sesión).
 - **Nexora:** JWT HS256 de 15 min y refresh opaco rotado en cada uso.
 
 **Propuesta (simplificación):** en el MVP el reloj **nunca** tiene tokens de backend. Solo el `app-phone` inicia sesión en Velora y en Nexora, con sesiones propias e independientes, y el reloj habla exclusivamente por Data Layer. Esto ya coincide con el diagrama de `00` §3 y con «no enviar tokens por Data Layer». La sesión directa del reloj queda como evolución.
 
 ### A-06 · Resuelto — Data Layer no permite hablar con `velora-android` ni con `nexora-android`
 
-> **Actualización 2026-11-20 (WC-4):** aprobado. `app-phone` es el puente; ver ADR-011 en `08`.
+> **Actualización 2026-11-20 (WC-4):** aprobado. `app-phone` es el puente; ver WC-ADR-011 en `08`.
 
 La Wear OS Data Layer solo comunica apps con el **mismo `applicationId` y el mismo certificado de firma**. `velora-android` (`mx.velora.android`) y `nexora-android` (`com.nexora.android`) son apps distintas.
 
@@ -110,7 +110,7 @@ Las notificaciones son bandeja in-app (`GET /api/v1/notifications`), sin FCM. Ti
 
 ### A-10 · Media — Nexora no publica un OpenAPI versionado
 
-ADR-009 (OpenAPI como contrato y generación de clientes) choca con dos cosas: `nexora-api` solo expone springdoc en runtime, y `nexora-android` usa DTOs manuales.
+WC-ADR-009 (OpenAPI como contrato y generación de clientes) choca con dos cosas: `nexora-api` solo expone springdoc en runtime, y `nexora-android` usa DTOs manuales.
 
 **Propuesta:** tarea en `nexora-api` para exportar `openapi.yaml` en build/CI (rama `develop`). En el companion, replicar el patrón de `velora-android`: copia fijada (`contract/REF`) + `update-contract.sh --check` en CI.
 
@@ -120,13 +120,15 @@ El README de esta especificación pide «auditar la rama principal». En `nexora
 
 ### A-12 · Resuelto — Versiones de toolchain divergentes
 
-> **Actualización 2026-11-20 (WC-14):** Galaxy Watch Ultra con One UI 8 Watch / Wear OS 6; ver ADR-014.
+> **Actualización 2026-11-20 (WC-14):** Galaxy Watch Ultra con One UI 8 Watch / Wear OS 6; ver WC-ADR-014.
 
 `velora-android` usa AGP 9.5.1 / Kotlin 2.4.21; `nexora-android` usa AGP 9.2.0 / Kotlin 2.4.0.
 
 **Propuesta:** `watch-companion` se alinea con `velora-android` (la más reciente y con contrato generado): catálogo `libs.versions.toml`, compileSdk/targetSdk 37. El minSdk del reloj se decide según la versión de Wear OS del Galaxy Watch Ultra (por verificar en el dispositivo).
 
-### A-13 · Baja — Colisión de numeración de ADR
+### A-13 · Resuelto — Colisión de numeración de ADR
+
+> **Actualización 2026-11-23 (WC-5):** los ADR del companion pasan a `WC-ADR-NNN` conservando su número (sin renumerar: el prefijo basta para distinguirlos). Las referencias a ADR de Velora llevan siempre «de Velora».
 
 `08` usa ADR-001…010 y `velora-project-kit` usa ADR-007…031 con otros significados. Por ejemplo, «ADR-009» es el pipeline de importación en Velora y OpenAPI en el companion.
 
@@ -138,7 +140,7 @@ El README de esta especificación pide «auditar la rama principal». En `nexora
 
 ### R-01 · Resuelto — El alcance del «MVP» se contradice
 
-> **Actualización 2026-11-20 (WC-2):** aceptado; ver ADR-012.
+> **Actualización 2026-11-20 (WC-2):** aceptado; ver WC-ADR-012.
 
 El README («Alcance de la primera entrega») mete Velora, Nexora, Guardian y Smart Hub en la primera entrega. `06` los reparte en las Fases 1–4 con salidas independientes.
 
@@ -146,7 +148,7 @@ El README («Alcance de la primera entrega») mete Velora, Nexora, Guardian y Sm
 
 ### R-02 · Alta — El modo dual aparece en el MVP y en V1 a la vez
 
-`01` §2 (MVP) incluye «registrar telemetría local cuando se habilite el modo dual» e «iniciar/pausar/finalizar si modo dual o respaldo». En cambio, `02` (Estado), la tabla de `02` §3, ADR-003 y `06` Fase 5 lo ubican después.
+`01` §2 (MVP) incluye «registrar telemetría local cuando se habilite el modo dual» e «iniciar/pausar/finalizar si modo dual o respaldo». En cambio, `02` (Estado), la tabla de `02` §3, WC-ADR-003 y `06` Fase 5 lo ubican después.
 
 **Propuesta:** sacar del MVP de `01` todo lo que dependa del modo B.
 
@@ -198,11 +200,13 @@ Existe `schemaVersion`, pero no se dice qué ocurre si el reloj y el teléfono t
 
 ### R-10 · Resuelto — Contradicción sobre la sesión del reloj
 
-> **Actualización 2026-11-20 (WC-3):** `00` §6 reescrito según ADR-013.
+> **Actualización 2026-11-20 (WC-3):** `00` §6 reescrito según WC-ADR-013.
 
 `00` §6 («el reloj debe usar una sesión emparejada y acotada») contradice el diagrama de `00` §3 y la regla de no tokens por Data Layer. Ver A-05.
 
-### R-11 · Baja — `02` se titula ADR pero no aparece en `08`
+### R-11 · Resuelto — `02` se titula ADR pero no aparece en `08`
+
+> **Actualización 2026-11-23 (WC-5):** `02` deja de titularse ADR: es el desarrollo detallado de WC-ADR-002 a WC-ADR-005, que es donde quedan las decisiones. `08` lo enlaza.
 
 **Propuesta:** listar en `08` el ADR de `02` como WC-ADR-002 (o fusionarlo) y renumerar con el prefijo de A-13.
 
@@ -224,11 +228,11 @@ Velora ya aplica privacidad de inicio y fin de recorrido (ADR-016 de Velora, mig
 ## 4. Decisiones que debe tomar el propietario
 
 1. ~~¿El modo A depende de Strava o del FIT directo?~~ **Resuelto:** Strava, operativo en producción; FIT directo como respaldo opcional. (A-01, WC-1)
-2. ~~¿Primera entrega = Fase 0 + Fase 1?~~ **Resuelto:** sí, ADR-012. (R-01, WC-2)
-3. ~~¿El reloj sin tokens de backend en el MVP?~~ **Resuelto:** sí, ADR-013. (A-05, WC-3)
-4. ~~¿Puente de Data Layer?~~ **Resuelto:** `app-phone` propia, ADR-011. (A-06, WC-4)
+2. ~~¿Primera entrega = Fase 0 + Fase 1?~~ **Resuelto:** sí, WC-ADR-012. (R-01, WC-2)
+3. ~~¿El reloj sin tokens de backend en el MVP?~~ **Resuelto:** sí, WC-ADR-013. (A-05, WC-3)
+4. ~~¿Puente de Data Layer?~~ **Resuelto:** `app-phone` propia, WC-ADR-011. (A-06, WC-4)
 5. ¿Estrategia de secretos para Smart Hub: BFF, PAT o posponer? (R-09, WC-12)
-6. ¿Prefijo `WC-ADR` y renumeración? (A-13, WC-5)
+6. ~~¿Prefijo `WC-ADR` y renumeración?~~ **Resuelto:** prefijo `WC-ADR` sin renumerar. (A-13, R-11, WC-5)
 
 ## 5. Siguientes pasos
 

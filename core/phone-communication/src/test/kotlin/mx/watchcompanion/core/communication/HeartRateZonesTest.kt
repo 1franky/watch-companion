@@ -8,7 +8,7 @@ class HeartRateZonesTest {
     @Test
     fun lasZonasDeVeloraSalenDeLaFcMaximaConHrZones1() {
         val zonas = HeartRateZones.fromMax(185, HeartRateZones.Source.VELORA, updatedAt = 0)
-        // 50, 60, 70, 80 y 90 % de 185, redondeados: igual que las analíticas de Velora (ADR-020).
+        // 50, 60, 70, 80 y 90 % de 185, redondeados: igual que las analíticas de Velora (ADR-020 de Velora).
         assertEquals(listOf(93, 111, 130, 148, 167), zonas.lowerBoundsBpm)
     }
 

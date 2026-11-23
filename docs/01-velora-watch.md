@@ -12,7 +12,7 @@ El BSC100S sigue siendo el ciclocomputador principal en la configuración predet
 
 ### MVP
 
-El MVP solo contiene funciones del **modo A** (ADR-012; hallazgos R-02 y R-03 de `09`).
+El MVP solo contiene funciones del **modo A** (WC-ADR-012; hallazgos R-02 y R-03 de `09`).
 
 - Pantalla de resumen: conexión con el teléfono, modo activo y estado de sincronización.
 - **Sesión de métricas en vivo** (§3.1): frecuencia cardíaca, zona y duración medidas por el propio reloj.

@@ -22,7 +22,7 @@ android {
 }
 
 /**
- * Cliente de Velora API generado del contrato fijado en contract/velora (ADR-009): si el contrato cambia y el código no,
+ * Cliente de Velora API generado del contrato fijado en contract/velora (WC-ADR-009): si el contrato cambia y el código no,
  * no compila. Mismo generador y opciones que velora-android (Ktor + kotlinx.serialization, fechas con java.time).
  *
  * Solo se generan las operaciones que usa el companion (`FILTER` por operationId). Agregar una aquí es parte de la

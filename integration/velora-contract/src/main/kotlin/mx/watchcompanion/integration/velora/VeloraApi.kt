@@ -13,7 +13,7 @@ import kotlinx.serialization.json.Json
 import mx.watchcompanion.integration.velora.api.apis.DefaultApi
 
 /**
- * Punto de entrada al cliente generado del contrato de Velora (ADR-009). Solo lo usa `app-phone` (ADR-011, ADR-013).
+ * Punto de entrada al cliente generado del contrato de Velora (WC-ADR-009). Solo lo usa `app-phone` (WC-ADR-011, WC-ADR-013).
  */
 object VeloraApi {
     /** Servidor desplegado de Velora (el mismo que usa velora-android por omisión). */

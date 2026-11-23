@@ -6,7 +6,7 @@ plugins {
 }
 
 /**
- * Firma de release compartida con la otra app del companion (ADR-011): en CI llega por variables de entorno; en local,
+ * Firma de release compartida con la otra app del companion (WC-ADR-011): en CI llega por variables de entorno; en local,
  * de `keystore.properties` (ignorado por Git, ver keystore.properties.example). Sin ninguna, solo falla
  * `assembleRelease`. En debug ambas apps usan la llave de depuración de la máquina que compila, que es la misma.
  */
@@ -21,9 +21,9 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        // Mismo applicationId en ambas apps, definido una sola vez en gradle.properties (ADR-011).
+        // Mismo applicationId en ambas apps, definido una sola vez en gradle.properties (WC-ADR-011).
         applicationId = providers.gradleProperty("companion.applicationId").get()
-        // Wear OS 6 / One UI 8 Watch, verificado en el Galaxy Watch Ultra (ADR-014).
+        // Wear OS 6 / One UI 8 Watch, verificado en el Galaxy Watch Ultra (WC-ADR-014).
         minSdk = 36
         targetSdk = 37
         versionCode = 1

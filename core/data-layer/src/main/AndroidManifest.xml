@@ -3,7 +3,7 @@
     <application>
         <!--
           Recibe los mensajes del companion aunque la app esté cerrada. Solo rutas /wc/: la Data Layer ya restringe
-          la entrega a apps con el mismo applicationId y firma (ADR-011).
+          la entrega a apps con el mismo applicationId y firma (WC-ADR-011).
         -->
         <service
             android:name="mx.watchcompanion.core.datalayer.LinkListenerService"

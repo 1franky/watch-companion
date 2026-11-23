@@ -10,7 +10,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 /**
- * WC-34, capa del reloj: en el modo A el reloj no tiene red propia (ADR-013) ni pide ubicación (01 §3.1), así que no
+ * WC-34, capa del reloj: en el modo A el reloj no tiene red propia (WC-ADR-013) ni pide ubicación (01 §3.1), así que no
  * puede subir nada aunque alguien lo intente. Si una dependencia agrega INTERNET al manifiesto, esta prueba falla.
  */
 @RunWith(AndroidJUnit4::class)

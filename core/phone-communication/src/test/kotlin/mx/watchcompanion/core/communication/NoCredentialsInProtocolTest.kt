@@ -5,7 +5,7 @@ import kotlinx.serialization.descriptors.elementDescriptors
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** ADR-013 y 07-security-and-privacy.md §3: ningún mensaje de la Data Layer puede tener campos de credenciales. */
+/** WC-ADR-013 y 07-security-and-privacy.md §3: ningún mensaje de la Data Layer puede tener campos de credenciales. */
 class NoCredentialsInProtocolTest {
     private val prohibidos = listOf("token", "password", "secret", "authorization", "bearer", "cookie", "credential")
 

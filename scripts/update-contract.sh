@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copia el contrato OpenAPI de un backend fijado a un commit (ADR-009 del companion, mismo esquema que velora-android):
+# Copia el contrato OpenAPI de un backend fijado a un commit (WC-ADR-009 del companion, mismo esquema que velora-android):
 # los clientes se generan de esta copia, así el build no depende de la red y un cambio de contrato es explícito.
 #   scripts/update-contract.sh velora <sha>     fija el commit y descarga el contrato
 #   scripts/update-contract.sh --check velora   comprueba que la copia corresponde al commit fijado

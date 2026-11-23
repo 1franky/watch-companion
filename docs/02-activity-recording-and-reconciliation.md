@@ -1,4 +1,6 @@
-# 02 — ADR: iGPSPORT BSC100S, Galaxy Watch, Strava y Velora
+# 02 — Grabación de actividades: iGPSPORT BSC100S, Galaxy Watch, Strava y Velora
+
+Desarrolla WC-ADR-002 a WC-ADR-005 de `08`; las decisiones viven allí y este documento detalla flujos, datos y reglas.
 
 ## Estado
 

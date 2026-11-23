@@ -63,7 +63,7 @@ class SessionExpiredException : IOException("La sesión de Velora terminó")
 class ServiceUnavailableException(status: Int) : IOException("Velora respondió $status al renovar la sesión")
 
 /**
- * Sesión de `app-phone` en Velora (ADR-013), independiente de la de velora-android y de la de Nexora.
+ * Sesión de `app-phone` en Velora (WC-ADR-013), independiente de la de velora-android y de la de Nexora.
  *
  * El access token vive solo en memoria y el refresh token se guarda cifrado ([SessionStore] con Keystore). Las
  * renovaciones se serializan: en Velora el refresh token es de un solo uso y reutilizarlo revoca toda la sesión, así

@@ -92,13 +92,17 @@ Por eso, la Fase 1 («comunicación con Velora Android/API para consultar estado
 
 **Propuesta:** el puente es una app nueva `app-phone` dentro de `watch-companion`, con el mismo `applicationId` que `app-watch`. Las apps existentes no se modifican. Hay que dejarlo como ADR y corregir la redacción de `06` Fase 1.
 
-### A-07 · Alta — Nexora no tiene presupuestos
+### A-07 · Resuelto en la especificación — Nexora no tiene presupuestos
+
+> **Actualización 2026-11-23 (WC-8):** presupuestos fuera del MVP en `03` §2 y en `00` §4; vuelven con la épica de `nexora-api` (WC-28).
 
 `03` §2 («Alertas de presupuesto», «Presupuesto cercano al límite») y `00` §4 (`nexora-api` → «presupuestos») asumen una funcionalidad inexistente. No hay paquete `budgets`. `BUDGET_EXCEEDED` está declarada pero no se dispara (README de `nexora-api`, plan §31).
 
 **Propuesta:** quitar presupuestos del MVP de Nexora Watch y marcarlos como dependientes de una épica de `nexora-api`.
 
-### A-08 · Media — Nexora no tiene «borradores» ni «consultar resultado de operación»
+### A-08 · Resuelto — Nexora no tiene «borradores» ni «consultar resultado de operación»
+
+> **Actualización 2026-11-23 (WC-8):** `03` §2 adopta la propuesta (borrador local en el teléfono + `Idempotency-Key` generada en el reloj) y `03` §5 lista los endpoints reales.
 
 Los contratos conceptuales de `03` §5 no existen. Lo que sí existe:
 - `POST /api/v1/transactions` (`INCOME`/`EXPENSE`);
@@ -106,7 +110,9 @@ Los contratos conceptuales de `03` §5 no existen. Lo que sí existe:
 
 **Propuesta:** el borrador vive solo en el teléfono (Room cifrado). «Confirmar» equivale a `POST /transactions` con una `Idempotency-Key` generada en el reloj. «Consultar resultado» equivale a reintentar con la misma clave. Así no se necesitan endpoints nuevos.
 
-### A-09 · Media — Nexora no tiene push
+### A-09 · Resuelto — Nexora no tiene push
+
+> **Actualización 2026-11-23 (WC-8):** `03` §2 especifica el sondeo con WorkManager y los tipos que se usan. Desde la auditoría, `nexora-api` agregó `SCHEDULED_CHARGE_*` y `SAT_SYNC_*`; de ellos solo `SCHEDULED_CHARGE_FAILED` llega al reloj.
 
 Las notificaciones son bandeja in-app (`GET /api/v1/notifications`), sin FCM. Tipos activos: `PAYMENT_DUE`, `PAYMENT_DUE_SOON` e `INSTALLMENT_DUE`.
 

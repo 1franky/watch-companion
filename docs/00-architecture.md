@@ -104,7 +104,7 @@ flowchart TB
 | `velora-api` | Actividades, ingestión de fuentes, normalización, analítica, rutas y deduplicación |
 | `velora-android` | Experiencia Android existente de Velora; no duplicar su lógica |
 | `velora-web` | Visualización y análisis de actividades |
-| `nexora-api` | Cuentas, tarjetas, transacciones, presupuestos, pagos y reglas financieras |
+| `nexora-api` | Cuentas, tarjetas, MSI/MCI, transacciones, pagos, notificaciones y reglas financieras (sin presupuestos todavía, A-07) |
 | `nexora-android` | Experiencia Android existente de Nexora |
 | `nexora-web` | Experiencia web existente de Nexora |
 | `watch-companion` | UI Wear OS, sensores, acciones rápidas y comunicación con el teléfono |

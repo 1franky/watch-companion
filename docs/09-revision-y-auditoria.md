@@ -210,7 +210,9 @@ Existe `schemaVersion`, pero no se dice qué ocurre si el reloj y el teléfono t
 
 **Propuesta:** listar en `08` el ADR de `02` como WC-ADR-002 (o fusionarlo) y renumerar con el prefijo de A-13.
 
-### R-12 · Media — Huecos en la matriz de pruebas y en la DoD
+### R-12 · Resuelto — Huecos en la matriz de pruebas y en la DoD
+
+> **Actualización 2026-11-23 (WC-10):** `06` §2 suma las cinco áreas, §2.1 indica qué prueba cubre cada una y qué falta (ATF en Compose), y §4 amplía la DoD.
 
 `06` no incluye:
 - versión cruzada reloj/teléfono (R-05);

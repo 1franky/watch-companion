@@ -79,6 +79,24 @@
 | Guardian | comando expirado, acción no permitida, confirmación ausente |
 | Smart Hub | proveedor caído, dispositivo offline, comando duplicado |
 | Seguridad | logs, almacenamiento, revocación, expiración de sesión |
+| Compatibilidad reloj ↔ teléfono | versiones distintas instaladas: se acepta la versión de protocolo anterior, una fuera de rango se muestra como «Incompatible» en ambos lados, campos desconocidos se ignoran (R-05) |
+| Batería | consumo con métricas en vivo y con la app en segundo plano sin sesión; reloj y teléfono por separado |
+| Accesibilidad en Wear | TalkBack lee etiqueta y valor juntos, objetivos táctiles suficientes, legible en ambiente, desplazamiento con bisel/corona |
+| Data Layer sin secretos | ningún token, contraseña ni cookie viaja al reloj; los mensajes sensibles exigen nonce y caducidad |
+| Importación FIT directa (respaldo) | el mismo archivo dos veces no duplica; un FIT de una salida que ya llegó por Strava se marca como posible duplicado, no se fusiona (A-01, WC-13) |
+
+### 2.1 Cobertura actual
+
+Qué cubre hoy cada área nueva y qué falta (R-12, WC-10). Lo automatizado corre en CI en cada PR.
+
+| Área | Automatizado | En dispositivo / pendiente |
+|---|---|---|
+| Compatibilidad reloj ↔ teléfono | `ProtocolCodecTest` (versión anterior aceptada, fuera de rango → `Incompatible`, campos desconocidos, Pong antiguo sin `sync`); `LinkSessionTest` (respuesta `Incompatible` limitada a una por minuto) | Instalar versiones distintas en reloj y teléfono antes de cada release |
+| Batería | — | Línea base en las salidas de campo (`10` §5); no se fijan límites hasta tenerla |
+| Accesibilidad en Wear | `SummaryScreenTest`, `MetricsScreenTest` (descripciones fusionadas para TalkBack, «--» con motivo en lugar de 0) | Verificación con TalkBack en el reloj (`10`, V5). **Falta:** activar las comprobaciones automáticas de accesibilidad (ATF) en las pruebas de Compose, como ya hacen los repos de Velora |
+| Data Layer sin secretos | `NoCredentialsInProtocolTest` (recorre todos los payloads), `ModeAProtocolTest` (catálogo cerrado de mensajes), `ProtocolCodecTest` (nonce y caducidad) | — |
+| Garantía del modo A | `ModeAProtocolTest`, `ModeANoUploadsTest` (solo las peticiones permitidas a Velora), `ModeAContractTest` (el cliente generado solo tiene GET más `/auth`), `ModeAWatchTest` (sin `INTERNET` ni ubicación en el reloj) | Una sola actividad en Strava y en Velora por salida (`10` §4) |
+| Importación FIT directa | — | Solo si WC-13 la confirma como respaldo; hoy no hay código |
 
 ## 3. Pruebas de campo de ciclismo
 
@@ -113,3 +131,8 @@ No definir tolerancias finales sin obtener una línea base de rutas reales.
 - Evidencia de pruebas en dispositivo físico.
 - README de instalación y depuración.
 - Cambios pequeños y revisables en PR.
+- Si cambia el protocolo reloj ↔ teléfono: sube `schemaVersion` solo si hace falta, se sigue aceptando la versión anterior y hay prueba de compatibilidad en `ProtocolCodecTest`.
+- Ningún secreto por la Data Layer: `NoCredentialsInProtocolTest` y `ModeAProtocolTest` en verde; un payload nuevo se agrega al catálogo de `ModeAProtocolTest` de forma explícita.
+- Pantallas nuevas del reloj: etiquetas para TalkBack, uso en ambiente y desplazamiento con bisel/corona, con prueba de Compose.
+- Cambios en sesiones de ejercicio, servicios o trabajo en segundo plano: medición de batería en el dispositivo anotada en el PR.
+- En la Fase 1, las pruebas de garantía del modo A (`ModeA*`) en verde.

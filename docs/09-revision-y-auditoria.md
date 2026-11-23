@@ -43,7 +43,9 @@ Realidad en `velora-api`:
 **Consecuencia:** el diseño del companion no debe depender de Strava como único camino. `velora-api` ya importa FIT, GPX y TCX (`POST /api/v1/activities/imports`, Garmin FIT SDK).  
 **Propuesta:** añadir un ADR del companion que defina dos caminos válidos para el modo A: (a) Strava cuando el conector esté habilitado, (b) importación del FIT del BSC100S (desde iGPSPORT o desde el dispositivo) directamente a Velora. Esto responde a la pregunta 1 de `02` §9 como prioridad de la Fase 0.
 
-### A-02 · Alta — Política de borrado de Strava vs. respaldo del Watch
+### A-02 · Resuelto — Política de borrado de Strava vs. respaldo del Watch
+
+> **Actualización 2026-11-23 (WC-7):** `02` §8.1 separa los datos de origen Watch (con su retención) de lo que viene de Strava (se borra según ADR-030 de Velora).
 
 `02` §8 exige que «un evento Strava `delete` o `update` no elimine datos locales de respaldo sin política de retención». Velora ya marca `DELETED` en `strava_sync_items` y procesa borrados por compromiso de 48 h (`V14`).
 
@@ -60,7 +62,9 @@ Hoy, subir la grabación del Watch por `/activities/imports` crea **una segunda 
 
 **Propuesta:** ADR en `velora-api` para modelar grabaciones secundarias adjuntas a una actividad, en lugar de crear tablas paralelas. Hay que adaptar los nombres de `02` §5 al modelo real (`activities`, `activity_files`, `activity_metrics`, `activity_tracks`, streams `velora-streams/1`).
 
-### A-04 · Media — Preguntas de `02` §9 ya respondidas por el código
+### A-04 · Resuelto — Preguntas de `02` §9 ya respondidas por el código
+
+> **Actualización 2026-11-23 (WC-7):** `02` §6 remite a ADR-030 de Velora y `02` §9 queda como tabla con respuesta o tarjeta por pregunta.
 
 | Pregunta | Respuesta |
 |---|---|

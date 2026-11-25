@@ -68,6 +68,8 @@ Esta definición es la que verifica la prueba automatizada «el modo A no sube n
 - No subir la copia del Watch a Strava automáticamente.
 - Si el BSC100S falla, el usuario puede seleccionar la ruta del Watch como candidata para recuperar la actividad.
 - Si ambas grabaciones son válidas, conservar ambas; no fusionar de manera destructiva.
+
+**Implementado en el reloj (WC-53):** «Grabar ruta» inicia la misma sesión de §3.1 con el GPS encendido (`ExerciseConfig` con `LOCATION` y foreground service `health|location`). El track se guarda punto por punto en un diario local con UUID estable, sobrevive a reinicios de la app y se recupera como parcial si el reloj se apaga; al terminar se genera un GPX con altitud y FC que el `GpxParser` de Velora ya lee. Las alertas y la pantalla son las del modo A. La subida (WC-54) depende del modelo de fuente secundaria en Velora (WC-27).
 - Con el GPS del reloj, evaluar la auto-pausa de Health Services (`setIsAutoPauseAndResumeEnabled`) para que la duración coincida con la del BSC100S (WC-53).
 
 ### Modo C — Fusión avanzada

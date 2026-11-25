@@ -42,9 +42,12 @@ import mx.watchcompanion.watch.live.ActiveDuration
 import mx.watchcompanion.watch.live.EndReason
 import mx.watchcompanion.watch.live.HeartRateAvailability
 import mx.watchcompanion.watch.live.LiveMetricsState
+import mx.watchcompanion.watch.recording.RecordingProgress
+import mx.watchcompanion.watch.recording.RecordingStatus
+import mx.watchcompanion.watch.recording.RecordingSummary
 
 /** Acciones de la pantalla Métricas; las ejecuta la sesión de métricas en vivo. */
-enum class LiveAction { START, PAUSE, RESUME, END, DISMISS, BACK }
+enum class LiveAction { START, RECORD, PAUSE, RESUME, END, DISMISS, BACK }
 
 /**
  * Pantalla Métricas (01 §5, WC-30): frecuencia cardíaca y duración de la sesión de métricas en vivo.
@@ -86,6 +89,7 @@ fun MetricsScreen(
                     Message(stringResource(R.string.live_idle), primary)
                     if (!ambient) {
                         Button(onClick = { onAction(LiveAction.START) }) { Text(stringResource(R.string.live_start)) }
+                        FilledTonalButton(onClick = { onAction(LiveAction.RECORD) }) { Text(stringResource(R.string.record_start)) }
                         OutlinedButton(onClick = { onAction(LiveAction.BACK) }) { Text(stringResource(R.string.live_back)) }
                     }
                 }
@@ -93,10 +97,13 @@ fun MetricsScreen(
                 LiveMetricsState.Unsupported -> Notice(stringResource(R.string.live_unsupported), primary, ambient, onAction)
                 LiveMetricsState.OtherAppInProgress -> Notice(stringResource(R.string.live_other_app), primary, ambient, onAction)
                 is LiveMetricsState.Failed -> Notice(stringResource(R.string.live_failed, state.code), primary, ambient, onAction)
+                LiveMetricsState.LocationUnavailable ->
+                    Notice(stringResource(R.string.record_location_unavailable), primary, ambient, onAction)
                 is LiveMetricsState.Ended -> {
                     Message(stringResource(R.string.live_ended), primary)
                     Text(formatDuration(state.activeMs, seconds = true), color = primary, style = MaterialTheme.typography.displaySmall)
                     endReasonText(state.reason)?.let { Text(it, color = secondary, textAlign = TextAlign.Center) }
+                    state.recording?.let { Text(recordingSaved(it), color = primary, textAlign = TextAlign.Center) }
                     if (!ambient) {
                         Button(onClick = { onAction(LiveAction.DISMISS) }) { Text(stringResource(R.string.live_ok)) }
                     }
@@ -147,6 +154,7 @@ private fun Active(
         Text(stringResource(R.string.live_duration), color = secondary, style = MaterialTheme.typography.labelMedium)
         Text(durationText, color = primary, style = MaterialTheme.typography.displaySmall)
         if (state.paused) Text(stringResource(R.string.live_paused), color = secondary)
+        state.recording?.let { Text(recordingProgress(it), color = primary, textAlign = TextAlign.Center) }
     }
     if (ambient) return
 
@@ -175,6 +183,18 @@ private fun Message(text: String, color: Color) =
 private fun Notice(text: String, color: Color, ambient: Boolean, onAction: (LiveAction) -> Unit) {
     Message(text, color)
     if (!ambient) Button(onClick = { onAction(LiveAction.DISMISS) }) { Text(stringResource(R.string.live_ok)) }
+}
+
+@Composable
+private fun recordingProgress(progress: RecordingProgress): String =
+    if (progress.points == 0) stringResource(R.string.record_searching_gps)
+    else stringResource(R.string.record_active, progress.distanceMeters / 1000)
+
+@Composable
+private fun recordingSaved(summary: RecordingSummary): String = when {
+    summary.points == 0 -> stringResource(R.string.record_empty)
+    summary.status == RecordingStatus.PARTIAL -> stringResource(R.string.record_partial, summary.distanceMeters / 1000, summary.points)
+    else -> stringResource(R.string.record_saved, summary.distanceMeters / 1000, summary.points)
 }
 
 @Composable

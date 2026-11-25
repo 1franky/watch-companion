@@ -1,9 +1,17 @@
 package mx.watchcompanion.watch.live
 
+import java.io.File
 import java.io.IOException
+import java.nio.file.Files
 import kotlinx.coroutines.test.runTest
 import mx.watchcompanion.watch.live.ExerciseSnapshot.Phase
+import mx.watchcompanion.watch.recording.HeartRateSample
+import mx.watchcompanion.watch.recording.RecordingProgress
+import mx.watchcompanion.watch.recording.RecordingStatus
+import mx.watchcompanion.watch.recording.TrackPoint
+import mx.watchcompanion.watch.recording.TrackRecorder
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -11,37 +19,53 @@ import org.junit.Test
 class LiveMetricsSessionTest {
     private class FakeBackend(
         var supports: Boolean = true,
+        var supportsGps: Boolean = true,
         var status: TrackedStatus = TrackedStatus.NONE,
         var failStart: Exception? = null,
     ) : ExerciseBackend {
         var registered: ExerciseListener? = null
         val calls = mutableListOf<String>()
         override suspend fun supportsHeartRate() = supports
+        override suspend fun supportsLocation() = supportsGps
         override suspend fun trackedStatus() = status
         override fun setListener(listener: ExerciseListener) {
             registered = listener
         }
-        override suspend fun start() {
+        override suspend fun start(withLocation: Boolean) {
             failStart?.let { throw it }
-            calls += "start"
+            calls += if (withLocation) "start+gps" else "start"
         }
         override suspend fun pause() { calls += "pause" }
         override suspend fun resume() { calls += "resume" }
         override suspend fun end() { calls += "end" }
 
-        fun emit(phase: Phase, hr: Double? = null, duration: ActiveDuration? = null, reason: EndReason? = null) =
-            registered!!.onSnapshot(ExerciseSnapshot(phase, hr, duration, reason))
+        fun emit(
+            phase: Phase,
+            hr: Double? = null,
+            duration: ActiveDuration? = null,
+            reason: EndReason? = null,
+            locations: List<TrackPoint> = emptyList(),
+            heartRates: List<HeartRateSample> = emptyList(),
+        ) = registered!!.onSnapshot(ExerciseSnapshot(phase, hr, duration, reason, locations, heartRates))
     }
 
     private class FakeKeeper : ForegroundKeeper {
         var held = false
-        override fun acquire() { held = true }
+        var withLocation = false
+        override fun acquire(withLocation: Boolean) {
+            held = true
+            this.withLocation = withLocation
+        }
         override fun release() { held = false }
     }
 
     private val backend = FakeBackend()
     private val keeper = FakeKeeper()
-    private val session = LiveMetricsSession(backend, keeper)
+    private val root: File = Files.createTempDirectory("recordings").toFile()
+    private val recorder = TrackRecorder(root)
+    private var locationGranted = true
+    private var now = 1_000_000L
+    private val session = LiveMetricsSession(backend, keeper, recorder, { locationGranted }, { now })
 
     private val active get() = session.state.value as LiveMetricsState.Active
 
@@ -184,5 +208,105 @@ class LiveMetricsSessionTest {
     fun codigosDeErrorConFormatoDeDiagnostico() {
         assertEquals("ILLEGAL_STATE_EXCEPTION", LiveMetricsSession.codeFor(IllegalStateException("x")))
         assertTrue(Regex("[A-Z][A-Z0-9_]{0,31}").matches(LiveMetricsSession.codeFor(IOException())))
+    }
+
+    // --- Modo A: la garantía de WC-34 sigue en pie con el modo B en la app ---
+
+    @Test
+    fun elModoANoEnciendeElGpsNiGuardaNada() = runTest {
+        session.start()
+        backend.emit(Phase.ACTIVE, hr = 120.0, locations = listOf(TrackPoint(now, 19.4, -99.1)))
+        backend.emit(Phase.ENDED, reason = EndReason.USER)
+
+        assertEquals(listOf("start"), backend.calls)
+        assertFalse(keeper.withLocation)
+        assertEquals(null, (session.state.value as LiveMetricsState.Ended).recording)
+        assertTrue("El modo A no escribe archivos: ${root.list().orEmpty().toList()}", root.list().orEmpty().isEmpty())
+    }
+
+    // --- Modo B (WC-53) ---
+
+    @Test
+    fun elModoBEnciendeElGpsYGuardaLosPuntos() = runTest {
+        session.start(SessionMode.RECORDING)
+        assertEquals(listOf("start+gps"), backend.calls)
+        assertTrue(keeper.withLocation)
+        assertEquals(RecordingProgress(0, 0.0), active.recording)
+
+        backend.emit(
+            Phase.ACTIVE,
+            hr = 130.0,
+            locations = listOf(TrackPoint(now, 19.4000, -99.1000), TrackPoint(now + 1_000, 19.4010, -99.1000)),
+            heartRates = listOf(HeartRateSample(now, 130)),
+        )
+        assertEquals(2, active.recording!!.points)
+        assertTrue(active.recording!!.distanceMeters in 100.0..120.0)
+
+        now += 60_000
+        backend.emit(Phase.ENDED, duration = ActiveDuration(0, 60_000, running = false), reason = EndReason.USER)
+        val saved = (session.state.value as LiveMetricsState.Ended).recording!!
+        assertEquals(RecordingStatus.FINISHED, saved.status)
+        assertEquals(2, saved.points)
+        assertTrue(saved.gpx!!.readText().contains("<gpxtpx:hr>130</gpxtpx:hr>"))
+        assertFalse(keeper.held)
+    }
+
+    @Test
+    fun sinPermisoDeUbicacionNoGrabaYLoExplica() = runTest {
+        locationGranted = false
+        session.start(SessionMode.RECORDING)
+        assertEquals(LiveMetricsState.LocationUnavailable, session.state.value)
+        assertEquals(emptyList<String>(), backend.calls)
+        assertFalse(keeper.held)
+    }
+
+    @Test
+    fun sinGpsEnElRelojNoGraba() = runTest {
+        backend.supportsGps = false
+        session.start(SessionMode.RECORDING)
+        assertEquals(LiveMetricsState.LocationUnavailable, session.state.value)
+        assertEquals(emptyList<String>(), backend.calls)
+    }
+
+    @Test
+    fun siElEjercicioNoArrancaNoQuedaUnaGrabacionVacia() = runTest {
+        backend.failStart = IOException()
+        session.start(SessionMode.RECORDING)
+        assertTrue(session.state.value is LiveMetricsState.Failed)
+        assertTrue(root.list().orEmpty().isEmpty())
+    }
+
+    @Test
+    fun alReabrirLaAppConElEjercicioEnCursoSigueLaMismaGrabacion() = runTest {
+        session.start(SessionMode.RECORDING)
+        backend.emit(Phase.ACTIVE, locations = listOf(TrackPoint(now, 19.4, -99.1)))
+        val id = recorder.activeId!!
+
+        // La app se reinicia: proceso nuevo, mismo almacenamiento, el ejercicio sigue en Health Services.
+        val backend2 = FakeBackend(status = TrackedStatus.OWNED)
+        val recorder2 = TrackRecorder(root)
+        val session2 = LiveMetricsSession(backend2, FakeKeeper(), recorder2, { true }, { now })
+        session2.attach()
+
+        assertEquals(id, recorder2.activeId)
+        assertEquals(SessionMode.RECORDING, session2.mode)
+        backend2.emit(Phase.ACTIVE, locations = listOf(TrackPoint(now + 1_000, 19.401, -99.1)))
+        assertEquals(2, (session2.state.value as LiveMetricsState.Active).recording!!.points)
+    }
+
+    @Test
+    fun siElRelojSeApagoLaGrabacionQuedaComoParcial() = runTest {
+        session.start(SessionMode.RECORDING)
+        backend.emit(Phase.ACTIVE, locations = listOf(TrackPoint(now, 19.4, -99.1), TrackPoint(now + 1_000, 19.401, -99.1)))
+
+        // Al volver a abrir la app, Health Services ya no tiene el ejercicio.
+        val session2 = LiveMetricsSession(FakeBackend(status = TrackedStatus.NONE), FakeKeeper(), TrackRecorder(root), { true }, { now })
+        session2.attach()
+
+        val saved = TrackRecorder(root).list().single()
+        assertEquals(RecordingStatus.PARTIAL, saved.status)
+        assertEquals(2, saved.points)
+        assertNotNull(saved.gpx)
+        assertEquals(LiveMetricsState.Idle, session2.state.value)
     }
 }

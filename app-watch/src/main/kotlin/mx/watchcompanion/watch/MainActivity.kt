@@ -31,6 +31,7 @@ import mx.watchcompanion.core.permissions.ModuleStatus
 import mx.watchcompanion.core.permissions.PermissionActions
 import mx.watchcompanion.core.permissions.SharedPreferencesModuleSettings
 import mx.watchcompanion.watch.live.LiveMetricsState
+import mx.watchcompanion.watch.live.SessionMode
 
 class MainActivity : ComponentActivity() {
     private var ambient by mutableStateOf(false)
@@ -94,6 +95,20 @@ class MainActivity : ComponentActivity() {
                     requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
             }
+            // Modo B (WC-53): la ubicación se pide solo al tocar «Grabar ruta». Si se niega, la sesión lo explica y no
+            // arranca; el modo A sigue disponible sin ella.
+            val requestRecording = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+                scope.launch { live.start(SessionMode.RECORDING) }
+            }
+            val startRecording = {
+                val missing = listOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.POST_NOTIFICATIONS,
+                )
+                    .filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
+                if (missing.isEmpty()) scope.launch { live.start(SessionMode.RECORDING) } else requestRecording.launch(missing.toTypedArray())
+            }
             LaunchedEffect(Unit) { session.refresh() }
             LaunchedEffect(Unit) {
                 live.attach()
@@ -117,6 +132,7 @@ class MainActivity : ComponentActivity() {
                 MetricsScreen(state = liveState, now = now, ambient = ambient, zones = zones) { action ->
                     when (action) {
                         LiveAction.START -> startLive()
+                        LiveAction.RECORD -> startRecording()
                         LiveAction.PAUSE -> scope.launch { live.pause() }
                         LiveAction.RESUME -> scope.launch { live.resume() }
                         LiveAction.END -> scope.launch { live.end() }
@@ -134,6 +150,10 @@ class MainActivity : ComponentActivity() {
                 live = liveState,
                 onLive = {
                     if (liveState == LiveMetricsState.Idle) startLive()
+                    screen = Screen.METRICS
+                },
+                onRecord = {
+                    startRecording()
                     screen = Screen.METRICS
                 },
                 link = link,
@@ -155,7 +175,12 @@ class MainActivity : ComponentActivity() {
                         ModuleAction.DISABLE -> {
                             // Sin el permiso la sesión no puede seguir: se termina antes de revocarlo.
                             scope.launch { live.end() }
-                            PermissionActions.revokeOnKill(this, gate.disable(CompanionModule.VELORA))
+                            // La ubicación del modo B es opcional y no la lleva el gate: se revoca junto con el módulo.
+                            PermissionActions.revokeOnKill(
+                                this,
+                                gate.disable(CompanionModule.VELORA) + Manifest.permission.ACCESS_FINE_LOCATION +
+                                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                            )
                             velora = gate.status(CompanionModule.VELORA)
                         }
                     }

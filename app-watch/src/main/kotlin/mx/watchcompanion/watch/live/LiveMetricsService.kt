@@ -9,6 +9,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.IBinder
+import androidx.core.app.NotificationCompat
+import androidx.wear.ongoing.OngoingActivity
+import androidx.wear.ongoing.Status
 import mx.watchcompanion.watch.MainActivity
 import mx.watchcompanion.watch.R
 
@@ -23,7 +26,7 @@ class LiveMetricsService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         try {
-            startForeground(NOTIFICATION_ID, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH)
+            startForeground(NOTIFICATION_ID, liveNotification(this, NOTIFICATION_ID), ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH)
         } catch (_: SecurityException) {
             // Sin el permiso de frecuencia cardíaca el sistema no lo admite. La sesión sigue con la pantalla encendida;
             // no se cierra la app por esto.
@@ -34,29 +37,43 @@ class LiveMetricsService : Service() {
         return START_NOT_STICKY
     }
 
-    private fun notification(): Notification {
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, getString(R.string.live_channel), NotificationManager.IMPORTANCE_LOW),
-        )
-        val open = PendingIntent.getActivity(
-            this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
-        return Notification.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher)
-            .setContentTitle(getString(R.string.live_notification_title))
-            .setContentText(getString(R.string.live_notification_text))
-            .setContentIntent(open)
-            .setOngoing(true)
-            .setCategory(Notification.CATEGORY_WORKOUT)
-            .build()
-    }
-
     private companion object {
-        const val CHANNEL_ID = "live_metrics"
         const val NOTIFICATION_ID = 30
     }
 }
+
+/**
+ * Notificación del foreground service con su *Ongoing Activity* (WC-58): el ícono en la esfera y en recientes lleva de
+ * vuelta a la app con un toque mientras dura la sesión, sin pasar por el menú de apps. Desaparece con el servicio.
+ *
+ * El estado es un texto fijo: actualizar la FC en la esfera obligaría a repostear la notificación cada segundo.
+ */
+internal fun liveNotification(context: Context, notificationId: Int): Notification {
+    val manager = context.getSystemService(NotificationManager::class.java)
+    manager.createNotificationChannel(
+        NotificationChannel(LIVE_CHANNEL_ID, context.getString(R.string.live_channel), NotificationManager.IMPORTANCE_LOW),
+    )
+    // Con una sesión activa, MainActivity abre en Métricas.
+    val open = PendingIntent.getActivity(
+        context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+    val builder = NotificationCompat.Builder(context, LIVE_CHANNEL_ID)
+        .setSmallIcon(R.drawable.ic_launcher)
+        .setContentTitle(context.getString(R.string.live_notification_title))
+        .setContentText(context.getString(R.string.live_notification_text))
+        .setContentIntent(open)
+        .setOngoing(true)
+        .setCategory(NotificationCompat.CATEGORY_WORKOUT)
+    OngoingActivity.Builder(context, notificationId, builder)
+        .setStaticIcon(R.drawable.ic_launcher)
+        .setTouchIntent(open)
+        .setStatus(Status.Builder().addTemplate(context.getString(R.string.live_ongoing_status)).build())
+        .build()
+        .apply(context)
+    return builder.build()
+}
+
+internal const val LIVE_CHANNEL_ID = "live_metrics"
 
 /** [ForegroundKeeper] con [LiveMetricsService]. Se adquiere con la app en primer plano (al tocar «Iniciar»). */
 class ServiceForegroundKeeper(private val context: Context) : ForegroundKeeper {

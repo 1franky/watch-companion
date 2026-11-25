@@ -86,3 +86,35 @@ Observaciones: <…>
 - V1–V9 resueltas (✓, o tarjeta abierta para cada ✗).
 
 Los resultados se agregan al final de este documento en el mismo PR que cierra WC-35.
+
+## 7. Resultados
+
+### Salida 1 — 2026-11-25
+
+Ruta: ~1 h en total, con una parada larga a la mitad  ·  Duración BSC100S: no anotada
+Duración en el reloj (métricas en vivo): ~1 h (incluye la parada; ver «Pausas»)
+
+Batería reloj: consumo de **2–3 % en ~1 h (≈ 2–3 %/h)**: línea base del modo A
+Batería teléfono: no anotada
+
+Alertas: vibraron al cambiar de zona; no se notaron repetidas ni perdidas (sin conteo).
+Momentos sin lectura («--»): ninguno reportado.
+
+Strava: actividades de la salida = 1  ·  Velora: actividades de la salida = 1
+Última actividad en el reloj: no se vio «Sincronizada» (no se revisó tras la salida; pendiente)
+
+| # | Resultado |
+|---|---|
+| V1 | ✓ Las métricas siguieron hasta el final (~1 h) sin cerrarse. |
+| V2 | ✓ parcial: la medición siguió con la muñeca abajo, pero al subirla aparece la esfera y hay que volver a la app desde el menú de apps. La app no publica una *Ongoing Activity* (sin acceso directo en la esfera ni en recientes). |
+| V3 | ✓ Samsung Health no muestra un ciclismo nuevo. |
+| V4 | Pendiente (salida 2). |
+| V5 | Pendiente (salida 2). |
+| V6 | Pendiente (salida 2): No molestar no se activó. |
+| V7 | Pendiente (salida 2): modo avión no se activó. |
+| V8 | No aplica en esta salida: la detección automática de ciclismo de Samsung Health ya estaba **desactivada**. |
+| V9 | ✓ 502 ms tras la salida, con el reloj en reposo. |
+
+Observaciones:
+
+- **Pausas:** el BSC100S se pausa solo al detenerse; el reloj no, porque el ejercicio se configura con `setIsAutoPauseAndResumeEnabled(false)` y sin GPS (modo A). La duración del reloj incluye las paradas y no coincide con la del BSC100S.

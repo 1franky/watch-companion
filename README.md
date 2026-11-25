@@ -85,14 +85,16 @@ Desde el Resumen, **Iniciar métricas** abre la sesión de métricas en vivo del
 
 ## Reloj: grabación de la ruta (modo B)
 
-**Grabar ruta** (en el Resumen o en Métricas) inicia la misma sesión de métricas, con las mismas alertas, pero además enciende el GPS del reloj y guarda su propio track (WC-53). Es el respaldo del BSC100S (01 §3, modo B): **no se sube a Strava** y el reloj no tiene red, así que la grabación se queda en el reloj hasta que el teléfono la lleve a Velora como fuente secundaria (WC-54).
+**Grabar ruta** (en el Resumen o en Métricas) inicia la misma sesión de métricas, con las mismas alertas, pero además enciende el GPS del reloj y guarda su propio track (WC-53). Es el respaldo del BSC100S (01 §3, modo B): **no se sube a Strava**. El reloj no tiene red: al terminar, la grabación viaja al teléfono y el teléfono la sube a Velora como **grabación secundaria** (WC-54, ADR-032 de Velora), que se adjunta sola a la actividad de la salida sin crear otra.
 
 - Pide la **ubicación precisa** solo al tocar «Grabar ruta». Si se niega (o solo se concede la aproximada), lo explica y no graba; **Iniciar métricas** sigue funcionando sin ella.
 - Cada grabación tiene un **UUID estable** y vive en `noBackupFilesDir/recordings/<uuid>/`, fuera de las copias de seguridad: un diario `points.csv` (solo-añadir, sincronizado a disco en cada lote) y, al terminar, `track.gpx`.
 - **Sobrevive a un cierre de la app:** al volver a abrirla con el ejercicio en curso, sigue la misma grabación. Si el reloj se apagó, al abrir la app la grabación se cierra como **parcial** con los puntos que alcanzaron a guardarse; una línea cortada a media escritura se descarta.
 - El **GPX** lleva `ele`, `time` y la FC en `gpxtpx:hr`, que es lo que lee el `GpxParser` de Velora. Cada punto lleva la lectura de FC más cercana (±5 s); lo que falta se omite, nunca se escribe un 0. Sin nombre, modelo ni id de dispositivo.
 - Sin auto-pausa por ahora (WC-59): se decidirá con los datos de batería y GPS de WC-57.
-- Para revisar una grabación antes de WC-54: `adb -s <reloj> shell run-as mx.watchcompanion ls no_backup/recordings` y `adb -s <reloj> exec-out run-as mx.watchcompanion cat no_backup/recordings/<uuid>/track.gpx > ruta.gpx`. **No importarla en Velora a mano:** crearía una segunda actividad de la misma salida.
+- **Del reloj al teléfono:** data item `/wc/recording/<uuid>` con el GPX (00 §5). La Data Layer lo entrega cuando hay enlace; el teléfono verifica el SHA-256, lo guarda y da el acuse, y entonces el reloj borra su copia. Mientras tanto, el Resumen del reloj muestra «Rutas grabadas: N por enviar al teléfono».
+- **Del teléfono a Velora:** WorkManager sube cada archivo con red (`POST /secondary-recordings`, idempotente por el UUID y el SHA-256) y consulta su trabajo hasta que Velora la tiene; entonces la borra del teléfono. Sin red o sin sesión espera y reintenta solo; un conflicto o un archivo rechazado se descarta y queda en Diagnóstico. La pantalla principal muestra cuántas rutas esperan a Velora.
+- Para revisar una grabación antes de WC-54: `adb -s <reloj> shell run-as mx.watchcompanion ls no_backup/recordings` y `adb -s <reloj> exec-out run-as mx.watchcompanion cat no_backup/recordings/<uuid>/track.gpx > ruta.gpx` (solo mientras no haya llegado al teléfono). **No importarla en Velora como actividad:** crearía una segunda actividad de la misma salida.
 
 ## Zonas de frecuencia cardíaca
 
@@ -109,7 +111,7 @@ En el modo A, la única actividad es la del BSC100S (iGPSPORT → Strava → Vel
 
 | Prueba | Qué vigila |
 |---|---|
-| `ModeAContractTest` (`integration:velora-contract`) | Cada operación del cliente generado es `GET` o de sesión (`/auth/`); ninguna de importación, reproceso ni escritura en Strava. Lee el `openapi-v1.yaml` fijado. |
+| `ModeAContractTest` (`integration:velora-contract`) | Cada operación del cliente es `GET` o de sesión (`/auth/`), salvo una: la subida de la grabación del reloj como fuente secundaria (modo B), que por contrato nunca crea una actividad. Ninguna de importación, recuperación como actividad, reproceso ni escritura en Strava. Lee el `openapi-v1.yaml` fijado. |
 | `ModeANoUploadsTest` (`app-phone`) | Corre los flujos reales del teléfono (sesión, zonas, última actividad, cierre) contra una Velora simulada y exige que cada petición esté en la lista de lecturas y sesión. |
 | `ModeAProtocolTest` (`core:phone-communication`) | El catálogo de mensajes Watch ↔ Phone es una lista cerrada: un mensaje nuevo obliga a justificar que no transporta muestras ni archivos. |
 | `ModeAWatchTest` (`app-watch`) | El reloj no declara `INTERNET` y activar Velora no pide ubicación. `LiveMetricsSessionTest` comprueba además que la sesión del modo A no enciende el GPS ni escribe archivos. |
@@ -139,6 +141,7 @@ Cada módulo pide sus permisos **solo cuando el usuario lo activa**. Si se revoc
 | `android.permission.POST_NOTIFICATIONS` (opcional) | reloj | Velora | Mostrar la notificación de la sesión, que lleva el ícono de la esfera (Ongoing Activity, WC-58). Se pide al tocar **Iniciar métricas**; si se niega, la sesión funciona igual, sin ícono | Fase 1 |
 | `android.permission.ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` (opcional) | reloj | Velora | GPS del reloj para grabar la ruta en el modo B (WC-53). Se pide al tocar **Grabar ruta**; Android exige pedir las dos y sin la precisa no se graba. Se revoca al desactivar Velora | Fase 5 |
 | `android.permission.FOREGROUND_SERVICE_LOCATION` (normal, sin diálogo) | reloj | Velora | Mantener el GPS con la pantalla apagada durante la grabación (WC-53) | Fase 5 |
+| `WAKE_LOCK`, `ACCESS_NETWORK_STATE`, `RECEIVE_BOOT_COMPLETED`, `FOREGROUND_SERVICE` (normales, sin diálogo; los agrega WorkManager) | teléfono | Velora | Subir las grabaciones del reloj con reintentos, aunque la app esté cerrada o el teléfono se reinicie (WC-54) | Fase 5 |
 | `android.permission.INTERNET` (normal, sin diálogo) | teléfono | Velora | Llamar a Velora API por HTTPS (WC-22) | Fase 0 |
 | `mx.watchcompanion.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | ambas | — | Permiso interno de firma que agrega AndroidX (`core-ktx`); no muestra diálogo | Fase 0 |
 

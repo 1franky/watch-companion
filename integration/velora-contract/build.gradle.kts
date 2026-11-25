@@ -32,6 +32,10 @@ val companionOperations = listOf(
     "login", "refreshTokens", "logout", // sesión de app-phone (WC-22)
     "getMe", // FC máxima para las zonas (WC-32)
     "listActivities", "getStravaStatus", // estado de la última actividad (WC-33)
+    // Subir la grabación del reloj como fuente secundaria (WC-54, ADR-032 de Velora). uploadSecondaryRecording no se
+    // genera: el generador arma el multipart con una API interna de Ktor que no acepta UUID. Está escrita a mano en
+    // VeloraClient, sobre el mismo cliente, y ModeAContractTest la vigila igual.
+    "getImportJob",
 )
 
 val generatedApi = layout.buildDirectory.dir("generated/openapi")
@@ -63,6 +67,7 @@ val generateVeloraApi by tasks.registering(GenerateTask::class) {
                 "ActivitySummary", "ActivitySubType", "StravaStatus",
                 // Esquemas en línea: se nombran por su clave interna, no por la clase que generan.
                 "listActivities_200_response",
+                "SecondaryRecording", "ImportAccepted", "ImportJob", "ImportJob_warnings_inner",
             ).joinToString(","),
         ),
     )

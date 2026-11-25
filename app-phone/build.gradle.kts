@@ -84,6 +84,9 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
+    // Subida de las grabaciones del reloj con reintentos y sin red (WC-54).
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.play.services.wearable)
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)
 

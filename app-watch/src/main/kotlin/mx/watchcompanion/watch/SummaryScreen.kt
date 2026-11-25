@@ -51,6 +51,7 @@ import mx.watchcompanion.watch.live.LiveMetricsState
  *
  * @param now instante actual (ms epoch), para el «hace N min»; inyectable para pruebas.
  * @param activity último estado de la actividad en Velora que informó el teléfono (WC-33).
+ * @param pendingRecordings grabaciones del modo B que siguen en el reloj esperando al teléfono (WC-54).
  * @param zoneId zona horaria para mostrar la fecha de la actividad; inyectable para pruebas.
  */
 @Composable
@@ -64,6 +65,7 @@ fun SummaryScreen(
     live: LiveMetricsState = LiveMetricsState.Idle,
     onLive: () -> Unit = {},
     onRecord: () -> Unit = {},
+    pendingRecordings: Int = 0,
     activity: ActivityStatus? = null,
     zoneId: ZoneId = ZoneId.systemDefault(),
 ) {
@@ -95,6 +97,15 @@ fun SummaryScreen(
             SummaryItem(stringResource(R.string.summary_mode), stringResource(R.string.summary_mode_a), primary, secondary)
             SummaryItem(stringResource(R.string.summary_velora), veloraSyncText(link, now), primary, secondary)
             ActivityItem(activity, now, zoneId, primary, secondary)
+            // Modo B (WC-54): rutas grabadas que aún no confirma el teléfono; salen solas cuando haya enlace.
+            if (pendingRecordings > 0) {
+                SummaryItem(
+                    stringResource(R.string.summary_recordings),
+                    pluralStringResource(R.plurals.recordings_pending, pendingRecordings, pendingRecordings),
+                    primary,
+                    secondary,
+                )
+            }
             if (live is LiveMetricsState.Active) {
                 SummaryItem(stringResource(if (live.recording != null) R.string.summary_recording else R.string.summary_live), liveSummary(live), primary, secondary)
             }

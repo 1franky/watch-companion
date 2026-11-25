@@ -1,5 +1,6 @@
 package mx.watchcompanion.core.datalayer
 
+import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.WearableListenerService
 import kotlinx.coroutines.runBlocking
@@ -26,7 +27,26 @@ class LinkListenerService : WearableListenerService() {
         }
     }
 
+    /**
+     * Grabaciones del modo B (WC-54): el teléfono recibe las ofrecidas y el reloj, los acuses ([RecordingTransfer]).
+     * El buffer solo es válido durante esta llamada, así que se procesa aquí, con un límite más amplio (copia un archivo).
+     */
+    override fun onDataChanged(events: DataEventBuffer) {
+        val handler = application as? RecordingTransferHandler ?: return
+        runBlocking {
+            withTimeoutOrNull(TRANSFER_TIMEOUT_MS) {
+                for (event in events) {
+                    val path = event.dataItem.uri.path ?: continue
+                    if (!path.startsWith(RecordingTransfer.PATH_PREFIX)) continue
+                    RecordingTransfer.acceptedId(event)?.let { handler.onRecordingAccepted(it) }
+                        ?: handler.onRecordingOffered(event)
+                }
+            }
+        }
+    }
+
     private companion object {
         const val HANDLE_TIMEOUT_MS = 5_000L
+        const val TRANSFER_TIMEOUT_MS = 30_000L
     }
 }

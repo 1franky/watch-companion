@@ -24,10 +24,17 @@ import mx.watchcompanion.watch.alerts.ZoneAlerts
 import mx.watchcompanion.watch.live.HealthServicesBackend
 import mx.watchcompanion.watch.live.LiveMetricsSession
 import mx.watchcompanion.watch.live.ServiceForegroundKeeper
+import mx.watchcompanion.watch.recording.RecordingOutbox
 import mx.watchcompanion.watch.recording.TrackRecorder
+import mx.watchcompanion.watch.live.LiveMetricsState
+import mx.watchcompanion.core.datalayer.RecordingTransfer
+import mx.watchcompanion.core.datalayer.RecordingTransferHandler
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 
 /** Contenedor de dependencias del reloj (inyección manual, como nexora-android). */
-class WatchCompanionApp : Application(), LinkSessionOwner {
+class WatchCompanionApp : Application(), LinkSessionOwner, RecordingTransferHandler {
     override val linkSession: LinkSession by lazy {
         LinkSession(
             transport = DataLayerTransport(this, peerCapability = Capabilities.PHONE_APP),
@@ -54,10 +61,27 @@ class WatchCompanionApp : Application(), LinkSessionOwner {
         appScope.launch { zones.load() }
         // Alertas hápticas por zona (WC-31): solo actúan con una sesión de métricas activa; todo es local.
         ZoneAlerts(liveMetrics.state, zones.zones, VibratorHaptics(this)).start(appScope)
+        // Modo B (WC-54): al arrancar y cada vez que termina una sesión, se ofrecen al teléfono las grabaciones cerradas.
+        appScope.launch {
+            liveMetrics.state
+                .map { it is LiveMetricsState.Ended || it == LiveMetricsState.Idle }
+                .distinctUntilChanged()
+                .filter { it }
+                .collect { outbox.offerPending() }
+        }
     }
 
     /** Grabaciones GPS del modo B (WC-53), en almacenamiento privado y fuera de los respaldos. */
     val recorder: TrackRecorder by lazy { TrackRecorder(File(noBackupFilesDir, "recordings")) }
+
+    /** Grabaciones cerradas que esperan llegar al teléfono (WC-54). */
+    val outbox: RecordingOutbox by lazy {
+        RecordingOutbox(recorder) { id, completeness, sha256, gpx ->
+            RecordingTransfer.offer(this, id, completeness, sha256, gpx)
+        }
+    }
+
+    override suspend fun onRecordingAccepted(clientRecordingId: String) = outbox.accepted(clientRecordingId)
 
     /** Sesión de métricas en vivo (WC-30): una sola por proceso, la comparten la pantalla y el servicio. */
     val liveMetrics: LiveMetricsSession by lazy {

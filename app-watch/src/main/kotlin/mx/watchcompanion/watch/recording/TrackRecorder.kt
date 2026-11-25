@@ -177,6 +177,18 @@ class TrackRecorder(
         summary(open, meta)
     }
 
+    /**
+     * Borra una grabación cerrada (el teléfono confirmó que la tiene, WC-54). Nunca la abierta: devuelve `false`.
+     */
+    @Synchronized
+    fun delete(id: String): Boolean {
+        if (current?.id == id) return false
+        val dir = File(root, id)
+        val meta = readMeta(dir) ?: return false
+        if (meta.status == RecordingStatus.RECORDING) return false
+        return dir.deleteRecursively()
+    }
+
     private fun close(open: Open, status: RecordingStatus, endedAt: Long): RecordingSummary {
         val points = readPoints(open.dir)
         val gpx = File(open.dir, GPX)

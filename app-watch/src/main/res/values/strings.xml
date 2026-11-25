@@ -93,4 +93,10 @@
     <string name="record_partial">Ruta guardada de forma parcial: %1$.2f km, %2$d puntos.</string>
     <string name="record_empty">No se registró ningún punto GPS.</string>
     <string name="record_location_unavailable">Para grabar la ruta hace falta el permiso de ubicación y el GPS del reloj. Las métricas siguen disponibles sin grabar.</string>
+    <string name="summary_recordings">Rutas grabadas</string>
+    <plurals name="recordings_pending">
+        <item quantity="one">Una por enviar al teléfono</item>
+        <item quantity="many">%d por enviar al teléfono</item>
+        <item quantity="other">%d por enviar al teléfono</item>
+    </plurals>
 </resources>

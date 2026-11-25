@@ -26,6 +26,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -50,6 +51,7 @@ class MainActivity : ComponentActivity() {
             var showDiagnostics by rememberSaveable { mutableStateOf(false) }
             var showZones by rememberSaveable { mutableStateOf(false) }
             val zones by app.zones.zones.collectAsStateWithLifecycle()
+            val pendingRecordings by app.recordingInbox.pending.collectAsStateWithLifecycle()
             var veloraMax by remember { mutableStateOf<VeloraMax?>(null) }
             var zonesDelivery by remember { mutableStateOf<ZonesDelivery?>(null) }
             var busy by remember { mutableStateOf(false) }
@@ -115,6 +117,7 @@ class MainActivity : ComponentActivity() {
                                 onVeloraLogout = { scope.launch { app.veloraSession.logout() } },
                                 onDiagnostics = { showDiagnostics = true },
                                 onZones = { showZones = true },
+                                pendingRecordings = pendingRecordings,
                             )
                         }
                     }
@@ -134,6 +137,7 @@ fun PhoneHome(
     onVeloraLogout: () -> Unit = {},
     onDiagnostics: () -> Unit = {},
     onZones: () -> Unit = {},
+    pendingRecordings: Int = 0,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.home_title), style = MaterialTheme.typography.headlineMedium)
@@ -163,6 +167,13 @@ fun PhoneHome(
                 Text(stringResource(R.string.velora_signed_in, velora.email))
                 OutlinedButton(onClick = onVeloraLogout) { Text(stringResource(R.string.velora_logout)) }
             }
+        }
+        // Modo B (WC-54): rutas del reloj que esperan a Velora (sin red o sin sesión); se suben solas.
+        if (pendingRecordings > 0) {
+            Text(
+                pluralStringResource(R.plurals.recordings_pending, pendingRecordings, pendingRecordings),
+                style = MaterialTheme.typography.bodyMedium,
+            )
         }
         OutlinedButton(onClick = onZones) { Text(stringResource(R.string.zones_open)) }
         HorizontalDivider()

@@ -51,7 +51,7 @@ Realidad en `velora-api`:
 
 **Propuesta:** dejar explícito en `02` que la regla solo protege datos **de origen Watch** (que no son Strava Data). Lo que provenga de Strava debe borrarse según ADR-030 de Velora.
 
-### A-03 · Bloqueante para Fase 5 — Velora no tiene concepto de «grabación secundaria»
+### A-03 · Resuelto — Velora no tenía concepto de «grabación secundaria»
 
 `02` §5 propone `activity_source_recording`, `activity_reconciliation` y `activity_canonical_track`. En Velora existen:
 - `activities.source_type` ∈ {`FIT`, `GPX`, `TCX`, `STRAVA`}; no hay `WATCH_*`;
@@ -61,6 +61,8 @@ Realidad en `velora-api`:
 Hoy, subir la grabación del Watch por `/activities/imports` crea **una segunda actividad**. Eso viola el criterio «una sola actividad lógica en Velora» (`01` §7).
 
 **Propuesta:** ADR en `velora-api` para modelar grabaciones secundarias adjuntas a una actividad, en lugar de crear tablas paralelas. Hay que adaptar los nombres de `02` §5 al modelo real (`activities`, `activity_files`, `activity_metrics`, `activity_tracks`, streams `velora-streams/1`).
+
+**Resolución (25/11/2026):** ADR-032 de Velora (WC-27), implementado en `velora-api` #57 (WC-60, contrato 1.24.0). La grabación del reloj es una **grabación secundaria**: tablas propias (`secondary_recordings` y sus series y recorrido), fuera de la analítica; se adjunta sola a la actividad que se solapa ≥ 50 % (`secondary-match/1`), llegue antes o después; un delete de la actividad la deja sin asignar; se puede recuperar como actividad si el BSC100S no grabó. El companion la graba (WC-53) y la sube por `POST /secondary-recordings` (WC-54). Los nombres de `02` §5 quedan como referencia conceptual.
 
 ### A-04 · Resuelto — Preguntas de `02` §9 ya respondidas por el código
 

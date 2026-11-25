@@ -110,8 +110,11 @@ class MainActivity : ComponentActivity() {
                 if (missing.isEmpty()) scope.launch { live.start(SessionMode.RECORDING) } else requestRecording.launch(missing.toTypedArray())
             }
             LaunchedEffect(Unit) { session.refresh() }
+            val pendingRecordings by (application as WatchCompanionApp).outbox.pending.collectAsStateWithLifecycle()
             LaunchedEffect(Unit) {
                 live.attach()
+                // attach cierra como parciales las grabaciones que interrumpió un apagado: se ofrecen al teléfono.
+                (application as WatchCompanionApp).outbox.offerPending()
                 if (live.state.value is LiveMetricsState.Active) screen = Screen.METRICS
             }
             // Fuera de ambiente: cada segundo en Métricas (duración), cada 30 s en Resumen; en ambiente, onUpdateAmbient.
@@ -147,6 +150,7 @@ class MainActivity : ComponentActivity() {
             }
             SummaryScreen(
                 activity = activity,
+                pendingRecordings = pendingRecordings,
                 live = liveState,
                 onLive = {
                     if (liveState == LiveMetricsState.Idle) startLive()

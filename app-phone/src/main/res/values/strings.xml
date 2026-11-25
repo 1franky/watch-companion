@@ -66,4 +66,9 @@
     <string name="zones_error_low">Z1 no puede empezar por debajo de %1$d lpm.</string>
     <string name="zones_error_order">Cada zona debe empezar por encima de la anterior.</string>
     <string name="zones_error_above_max">Z5 no puede empezar por encima de la FC máxima.</string>
+    <plurals name="recordings_pending">
+        <item quantity="one">Una ruta del reloj por subir a Velora</item>
+        <item quantity="many">%d rutas del reloj por subir a Velora</item>
+        <item quantity="other">%d rutas del reloj por subir a Velora</item>
+    </plurals>
 </resources>

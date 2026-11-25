@@ -16,7 +16,6 @@ import mx.watchcompanion.core.diagnostics.Span
 import mx.watchcompanion.core.diagnostics.start
 import mx.watchcompanion.core.session.SessionStore
 import mx.watchcompanion.core.session.StoredSession
-import mx.watchcompanion.integration.velora.api.apis.DefaultApi
 import mx.watchcompanion.integration.velora.api.infrastructure.HttpResponse
 import mx.watchcompanion.integration.velora.api.models.LoginRequest
 import mx.watchcompanion.integration.velora.api.models.RefreshRequest
@@ -77,7 +76,7 @@ class VeloraSession(
     private val store: SessionStore,
     /** Alcance de la app: avisar a Velora del cierre de sesión sigue aunque la pantalla ya no exista. */
     private val appScope: CoroutineScope,
-    private val apiFor: (serverUrl: String) -> DefaultApi = { VeloraApi.create(it) },
+    private val apiFor: (serverUrl: String) -> VeloraClient = { VeloraApi.create(it) },
     private val now: () -> Long = System::currentTimeMillis,
     private val diagnostics: DiagnosticsRecorder = DiagnosticsRecorder.NONE,
 ) {
@@ -85,7 +84,7 @@ class VeloraSession(
     val state: StateFlow<SessionState> = _state.asStateFlow()
 
     private val mutex = Mutex()
-    private var api: DefaultApi? = null
+    private var api: VeloraClient? = null
     private var serverUrl: String? = null
     private var email: String? = null
     private var refreshToken: String? = null
@@ -166,7 +165,7 @@ class VeloraSession(
      */
     suspend fun <T : Any> call(
         operation: String = "velora.call",
-        request: suspend DefaultApi.() -> HttpResponse<T>,
+        request: suspend VeloraClient.() -> HttpResponse<T>,
     ): HttpResponse<T> {
         val span = span(operation)
         try {
@@ -250,7 +249,7 @@ class VeloraSession(
         tokens.accessToken
     }
 
-    private fun adopt(api: DefaultApi, tokens: TokenResponse) {
+    private fun adopt(api: VeloraClient, tokens: TokenResponse) {
         refreshToken = tokens.refreshToken
         access = AccessToken(tokens.accessToken, now() + tokens.accessTokenExpiresIn * 1_000L)
         api.setBearerToken(tokens.accessToken)

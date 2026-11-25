@@ -10,7 +10,6 @@ import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.serialization.json.Json
-import mx.watchcompanion.integration.velora.api.apis.DefaultApi
 
 /**
  * Punto de entrada al cliente generado del contrato de Velora (WC-ADR-009). Solo lo usa `app-phone` (WC-ADR-011, WC-ADR-013).
@@ -45,7 +44,7 @@ object VeloraApi {
         serverUrl: String = DEFAULT_SERVER,
         allowCleartext: Boolean = false,
         engine: HttpClientEngine = OkHttp.create(),
-    ): DefaultApi = DefaultApi(
+    ): VeloraClient = VeloraClient(
         baseUrl = baseUrl(serverUrl, allowCleartext),
         httpClientEngine = engine,
         httpClientConfig = {

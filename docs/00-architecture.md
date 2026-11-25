@@ -116,6 +116,10 @@ Usar Wear OS Data Layer API para sincronizar mensajes, estados y pequeñas carga
 
 Los mensajes se definen en `core/phone-communication` (`Envelope`, `Payload`, `ProtocolCodec`) y se serializan como JSON con discriminador `type`. El nombre de `type` es parte del contrato: no se renombra, se agrega uno nuevo.
 
+### Archivos: grabaciones del modo B (WC-54)
+
+Un archivo no viaja como mensaje (catálogo cerrado y límite de tamaño). El reloj publica un *data item* `/wc/recording/<uuid>` con el GPX como *Asset* y los campos `schema`, `clientRecordingId`, `completeness` y `sha256` (`RecordingTransfer`, en `core:data-layer`). Google Play services lo entrega cuando hay enlace, aunque alguna app esté cerrada. El teléfono guarda el archivo, verifica el SHA-256 y **borra el data item**: ese borrado es el acuse, y el reloj borra entonces su copia. La subida a Velora es aparte, con WorkManager.
+
 ### Sobre común
 
 | Campo | Obligatorio | Uso |

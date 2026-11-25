@@ -15,6 +15,16 @@ import mx.watchcompanion.core.datalayer.Capabilities
 import mx.watchcompanion.core.datalayer.DataLayerTransport
 import mx.watchcompanion.core.datalayer.DeviceId
 import mx.watchcompanion.core.datalayer.LinkSessionOwner
+import mx.watchcompanion.core.datalayer.RecordingTransfer
+import mx.watchcompanion.core.datalayer.RecordingTransferHandler
+import mx.watchcompanion.core.diagnostics.DiagnosticEvent
+import mx.watchcompanion.core.diagnostics.DiagnosticModule
+import mx.watchcompanion.core.diagnostics.Outcome
+import mx.watchcompanion.phone.recordings.RecordingInbox
+import mx.watchcompanion.phone.recordings.RecordingUploadWorker
+import mx.watchcompanion.phone.recordings.RecordingUploader
+import mx.watchcompanion.phone.recordings.VeloraSecondaryRecordings
+import com.google.android.gms.wearable.DataEvent
 import mx.watchcompanion.core.diagnostics.Diagnostics
 import mx.watchcompanion.core.diagnostics.FileDiagnosticsStorage
 import mx.watchcompanion.core.session.Backend
@@ -23,7 +33,7 @@ import mx.watchcompanion.integration.velora.VeloraApi
 import mx.watchcompanion.integration.velora.VeloraSession
 
 /** Contenedor de dependencias del teléfono (inyección manual, como nexora-android). */
-class PhoneCompanionApp : Application(), LinkSessionOwner {
+class PhoneCompanionApp : Application(), LinkSessionOwner, RecordingTransferHandler {
     /** Vive lo que el proceso: tareas que deben terminar aunque se cierre la pantalla (p. ej. avisar el logout). */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -76,10 +86,40 @@ class PhoneCompanionApp : Application(), LinkSessionOwner {
         )
     }
 
+    /** Grabaciones del reloj recibidas y aún no confirmadas por Velora (WC-54); fuera del respaldo. */
+    val recordingInbox: RecordingInbox by lazy { RecordingInbox(File(noBackupFilesDir, "grabaciones-del-reloj")) }
+
+    val recordingUploader: RecordingUploader by lazy {
+        RecordingUploader(recordingInbox, VeloraSecondaryRecordings(veloraSession)) { code ->
+            appScope.launch { diagnostics.record(DiagnosticModule.VELORA, "recording.dropped", DiagnosticEvent.newCorrelationId(), Outcome.ERROR, code, 0) }
+        }
+    }
+
+    /**
+     * El reloj ofrece una grabación (modo B): se guarda, se verifica su SHA-256 y solo entonces se da el acuse, que le
+     * permite al reloj borrar su copia. La subida a Velora va aparte, con WorkManager.
+     */
+    override suspend fun onRecordingOffered(event: DataEvent) {
+        val offered = RecordingTransfer.parse(event) ?: return
+        val saved = RecordingTransfer.open(this, event).use {
+            recordingInbox.receive(offered.clientRecordingId, offered.completeness, offered.sha256, it)
+        }
+        if (!saved) {
+            diagnostics.record(DiagnosticModule.LINK, "recording.receive", DiagnosticEvent.newCorrelationId(), Outcome.ERROR, "SHA256_MISMATCH", 0)
+            return
+        }
+        RecordingTransfer.accept(this, offered.uri)
+        RecordingUploadWorker.enqueue(this)
+    }
+
     override fun onCreate() {
         super.onCreate()
         appScope.launch { diagnostics.load() }
         appScope.launch { zonesStore.load() }
         appScope.launch { veloraSession.restore() }
+        appScope.launch {
+            recordingInbox.refresh()
+            if (recordingInbox.pending.value > 0) RecordingUploadWorker.enqueue(this@PhoneCompanionApp)
+        }
     }
 }

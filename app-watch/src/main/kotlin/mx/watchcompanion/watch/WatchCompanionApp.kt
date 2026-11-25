@@ -1,6 +1,8 @@
 package mx.watchcompanion.watch
 
+import android.Manifest
 import android.app.Application
+import android.content.pm.PackageManager
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +24,7 @@ import mx.watchcompanion.watch.alerts.ZoneAlerts
 import mx.watchcompanion.watch.live.HealthServicesBackend
 import mx.watchcompanion.watch.live.LiveMetricsSession
 import mx.watchcompanion.watch.live.ServiceForegroundKeeper
+import mx.watchcompanion.watch.recording.TrackRecorder
 
 /** Contenedor de dependencias del reloj (inyección manual, como nexora-android). */
 class WatchCompanionApp : Application(), LinkSessionOwner {
@@ -53,8 +56,18 @@ class WatchCompanionApp : Application(), LinkSessionOwner {
         ZoneAlerts(liveMetrics.state, zones.zones, VibratorHaptics(this)).start(appScope)
     }
 
+    /** Grabaciones GPS del modo B (WC-53), en almacenamiento privado y fuera de los respaldos. */
+    val recorder: TrackRecorder by lazy { TrackRecorder(File(noBackupFilesDir, "recordings")) }
+
     /** Sesión de métricas en vivo (WC-30): una sola por proceso, la comparten la pantalla y el servicio. */
     val liveMetrics: LiveMetricsSession by lazy {
-        LiveMetricsSession(HealthServicesBackend(this), ServiceForegroundKeeper(this))
+        LiveMetricsSession(
+            backend = HealthServicesBackend(this),
+            keeper = ServiceForegroundKeeper(this),
+            recorder = recorder,
+            hasLocationPermission = {
+                checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            },
+        )
     }
 }

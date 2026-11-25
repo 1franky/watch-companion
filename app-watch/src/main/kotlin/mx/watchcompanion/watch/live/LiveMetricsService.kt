@@ -1,5 +1,6 @@
 package mx.watchcompanion.watch.live
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -7,6 +8,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
@@ -26,7 +28,13 @@ class LiveMetricsService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         try {
-            startForeground(NOTIFICATION_ID, liveNotification(this, NOTIFICATION_ID), ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH)
+            // En el modo B el GPS del reloj necesita además el tipo location; solo se declara si hay permiso, o el
+            // sistema rechaza el servicio entero.
+            val withLocation = intent?.getBooleanExtra(EXTRA_LOCATION, false) == true &&
+                checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            val types = ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH or
+                (if (withLocation) ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION else 0)
+            startForeground(NOTIFICATION_ID, liveNotification(this, NOTIFICATION_ID, recording = withLocation), types)
         } catch (_: SecurityException) {
             // Sin el permiso de frecuencia cardíaca el sistema no lo admite. La sesión sigue con la pantalla encendida;
             // no se cierra la app por esto.
@@ -37,8 +45,9 @@ class LiveMetricsService : Service() {
         return START_NOT_STICKY
     }
 
-    private companion object {
+    internal companion object {
         const val NOTIFICATION_ID = 30
+        const val EXTRA_LOCATION = "location"
     }
 }
 
@@ -48,7 +57,7 @@ class LiveMetricsService : Service() {
  *
  * El estado es un texto fijo: actualizar la FC en la esfera obligaría a repostear la notificación cada segundo.
  */
-internal fun liveNotification(context: Context, notificationId: Int): Notification {
+internal fun liveNotification(context: Context, notificationId: Int, recording: Boolean = false): Notification {
     val manager = context.getSystemService(NotificationManager::class.java)
     manager.createNotificationChannel(
         NotificationChannel(LIVE_CHANNEL_ID, context.getString(R.string.live_channel), NotificationManager.IMPORTANCE_LOW),
@@ -67,7 +76,7 @@ internal fun liveNotification(context: Context, notificationId: Int): Notificati
     OngoingActivity.Builder(context, notificationId, builder)
         .setStaticIcon(R.drawable.ic_launcher)
         .setTouchIntent(open)
-        .setStatus(Status.Builder().addTemplate(context.getString(R.string.live_ongoing_status)).build())
+        .setStatus(Status.Builder().addTemplate(context.getString(if (recording) R.string.record_ongoing_status else R.string.live_ongoing_status)).build())
         .build()
         .apply(context)
     return builder.build()
@@ -75,10 +84,15 @@ internal fun liveNotification(context: Context, notificationId: Int): Notificati
 
 internal const val LIVE_CHANNEL_ID = "live_metrics"
 
-/** [ForegroundKeeper] con [LiveMetricsService]. Se adquiere con la app en primer plano (al tocar «Iniciar»). */
+/**
+ * [ForegroundKeeper] con [LiveMetricsService]. Se adquiere con la app en primer plano (al tocar «Iniciar» o «Grabar»):
+ * un servicio de tipo location no puede arrancar desde segundo plano.
+ */
 class ServiceForegroundKeeper(private val context: Context) : ForegroundKeeper {
-    override fun acquire() {
-        context.startForegroundService(Intent(context, LiveMetricsService::class.java))
+    override fun acquire(withLocation: Boolean) {
+        context.startForegroundService(
+            Intent(context, LiveMetricsService::class.java).putExtra(LiveMetricsService.EXTRA_LOCATION, withLocation),
+        )
     }
 
     override fun release() {

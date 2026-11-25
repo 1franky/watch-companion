@@ -83,4 +83,14 @@
     <string name="activity_error">Error (%1$s)</string>
     <string name="activity_detail_km">%1$s · %2$.1f km</string>
     <string name="activity_checked">Consultado %1$s</string>
+    <!-- Modo B: grabación GPS en el reloj (WC-53). -->
+    <string name="record_start">Grabar ruta</string>
+    <string name="summary_recording">Grabación</string>
+    <string name="record_ongoing_status">Grabando ruta</string>
+    <string name="record_active">Grabando ruta · %1$.2f km</string>
+    <string name="record_searching_gps">Grabando ruta · buscando GPS</string>
+    <string name="record_saved">Ruta guardada en el reloj: %1$.2f km, %2$d puntos.</string>
+    <string name="record_partial">Ruta guardada de forma parcial: %1$.2f km, %2$d puntos.</string>
+    <string name="record_empty">No se registró ningún punto GPS.</string>
+    <string name="record_location_unavailable">Para grabar la ruta hace falta el permiso de ubicación y el GPS del reloj. Las métricas siguen disponibles sin grabar.</string>
 </resources>

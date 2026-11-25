@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.rotary.RotaryScrollableDefaults
 import androidx.wear.compose.foundation.rotary.rotaryScrollable
 import androidx.wear.compose.material3.Button
+import androidx.wear.compose.material3.FilledTonalButton
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
 import androidx.wear.tooling.preview.devices.WearDevices
@@ -62,6 +63,7 @@ fun SummaryScreen(
     onVeloraAction: (ModuleAction) -> Unit = {},
     live: LiveMetricsState = LiveMetricsState.Idle,
     onLive: () -> Unit = {},
+    onRecord: () -> Unit = {},
     activity: ActivityStatus? = null,
     zoneId: ZoneId = ZoneId.systemDefault(),
 ) {
@@ -94,13 +96,17 @@ fun SummaryScreen(
             SummaryItem(stringResource(R.string.summary_velora), veloraSyncText(link, now), primary, secondary)
             ActivityItem(activity, now, zoneId, primary, secondary)
             if (live is LiveMetricsState.Active) {
-                SummaryItem(stringResource(R.string.summary_live), liveSummary(live), primary, secondary)
+                SummaryItem(stringResource(if (live.recording != null) R.string.summary_recording else R.string.summary_live), liveSummary(live), primary, secondary)
             }
             if (!ambient) {
                 // Las métricas no dependen del teléfono: solo de que Velora tenga su permiso (01 §3.1).
                 if (velora == ModuleStatus.Ready || live != LiveMetricsState.Idle) {
                     Button(onClick = onLive) {
                         Text(stringResource(if (live == LiveMetricsState.Idle) R.string.live_start else R.string.live_open))
+                    }
+                    // Modo B (WC-53): misma sesión, además graba la ruta con el GPS del reloj.
+                    if (live == LiveMetricsState.Idle) {
+                        FilledTonalButton(onClick = onRecord) { Text(stringResource(R.string.record_start)) }
                     }
                 }
                 Button(onClick = onCheck, enabled = link != LinkState.Checking) {

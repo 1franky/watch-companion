@@ -5,7 +5,7 @@ Desarrolla WC-ADR-002 a WC-ADR-005 de `08`; las decisiones viven allí y este do
 ## Estado
 
 **Aceptada para MVP:** BSC100S como fuente principal; Watch como companion.  
-**Pendiente de implementación:** grabación dual de respaldo.  
+**En implementación:** grabación dual de respaldo. El reloj ya graba y guarda su track (WC-53); falta subirlo a Velora como fuente secundaria (WC-27, WC-54).  
 **Futuro:** reconciliación/fusión de tracks.
 
 ## 1. Flujo actual que debe preservarse

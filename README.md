@@ -79,6 +79,8 @@ Desde el Resumen, **Iniciar métricas** abre la sesión de métricas en vivo del
 - Un foreground service de tipo `health` mantiene el proceso vivo con la pantalla apagada o en ambiente. Si la app se cierra, el ejercicio sigue en Health Services y se recupera al abrirla.
 - Si otra app (p. ej. Samsung Health) tiene un ejercicio en curso, no se le quita: se avisa.
 - Terminar pide confirmación; al terminar se muestra la duración y nada más se conserva.
+- **La duración incluye las paradas** (WC-59): el ejercicio no tiene auto-pausa, porque sin GPS el reloj no sabe si la bici está detenida. El BSC100S sí se pausa solo, así que la duración del reloj sale mayor; la que vale es la del BSC100S. Para que coincidan, pausar a mano en el reloj al detenerse.
+- Mientras dura la sesión, un ícono en la esfera y en recientes (*Ongoing Activity*, WC-58) vuelve a la app con un toque.
 - **Alertas hápticas por zona** (WC-31): tres pulsos cortos al subir de zona y uno largo al bajar. Para no repetirlas cuando la FC oscila en un límite, solo se baja al quedar 3 lpm por debajo y el cambio se confirma tras 5 s en la nueva zona. Usan las zonas guardadas en el reloj: funcionan en modo avión.
 
 ## Zonas de frecuencia cardíaca

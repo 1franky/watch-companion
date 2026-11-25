@@ -43,6 +43,7 @@ Sobre V8: Samsung Health y el companion usan Health Services, que admite **un so
 4. Rodar normal. Anotar a mano (o con nota de voz al terminar) las **alertas** que se sintieron: subida/bajada y si alguna se repitió sin cambiar de esfuerzo.
 5. En un tramo, alejarse del teléfono o activar modo avión en el reloj (V7): las métricas y alertas deben seguir.
 6. Al llegar: terminar la grabación del BSC100S y luego **Terminar → Sí, terminar** en el reloj. Captura de la duración.
+   La duración del reloj incluye las paradas (no tiene auto-pausa, WC-59); anotar el tiempo detenido aproximado para comparar con la del BSC100S.
 7. Anotar **batería del reloj y del teléfono** al llegar.
 
 ## 4. Después de cada salida

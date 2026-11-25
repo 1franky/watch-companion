@@ -51,6 +51,7 @@ Guardar la HR del reloj como serie auxiliar en Velora queda fuera del MVP. Si se
 Para leer HR y duración de forma continua, el reloj necesita un ejercicio activo de Health Services (`ExerciseClient`; `MeasureClient` no sirve para captura continua, §4). En el modo A ese ejercicio es una **sesión de métricas en vivo**, que **no es una grabación**:
 
 - **La inicia y la termina el usuario** en el reloj. La duración mostrada es la del ejercicio de Health Services; pausar y reanudar solo afectan a esa duración.
+- **Sin auto-pausa:** la duración incluye las paradas. Detectar que la bici está detenida requiere velocidad, y en el modo A no hay GPS. No se enciende el GPS solo para esto: costaría batería para un dato que ya da el BSC100S, cuya duración es la de referencia (WC-59, hallazgo de la salida 1 de WC-35). El usuario puede pausar a mano.
 - **Datos:** solo frecuencia cardíaca (y la zona derivada) y duración. Sin GPS ni ubicación: no se solicita el permiso de ubicación para esta sesión.
 - **Sin persistencia de muestras:** las lecturas viven en memoria para la pantalla y las alertas. Al terminar se descartan. Solo se conservan los eventos técnicos del registro de diagnóstico (WC-23), sin muestras de HR.
 - **Sin subidas:** no se envía nada a Velora, a Strava ni a ningún backend. Tampoco se envían las muestras al teléfono.
@@ -67,6 +68,7 @@ Esta definición es la que verifica la prueba automatizada «el modo A no sube n
 - No subir la copia del Watch a Strava automáticamente.
 - Si el BSC100S falla, el usuario puede seleccionar la ruta del Watch como candidata para recuperar la actividad.
 - Si ambas grabaciones son válidas, conservar ambas; no fusionar de manera destructiva.
+- Con el GPS del reloj, evaluar la auto-pausa de Health Services (`setIsAutoPauseAndResumeEnabled`) para que la duración coincida con la del BSC100S (WC-53).
 
 ### Modo C — Fusión avanzada
 

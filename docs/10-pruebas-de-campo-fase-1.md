@@ -91,7 +91,7 @@ Los resultados se agregan al final de este documento en el mismo PR que cierra W
 
 ### Salida 1 — 2026-11-25
 
-Ruta: ~1 h en total, con una parada larga a la mitad  ·  Duración BSC100S: no anotada
+Ruta: 5.8 km, ~1 h en total, con una parada larga a la mitad  ·  Duración BSC100S: no anotada
 Duración en el reloj (métricas en vivo): ~1 h (incluye la parada; ver «Pausas»)
 
 Batería reloj: consumo de **2–3 % en ~1 h (≈ 2–3 %/h)**: línea base del modo A
@@ -101,7 +101,7 @@ Alertas: vibraron al cambiar de zona; no se notaron repetidas ni perdidas (sin c
 Momentos sin lectura («--»): ninguno reportado.
 
 Strava: actividades de la salida = 1  ·  Velora: actividades de la salida = 1
-Última actividad en el reloj: no se vio «Sincronizada» (no se revisó tras la salida; pendiente)
+Última actividad en el reloj: ✓ «Sincronizada · 25 nov 12:33 · 5.8 km», «Consultado hace 1 h» (revisada horas después; no se midió cuánto tardó desde el fin de la salida)
 
 | # | Resultado |
 |---|---|

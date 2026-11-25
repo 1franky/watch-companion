@@ -72,6 +72,7 @@
     <string name="live_channel">Métricas en vivo</string>
     <string name="live_notification_title">Métricas en vivo</string>
     <string name="live_notification_text">Frecuencia cardíaca y duración en curso</string>
+    <string name="live_ongoing_status">Métricas en vivo</string>
     <string name="live_zone">Zona %1$d</string>
     <string name="live_bpm_zone_spoken">%1$d latidos por minuto, zona %2$d</string>
     <string name="live_no_zones">Sin zonas: configúralas en el teléfono</string>

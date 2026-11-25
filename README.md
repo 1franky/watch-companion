@@ -125,6 +125,7 @@ Cada módulo pide sus permisos **solo cuando el usuario lo activa**. Si se revoc
 | `android.permission.health.READ_HEART_RATE` | reloj | Velora | Frecuencia cardíaca en vivo y alertas por zona (WC-30, WC-31) | Fase 1 |
 | `android.permission.FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_HEALTH` (normales, sin diálogo) | reloj | Velora | Mantener viva la sesión de métricas en vivo con la pantalla apagada o en ambiente (WC-30) | Fase 1 |
 | `android.permission.VIBRATE` (normal, sin diálogo) | reloj | Velora | Alertas hápticas al cambiar de zona de FC (WC-31) | Fase 1 |
+| `android.permission.POST_NOTIFICATIONS` (opcional) | reloj | Velora | Mostrar la notificación de la sesión, que lleva el ícono de la esfera (Ongoing Activity, WC-58). Se pide al tocar **Iniciar métricas**; si se niega, la sesión funciona igual, sin ícono | Fase 1 |
 | `android.permission.INTERNET` (normal, sin diálogo) | teléfono | Velora | Llamar a Velora API por HTTPS (WC-22) | Fase 0 |
 | `mx.watchcompanion.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | ambas | — | Permiso interno de firma que agrega AndroidX (`core-ktx`); no muestra diálogo | Fase 0 |
 

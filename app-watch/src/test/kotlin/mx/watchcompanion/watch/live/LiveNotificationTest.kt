@@ -43,6 +43,13 @@ class LiveNotificationTest {
         assertEquals(ComponentName(context, MainActivity::class.java), opened.component)
     }
 
+    @Test
+    fun `la app declara el permiso de notificaciones, sin el que el sistema bloquea la notificacion`() {
+        val info = context.packageManager.getPackageInfo(context.packageName, android.content.pm.PackageManager.GET_PERMISSIONS)
+
+        assertTrue(android.Manifest.permission.POST_NOTIFICATIONS in info.requestedPermissions.orEmpty())
+    }
+
     private companion object {
         const val NOTIFICATION_ID = 30
     }

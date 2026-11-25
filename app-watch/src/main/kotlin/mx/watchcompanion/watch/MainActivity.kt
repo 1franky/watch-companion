@@ -1,5 +1,7 @@
 package mx.watchcompanion.watch
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -80,6 +82,18 @@ class MainActivity : ComponentActivity() {
                 gate.onPermissionsRequested(result.keys)
                 velora = gate.status(CompanionModule.VELORA)
             }
+            // El ícono de la sesión en la esfera (Ongoing Activity, WC-58) viaja en la notificación del servicio, y sin
+            // este permiso el sistema la bloquea. Es opcional: si se niega, la sesión arranca igual, sin ícono.
+            val requestNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+                scope.launch { live.start() }
+            }
+            val startLive = {
+                if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                    scope.launch { live.start() }
+                } else {
+                    requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
             LaunchedEffect(Unit) { session.refresh() }
             LaunchedEffect(Unit) {
                 live.attach()
@@ -102,7 +116,7 @@ class MainActivity : ComponentActivity() {
             if (screen == Screen.METRICS) {
                 MetricsScreen(state = liveState, now = now, ambient = ambient, zones = zones) { action ->
                     when (action) {
-                        LiveAction.START -> scope.launch { live.start() }
+                        LiveAction.START -> startLive()
                         LiveAction.PAUSE -> scope.launch { live.pause() }
                         LiveAction.RESUME -> scope.launch { live.resume() }
                         LiveAction.END -> scope.launch { live.end() }
@@ -119,7 +133,7 @@ class MainActivity : ComponentActivity() {
                 activity = activity,
                 live = liveState,
                 onLive = {
-                    if (liveState == LiveMetricsState.Idle) scope.launch { live.start() }
+                    if (liveState == LiveMetricsState.Idle) startLive()
                     screen = Screen.METRICS
                 },
                 link = link,

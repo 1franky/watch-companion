@@ -11,6 +11,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
     <!-- Alertas hápticas por zona (WC-31). Permiso normal. -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Notificación del servicio de métricas, que lleva la Ongoing Activity (WC-58). Se pide al iniciar métricas;
+         es opcional: sin ella no hay ícono en la esfera, pero la sesión funciona. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".WatchCompanionApp"

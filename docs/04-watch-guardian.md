@@ -56,7 +56,15 @@ Probado en SM-S948B, Android 17 (SDK 37), One UI 9.0, compilación `S948BXXS4BZI
 - **Lo que hace el teléfono (`PhoneGuardian`):** el codec ya descartó repetidos y caducados. Luego, por orden: id inválido → `REJECTED INVALID_COMMAND`; caducada → `EXPIRED`; sin administrador → `UNAVAILABLE ADMIN_INACTIVE`; sin PIN → `UNAVAILABLE NO_SECURE_LOCK` (no bloquea: solo apagaría la pantalla); `SecurityException` → `REJECTED SECURITY_EXCEPTION`. Tras `lockNow()` espera hasta 2 s a que `isKeyguardLocked` sea verdadero: solo entonces `LOCKED`; si no, `UNAVAILABLE NOT_CONFIRMED`. Un fallo del ejecutor se contesta `UNAVAILABLE`, nunca se calla.
 - **Lo que muestra el reloj (`PhoneLock`):** «Teléfono bloqueado a las HH:mm» solo con `LOCKED`. Sin teléfono al alcance: «No se bloqueó: el teléfono no está al alcance». Sin respuesta antes de caducar más 5 s de margen: «Sin confirmación del teléfono: puede que no se haya bloqueado» (`EXPIRED`). Una confirmación tardía de la misma orden corrige ese texto; la de una orden anterior se ignora.
 - **Probado en dispositivos (26 nov 2026, Galaxy Watch Ultra SM-L705F + S26 Ultra):** sin administrador, el reloj dice «activa Bloqueo desde el reloj» y el teléfono no se bloquea; con administrador, bloquea y el reloj lo confirma. Con el Bluetooth del teléfono apagado pero Wi-Fi encendido **también bloquea**: la Data Layer enruta la orden por la nube de Google. Es lo esperado; la orden sigue cifrada, con nonce y caducidad. Solo sin Bluetooth ni Wi-Fi el reloj dice que el teléfono no está al alcance.
-- **Registro:** cada resultado queda en el diagnóstico del teléfono (`guardian.lock`, solo resultado y código). El historial de Guardian es WC-47.
+- **Registro:** cada resultado queda en el diagnóstico del teléfono (`guardian.lock`, solo resultado y código) y en el historial del reloj (WC-47).
+
+### Implementado (WC-47): historial, desactivar y revocar
+
+- **Historial (reloj):** `GuardianHistory`, archivo JSON en `noBackupFilesDir` (`guardian-historial.json`). Eventos `LOCK` (con su resultado y código; una confirmación tardía reemplaza el evento por `commandId`), `PHONE_AWAY` (se avisó la desconexión) y `PHONE_BACK` (volvió tras un aviso; apagar el aviso no cuenta). Solo instante, tipo, resultado y código: **sin datos de salud, ubicación ni contenido**; una prueba fija la lista de campos. Se ve en Resumen → Guardian → «Historial de Guardian».
+- **Retención:** 1, 7 (por omisión) o 30 días, que se cambia tocando «Conservar: N días»; además, como mucho 200 eventos. Se recorta en cada evento y al cambiarla.
+- **Desactivar (un toque):** Resumen → Guardian → «Desactivar Guardian». Apaga el aviso de desconexión, esconde el bloqueo y deja de registrar; el historial se conserva. «Activar Guardian» lo vuelve a mostrar (el plazo del aviso se elige de nuevo).
+- **Revocar:** desde el historial, con confirmación. El reloj manda `GuardianCommand(REVOKE)`; el teléfono quita el administrador (`removeActiveAdmin`, idempotente) y responde `REVOKED`. El reloj desactiva el módulo y borra el historial y el estado del aviso **aunque el teléfono no conteste**; entonces dice que falta quitar el permiso en la app del teléfono (Guardian → Desactivar).
+- **Preferencias:** activo y retención, en las `SharedPreferences` «guardian» del reloj (no son datos personales). Guardian viene activo por omisión.
 
 ### Descartado
 

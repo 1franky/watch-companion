@@ -19,6 +19,9 @@ data class GuardianCommand(val commandId: String, val action: Action) : Payload 
     enum class Action {
         /** `DevicePolicyManager.lockNow()` con el administrador de dispositivo (WC-43). */
         LOCK,
+
+        /** Quitar el administrador de dispositivo (WC-47): lo pide el reloj al revocar Guardian. Idempotente. */
+        REVOKE,
     }
 
     companion object {
@@ -50,6 +53,9 @@ data class GuardianCommandResult(val commandId: String, val outcome: Outcome, va
 
         /** No se puede: falta el administrador, no hay bloqueo seguro o el bloqueo no se comprobó. */
         UNAVAILABLE,
+
+        /** El administrador de dispositivo quedó quitado (o ya no estaba), en respuesta a [GuardianCommand.Action.REVOKE]. */
+        REVOKED,
 
         /** La orden caducó antes de ejecutarse. El reloj también lo concluye si no llega respuesta a tiempo. */
         EXPIRED,

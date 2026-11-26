@@ -31,6 +31,12 @@ import mx.watchcompanion.core.datalayer.LinkSessionOwner
 import mx.watchcompanion.core.datalayer.PeerReachabilityHandler
 import mx.watchcompanion.watch.guardian.DisconnectMonitor
 import mx.watchcompanion.watch.guardian.PhoneLock
+import mx.watchcompanion.watch.guardian.PhoneLockState
+import mx.watchcompanion.watch.guardian.GuardianCommandWaiter
+import mx.watchcompanion.watch.guardian.GuardianEvent
+import mx.watchcompanion.watch.guardian.GuardianHistory
+import mx.watchcompanion.watch.guardian.GuardianModule
+import mx.watchcompanion.watch.guardian.SharedPreferencesGuardianSettings
 import mx.watchcompanion.core.communication.GuardianCommand
 import mx.watchcompanion.watch.guardian.NotificationDisconnectAlerter
 import mx.watchcompanion.watch.guardian.SharedPreferencesDisconnectStore
@@ -67,7 +73,10 @@ class WatchCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
             // Borradores de Nexora (WC-40): el teléfono contesta cada uno y el Pong repite todos.
             onDraftStatus = { drafts.onStatus(it) },
             // Bloqueo desde el reloj (WC-44): la respuesta real del teléfono.
-            onGuardianResult = { phoneLock.onResult(it) },
+            onGuardianResult = {
+                phoneLock.onResult(it)
+                guardianCommands.onResult(it)
+            },
         )
     }
 
@@ -123,7 +132,37 @@ class WatchCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
 
     /** Aviso de desconexión del teléfono (WC-45, Guardian). Apagado hasta que el usuario elige un plazo. */
     val disconnectMonitor: DisconnectMonitor by lazy {
-        DisconnectMonitor(SharedPreferencesDisconnectStore(this), WorkDisconnectScheduler(this), NotificationDisconnectAlerter(this))
+        DisconnectMonitor(
+            SharedPreferencesDisconnectStore(this),
+            WorkDisconnectScheduler(this),
+            NotificationDisconnectAlerter(this),
+            onEvent = { kind, at -> appScope.launch { guardian.record(GuardianEvent(at, kind)) } },
+        )
+    }
+
+    /** Otras órdenes de Guardian con respuesta (WC-47: revocar). */
+    private val guardianCommands: GuardianCommandWaiter by lazy {
+        GuardianCommandWaiter(send = { linkSession.sendCommand(it, GuardianCommand.TTL_MS) })
+    }
+
+    private val guardianSettings by lazy { SharedPreferencesGuardianSettings(this) }
+
+    /** Historial local de Guardian (WC-47), fuera del respaldo; sin datos de salud ni ubicación. */
+    val guardianHistory: GuardianHistory by lazy {
+        GuardianHistory(File(noBackupFilesDir, "guardian-historial.json"), retentionDays = { guardianSettings.retentionDays })
+    }
+
+    /** Guardian como módulo (WC-47): desactivar con un toque; revocar quita el administrador del teléfono y borra lo local. */
+    val guardian: GuardianModule by lazy {
+        GuardianModule(guardianSettings, guardianHistory, disconnectMonitor) { guardianCommands.request(GuardianCommand.Action.REVOKE) }
+    }
+
+    fun revokeGuardian() {
+        appScope.launch { guardian.revoke() }
+    }
+
+    fun setGuardianRetention(days: Int) {
+        appScope.launch { guardian.setRetention(days) }
     }
 
     override fun onPeerReachability(capability: String, nearby: Boolean) {
@@ -139,6 +178,16 @@ class WatchCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
     override fun onCreate() {
         super.onCreate()
         appScope.launch { zones.load() }
+        appScope.launch { guardianHistory.load() }
+        // Historial de Guardian (WC-47): cada resultado de bloqueo; una confirmación tardía reemplaza su evento.
+        appScope.launch {
+            phoneLock.state.collect { state ->
+                if (state is PhoneLockState.Done) {
+                    val result = state.result
+                    guardian.record(GuardianEvent(state.at, GuardianEvent.Kind.LOCK, result.outcome, result.errorCode, ref = result.commandId))
+                }
+            }
+        }
         // Aviso de desconexión (WC-45): al arrancar se pone al día con el estado real del teléfono.
         appScope.launch {
             if (disconnectMonitor.delayMinutes.value != null) phoneNearby(this@WatchCompanionApp)?.let { disconnectMonitor.onReachability(it) }

@@ -58,4 +58,6 @@ class AndroidDeviceLocker(private val context: Context) : DeviceLocker {
     override fun lockNow() = context.getSystemService(DevicePolicyManager::class.java).lockNow()
 
     override fun isLocked() = keyguard.isKeyguardLocked
+
+    override fun removeAdmin() = GuardianAdmin.deactivate(context)
 }

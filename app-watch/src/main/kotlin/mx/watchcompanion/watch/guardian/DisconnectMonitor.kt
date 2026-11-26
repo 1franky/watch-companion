@@ -41,6 +41,8 @@ class DisconnectMonitor(
     private val scheduler: DisconnectScheduler,
     private val alerter: DisconnectAlerter,
     private val clock: () -> Long = System::currentTimeMillis,
+    /** Para el historial de Guardian (WC-47): el aviso y el regreso del teléfono tras un aviso. */
+    private val onEvent: (GuardianEvent.Kind, Long) -> Unit = { _, _ -> },
 ) {
     private val _delayMinutes = MutableStateFlow(store.delayMinutes)
     val delayMinutes: StateFlow<Int?> = _delayMinutes.asStateFlow()
@@ -52,7 +54,7 @@ class DisconnectMonitor(
     @Synchronized
     fun onReachability(nearby: Boolean) {
         if (nearby) {
-            reset()
+            reset(back = true)
             return
         }
         val delay = store.delayMinutes ?: return
@@ -65,7 +67,7 @@ class DisconnectMonitor(
     @Synchronized
     fun onCheck(nearby: Boolean) {
         if (nearby) {
-            reset()
+            reset(back = true)
             return
         }
         val delay = store.delayMinutes ?: return
@@ -83,6 +85,7 @@ class DisconnectMonitor(
         }
         alerter.alert(since)
         save(current.copy(alerted = true))
+        onEvent(GuardianEvent.Kind.PHONE_AWAY, clock())
     }
 
     /** Cambia el plazo; `null` apaga el aviso y retira el que estuviera a la vista. */
@@ -94,9 +97,13 @@ class DisconnectMonitor(
         reset()
     }
 
-    private fun reset() {
+    /** [back]: el teléfono volvió (no se apagó el aviso); solo entonces cuenta para el historial. */
+    private fun reset(back: Boolean = false) {
         scheduler.cancel()
-        if (store.state.alerted) alerter.clear()
+        if (store.state.alerted) {
+            alerter.clear()
+            if (back) onEvent(GuardianEvent.Kind.PHONE_BACK, clock())
+        }
         if (store.state != DisconnectState()) save(DisconnectState())
     }
 

@@ -6,6 +6,8 @@ import android.os.Build
 import android.os.Bundle
 import java.time.LocalDate
 import mx.watchcompanion.watch.guardian.DisconnectMonitor
+import mx.watchcompanion.watch.guardian.GuardianHistory
+import mx.watchcompanion.watch.guardian.GuardianScreen
 import mx.watchcompanion.watch.drafts.DraftScreen
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -82,6 +84,11 @@ class MainActivity : ComponentActivity() {
             val disconnectDelay by (application as WatchCompanionApp).disconnectMonitor.delayMinutes.collectAsStateWithLifecycle()
             val disconnect by (application as WatchCompanionApp).disconnectMonitor.state.collectAsStateWithLifecycle()
             val phoneLock by (application as WatchCompanionApp).phoneLock.state.collectAsStateWithLifecycle()
+            val guardian = (application as WatchCompanionApp).guardian
+            val guardianEnabled by guardian.enabled.collectAsStateWithLifecycle()
+            val guardianRetention by guardian.retentionDays.collectAsStateWithLifecycle()
+            val guardianRevoke by guardian.revoke.collectAsStateWithLifecycle()
+            val guardianEvents by (application as WatchCompanionApp).guardianHistory.events.collectAsStateWithLifecycle()
             // Con una sesión en curso, la app abre directamente en Métricas.
             var screen by rememberSaveable { mutableStateOf(Screen.SUMMARY) }
             val scope = rememberCoroutineScope()
@@ -158,6 +165,18 @@ class MainActivity : ComponentActivity() {
                 )
                 return@setContent
             }
+            // Historial y revocación de Guardian (WC-47).
+            if (screen == Screen.GUARDIAN) {
+                GuardianScreen(
+                    events = guardianEvents,
+                    retentionDays = guardianRetention,
+                    onRetention = { (application as WatchCompanionApp).setGuardianRetention(GuardianHistory.nextRetention(guardianRetention)) },
+                    revoke = guardianRevoke,
+                    onRevoke = { (application as WatchCompanionApp).revokeGuardian() },
+                    onBack = { screen = Screen.SUMMARY },
+                )
+                return@setContent
+            }
             // Un permiso revocado desde Ajustes se refleja al volver a la app, sin reiniciarla.
             LifecycleResumeEffect(Unit) {
                 velora = gate.status(CompanionModule.VELORA)
@@ -192,6 +211,9 @@ class MainActivity : ComponentActivity() {
                 awaySince = disconnect.since?.takeIf { disconnect.alerted },
                 phoneLock = phoneLock,
                 onLockPhone = { (application as WatchCompanionApp).lockPhone() },
+                guardianEnabled = guardianEnabled,
+                onGuardianEnabled = { guardian.setEnabled(it) },
+                onGuardianHistory = { screen = Screen.GUARDIAN },
                 pendingRecordings = pendingRecordings,
                 live = liveState,
                 onLive = {
@@ -235,7 +257,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private enum class Screen { SUMMARY, METRICS, DRAFT }
+    private enum class Screen { SUMMARY, METRICS, DRAFT, GUARDIAN }
 
     private companion object {
         const val SUMMARY_TICK_MS = 30_000L

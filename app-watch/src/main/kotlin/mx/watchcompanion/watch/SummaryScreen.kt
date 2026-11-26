@@ -74,6 +74,7 @@ import mx.watchcompanion.watch.live.LiveMetricsState
  * @param drafts borradores de Nexora capturados aquí y su estado según el teléfono (WC-40); tampoco en ambiente.
  * @param disconnectDelay plazo del aviso de desconexión en minutos, o `null` si está apagado (WC-45).
  * @param awaySince desde cuándo no está el teléfono cerca, solo si ya se avisó.
+ * @param guardianEnabled Guardian activo (WC-47); desactivado solo queda el botón para activarlo.
  * @param phoneLock en qué va el bloqueo del teléfono pedido desde aquí (WC-44); solo dice «bloqueado» si el teléfono
  *   lo confirmó.
  * @param pendingRecordings grabaciones del modo B que siguen en el reloj esperando al teléfono (WC-54).
@@ -102,6 +103,9 @@ fun SummaryScreen(
     awaySince: Long? = null,
     phoneLock: PhoneLockState = PhoneLockState.Idle,
     onLockPhone: () -> Unit = {},
+    guardianEnabled: Boolean = true,
+    onGuardianEnabled: (Boolean) -> Unit = {},
+    onGuardianHistory: () -> Unit = {},
     zoneId: ZoneId = ZoneId.systemDefault(),
 ) {
     MaterialTheme {
@@ -172,7 +176,21 @@ fun SummaryScreen(
                     Text(stringResource(R.string.link_check))
                 }
                 ModuleRow(title = stringResource(R.string.module_velora), status = velora, onAction = onVeloraAction)
-                GuardianSection(disconnectDelay, onDisconnectDelay, awaySince, phoneLock, onLockPhone, zoneId, primary, secondary)
+                if (guardianEnabled) {
+                    GuardianSection(disconnectDelay, onDisconnectDelay, awaySince, phoneLock, onLockPhone, zoneId, primary, secondary)
+                    FilledTonalButton(onClick = onGuardianHistory) { Text(stringResource(R.string.guardian_history_open)) }
+                    // Un toque (WC-47): apaga el aviso y esconde el bloqueo; el historial se conserva.
+                    OutlinedButton(onClick = { onGuardianEnabled(false) }) { Text(stringResource(R.string.guardian_disable)) }
+                } else {
+                    Text(
+                        stringResource(R.string.summary_guardian),
+                        modifier = Modifier.semantics { heading() },
+                        color = secondary,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    Text(stringResource(R.string.guardian_disabled), color = primary, textAlign = TextAlign.Center)
+                    Button(onClick = { onGuardianEnabled(true) }) { Text(stringResource(R.string.guardian_enable)) }
+                }
             }
         }
         LaunchedEffect(ambient) { if (!ambient) focus.requestFocus() }
@@ -352,6 +370,8 @@ private fun lockResultText(lock: PhoneLockState.Done, zoneId: ZoneId): String {
     return when (lock.result.outcome) {
         Outcome.LOCKED -> stringResource(R.string.guardian_locked, FINANCE_TIME.format(Instant.ofEpochMilli(lock.at).atZone(zoneId)))
         Outcome.EXPIRED -> stringResource(R.string.guardian_lock_expired)
+        // No es respuesta a un bloqueo; no debería llegar aquí.
+        Outcome.REVOKED -> stringResource(R.string.guardian_lock_unavailable, Outcome.REVOKED.name)
         Outcome.REJECTED -> stringResource(R.string.guardian_lock_rejected, code ?: "?")
         Outcome.UNAVAILABLE -> when (code) {
             PhoneLock.NO_PHONE -> stringResource(R.string.guardian_lock_no_phone)

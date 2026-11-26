@@ -79,6 +79,16 @@ No se usan: `BUDGET_EXCEEDED`, `UNUSUAL_EXPENSE` y `PAYMENT_OVERDUE` (declarados
 
 No incluir números completos de cuenta, referencias bancarias o información sensible en la pantalla bloqueada.
 
+**Implementado (WC-41):**
+- **Sondeo:** `NexoraAlertWorker` es un trabajo periódico de WorkManager que corre cada 6 h, con red y sin batería baja, solo mientras haya sesión de Nexora. Se programa al entrar y se cancela al salir.
+- **Lectura de la bandeja:** se lee aviso por aviso (`parseAlerts`), así que un tipo nuevo o ilegible se ignora sin tumbar a los demás.
+- **Tipos:** los cuatro de la tabla de arriba. La tarjeta WC-41 nombraba tres; `SCHEDULED_CHARGE_FAILED` se incluye porque este documento lo lista.
+- **Texto:** cada tipo tiene un texto **propio**. El `message` de Nexora lleva el monto y el nombre de la tarjeta, así que nunca se usa.
+- **Visibilidad:** la notificación es `VISIBILITY_PRIVATE`; en la pantalla bloqueada solo dice «Nexora · Tienes un aviso nuevo». Tocarla abre la app y no ejecuta nada.
+- **Repetidos:** los ids ya mostrados se recuerdan (`avisos-nexora-mostrados.json`, los últimos 200). Sin permiso de notificaciones, el aviso no se da por mostrado.
+- **Leídos:** el companion no marca nada como leído en Nexora; no hace ninguna escritura.
+- **Permiso:** `POST_NOTIFICATIONS` se pide en el teléfono, en la sección de Nexora, con el botón «Permitir avisos».
+
 ## 3. Funciones posteriores
 
 - Consultar compras MSI/MCI y mensualidades pendientes.

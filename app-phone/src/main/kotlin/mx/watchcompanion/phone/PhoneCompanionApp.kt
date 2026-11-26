@@ -9,6 +9,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import mx.watchcompanion.core.communication.ActivityStatusReport
 import mx.watchcompanion.core.communication.FinanceSnapshotReport
@@ -35,6 +36,11 @@ import mx.watchcompanion.core.diagnostics.Diagnostics
 import mx.watchcompanion.core.diagnostics.FileDiagnosticsStorage
 import mx.watchcompanion.core.session.Backend
 import mx.watchcompanion.core.session.KeystoreCipher
+import mx.watchcompanion.phone.alerts.NexoraAlertNotifier
+import mx.watchcompanion.phone.alerts.NexoraAlertPoller
+import mx.watchcompanion.phone.alerts.NexoraAlertWorker
+import mx.watchcompanion.phone.alerts.ShownAlerts
+import mx.watchcompanion.phone.alerts.fetchNexoraAlerts
 import mx.watchcompanion.phone.drafts.EncryptedFileDraftStore
 import mx.watchcompanion.phone.drafts.PhoneDrafts
 import mx.watchcompanion.phone.drafts.nexoraDraftOptions
@@ -123,6 +129,16 @@ class PhoneCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
         )
     }
 
+    /** Avisos de Nexora por sondeo (WC-41): notificaciones discretas que el sistema puentea al reloj. */
+    val nexoraAlerts: NexoraAlertPoller by lazy {
+        val notifier = NexoraAlertNotifier(this)
+        NexoraAlertPoller(
+            fetch = { fetchNexoraAlerts(nexoraSession) },
+            shown = ShownAlerts(File(noBackupFilesDir, "avisos-nexora-mostrados.json")),
+            publish = notifier::publish,
+        )
+    }
+
     /** Refresca el resumen financiero si es viejo y lo manda al reloj; no bloquea a quien llama. */
     fun refreshFinanceForWatch() {
         appScope.launch { finance.refreshIfStale()?.let { linkSession.sendToPeer(FinanceSnapshotReport(it)) } }
@@ -186,6 +202,20 @@ class PhoneCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
         appScope.launch { veloraSession.restore() }
         appScope.launch { nexoraSession.restore() }
         appScope.launch { drafts.load() }
+        // El sondeo de avisos solo corre con sesión de Nexora (WC-41).
+        appScope.launch {
+            nexoraSession.state
+                .filter { it != SessionState.Restoring }
+                .map { it is SessionState.SignedIn }
+                .distinctUntilChanged()
+                .collect { signedIn ->
+                    try {
+                        if (signedIn) NexoraAlertWorker.schedule(this@PhoneCompanionApp) else NexoraAlertWorker.cancel(this@PhoneCompanionApp)
+                    } catch (_: IllegalStateException) {
+                        // WorkManager sin inicializar: solo pasa en pruebas con Robolectric (sin App Startup).
+                    }
+                }
+        }
         // Al entrar o salir de Nexora el reloj se entera enseguida: al cerrar sesión, sus cifras se borran de él (WC-38).
         appScope.launch {
             nexoraSession.state

@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import mx.watchcompanion.core.communication.ActivityStatusReport
 import mx.watchcompanion.core.communication.FinanceSnapshotReport
+import mx.watchcompanion.core.communication.TransactionResult
 import mx.watchcompanion.core.communication.HeartRateZonesStore
 import mx.watchcompanion.core.communication.InMemoryNonceRegistry
 import mx.watchcompanion.core.communication.LinkSession
@@ -33,6 +34,12 @@ import com.google.android.gms.wearable.DataEvent
 import mx.watchcompanion.core.diagnostics.Diagnostics
 import mx.watchcompanion.core.diagnostics.FileDiagnosticsStorage
 import mx.watchcompanion.core.session.Backend
+import mx.watchcompanion.core.session.KeystoreCipher
+import mx.watchcompanion.phone.drafts.EncryptedFileDraftStore
+import mx.watchcompanion.phone.drafts.PhoneDrafts
+import mx.watchcompanion.phone.drafts.nexoraDraftOptions
+import mx.watchcompanion.phone.drafts.postTransaction
+import mx.watchcompanion.phone.drafts.transactionBody
 import mx.watchcompanion.core.session.SessionState
 import mx.watchcompanion.core.session.createSessionStore
 import mx.watchcompanion.integration.nexora.NexoraClient
@@ -75,6 +82,9 @@ class PhoneCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
             activityProvider = { activity.status.value },
             // Resumen financiero de Nexora (WC-38): igual que la actividad.
             financeProvider = { finance.snapshot.value },
+            // Borradores del reloj (WC-40): se guardan cifrados y se contesta con su estado; el Pong repite todos.
+            onDraft = { drafts.receive(it) },
+            draftsProvider = { drafts.statuses() },
             onPeerPing = {
                 refreshActivityForWatch()
                 refreshFinanceForWatch()
@@ -93,7 +103,24 @@ class PhoneCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
 
     /** Resumen financiero de Nexora para el reloj (WC-38); solo en memoria. */
     val finance: PhoneFinance by lazy {
-        PhoneFinance(session = { nexoraSession.state.value }, fetch = { now -> nexoraFinance(nexoraSession, now) })
+        PhoneFinance(
+            session = { nexoraSession.state.value },
+            fetch = { now -> nexoraFinance(nexoraSession, now) },
+            fetchOptions = { nexoraDraftOptions(nexoraSession) },
+        )
+    }
+
+    /**
+     * Borradores de gasto o ingreso del reloj (WC-40): cifrados con su propia llave del Keystore y fuera del respaldo.
+     * Solo llegan a Nexora cuando el usuario los confirma en esta pantalla.
+     */
+    val drafts: PhoneDrafts by lazy {
+        PhoneDrafts(
+            store = EncryptedFileDraftStore(File(noBackupFilesDir, "borradores-nexora.bin"), KeystoreCipher(DRAFTS_KEY_ALIAS)),
+            buildBody = ::transactionBody,
+            post = { key, body -> postTransaction(nexoraSession, key, body) },
+            onChange = { linkSession.sendToPeer(TransactionResult(it)) },
+        )
     }
 
     /** Refresca el resumen financiero si es viejo y lo manda al reloj; no bloquea a quien llama. */
@@ -158,6 +185,7 @@ class PhoneCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
         appScope.launch { zonesStore.load() }
         appScope.launch { veloraSession.restore() }
         appScope.launch { nexoraSession.restore() }
+        appScope.launch { drafts.load() }
         // Al entrar o salir de Nexora el reloj se entera enseguida: al cerrar sesión, sus cifras se borran de él (WC-38).
         appScope.launch {
             nexoraSession.state
@@ -170,5 +198,9 @@ class PhoneCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
             recordingInbox.refresh()
             if (recordingInbox.pending.value > 0) RecordingUploadWorker.enqueue(this@PhoneCompanionApp)
         }
+    }
+
+    private companion object {
+        const val DRAFTS_KEY_ALIAS = "wc-borradores-nexora"
     }
 }

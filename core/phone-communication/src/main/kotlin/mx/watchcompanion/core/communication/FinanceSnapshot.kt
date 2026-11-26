@@ -19,10 +19,12 @@ data class FinanceSnapshot(
     val figures: FinanceFigures? = null,
     /** Motivo de [State.ERROR], con el formato de los códigos de diagnóstico. */
     val errorCode: String? = null,
+    /** Cuentas y categorías para el borrador del reloj (WC-40); se conservan como las cifras si una consulta falla. */
+    val options: DraftOptions? = null,
 ) {
     init {
         require(errorCode == null || CODE.matches(errorCode)) { "código de error inválido" }
-        require(state != State.SIGNED_OUT || figures == null) { "sin sesión no viajan cifras" }
+        require(state != State.SIGNED_OUT || (figures == null && options == null)) { "sin sesión no viajan cifras" }
     }
 
     /** Desactualizado: la última consulta falló o las cifras tienen más de [STALE_AFTER_MS]. */

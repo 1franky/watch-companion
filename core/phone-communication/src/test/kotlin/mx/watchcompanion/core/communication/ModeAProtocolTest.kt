@@ -18,7 +18,9 @@ class ModeAProtocolTest {
         val payloads = Payload.serializer().descriptor.elementDescriptors.last().elementDescriptors.map { it.serialName }.toSet()
         assertEquals(
             "Mensaje nuevo en el protocolo: confirma que no transporta muestras ni archivos y actualiza esta lista",
-            setOf("Ping", "Pong", "IntegrationStatus", "HeartRateZonesConfig", "ActivityStatusReport", "FinanceSnapshotReport"),
+            setOf("Ping", "Pong", "IntegrationStatus", "HeartRateZonesConfig", "ActivityStatusReport", "FinanceSnapshotReport",
+                "QuickTransactionDraft", "TransactionResult",
+            ),
             payloads,
         )
     }

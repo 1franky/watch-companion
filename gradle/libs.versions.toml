@@ -22,6 +22,7 @@ wearToolingPreview = "1.0.0"
 # Modo ambiente (AmbientLifecycleObserver).
 wear = "1.4.0"
 wearOngoing = "1.1.0"
+wearInput = "1.2.0"
 work = "2.12.0"
 # Sesión de métricas en vivo (ExerciseClient).
 healthServices = "1.1.0"
@@ -42,6 +43,7 @@ wear-compose-material3 = { module = "androidx.wear.compose:compose-material3", v
 wear-compose-foundation = { module = "androidx.wear.compose:compose-foundation", version.ref = "wearCompose" }
 wear = { module = "androidx.wear:wear", version.ref = "wear" }
 wear-ongoing = { module = "androidx.wear:wear-ongoing", version.ref = "wearOngoing" }
+wear-input = { module = "androidx.wear:wear-input", version.ref = "wearInput" }
 androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 health-services-client = { module = "androidx.health:health-services-client", version.ref = "healthServices" }
 wear-tooling-preview = { module = "androidx.wear:wear-tooling-preview", version.ref = "wearToolingPreview" }

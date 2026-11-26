@@ -7,7 +7,6 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.ContentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
-import mx.watchcompanion.integration.nexora.api.apis.NexoraApi
 
 /**
  * Punto de entrada al cliente generado del contrato de Nexora (WC-36). Solo lo usa `app-phone` (WC-ADR-011,
@@ -40,7 +39,7 @@ object NexoraClient {
         serverUrl: String = DEFAULT_SERVER,
         allowCleartext: Boolean = false,
         engine: HttpClientEngine = OkHttp.create(),
-    ): NexoraApi = NexoraApi(
+    ): NexoraCompanionApi = NexoraCompanionApi(
         baseUrl = baseUrl(serverUrl, allowCleartext),
         httpClientEngine = engine,
         httpClientConfig = {

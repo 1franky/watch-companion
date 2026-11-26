@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import java.time.LocalDate
+import mx.watchcompanion.watch.drafts.DraftScreen
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -74,6 +76,7 @@ class MainActivity : ComponentActivity() {
             val zones by (application as WatchCompanionApp).zones.zones.collectAsStateWithLifecycle()
             val activity by (application as WatchCompanionApp).activity.collectAsStateWithLifecycle()
             val finance by (application as WatchCompanionApp).finance.collectAsStateWithLifecycle()
+            val drafts by (application as WatchCompanionApp).drafts.drafts.collectAsStateWithLifecycle()
             // Con una sesión en curso, la app abre directamente en Métricas.
             var screen by rememberSaveable { mutableStateOf(Screen.SUMMARY) }
             val scope = rememberCoroutineScope()
@@ -127,6 +130,20 @@ class MainActivity : ComponentActivity() {
                 }
             }
             BackHandler(enabled = screen == Screen.METRICS) { screen = Screen.SUMMARY }
+            // Borrador de Nexora (WC-40): su propio «atrás» retrocede paso a paso.
+            if (screen == Screen.DRAFT) {
+                DraftScreen(
+                    options = finance?.options,
+                    today = LocalDate.now(),
+                    now = System.currentTimeMillis(),
+                    onSave = { draft ->
+                        scope.launch { (application as WatchCompanionApp).drafts.submit(draft) }
+                        screen = Screen.SUMMARY
+                    },
+                    onCancel = { screen = Screen.SUMMARY },
+                )
+                return@setContent
+            }
             // Un permiso revocado desde Ajustes se refleja al volver a la app, sin reiniciarla.
             LifecycleResumeEffect(Unit) {
                 velora = gate.status(CompanionModule.VELORA)
@@ -152,6 +169,8 @@ class MainActivity : ComponentActivity() {
             SummaryScreen(
                 activity = activity,
                 finance = finance,
+                drafts = drafts,
+                onNewDraft = { screen = Screen.DRAFT },
                 pendingRecordings = pendingRecordings,
                 live = liveState,
                 onLive = {
@@ -195,7 +214,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private enum class Screen { SUMMARY, METRICS }
+    private enum class Screen { SUMMARY, METRICS, DRAFT }
 
     private companion object {
         const val SUMMARY_TICK_MS = 30_000L

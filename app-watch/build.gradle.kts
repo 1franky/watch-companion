@@ -82,6 +82,8 @@ dependencies {
     implementation(libs.wear.compose.foundation)
     implementation(libs.wear)
     implementation(libs.wear.ongoing)
+    // Nota del borrador de Nexora con el teclado o la voz del reloj (WC-40).
+    implementation(libs.wear.input)
     implementation(libs.health.services.client)
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.wear.tooling.preview)

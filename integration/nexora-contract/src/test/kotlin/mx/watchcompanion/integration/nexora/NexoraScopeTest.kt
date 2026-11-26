@@ -31,7 +31,8 @@ class NexoraScopeTest {
     }
 
     private val generated: Map<String, Operation> by lazy {
-        NexoraApi::class.java.declaredMethods
+        // Las generadas y las escritas a mano (NexoraCompanionApi), que también llevan su operationId como nombre.
+        (NexoraApi::class.java.declaredMethods + NexoraCompanionApi::class.java.declaredMethods)
             .filter { Modifier.isPublic(it.modifiers) && !it.isSynthetic }
             .mapNotNull { m -> contract[m.name]?.let { m.name to it } }
             .toMap()
@@ -52,8 +53,11 @@ class NexoraScopeTest {
     }
 
     private companion object {
-        /** Ninguna todavía. El movimiento confirmado en el teléfono (`transactionCreate`) llega con WC-40. */
-        val ALLOWED_WRITES = emptySet<String>()
+        /**
+         * Solo el ingreso o gasto que el usuario confirma en el teléfono (WC-40, 03 §2), siempre con `Idempotency-Key`.
+         * Transferencias, pagos y compras de tarjeta no entran.
+         */
+        val ALLOWED_WRITES = setOf("transactionCreate")
 
         val PATH = Regex("""^  (/\S*):\s*$""")
         val METHOD = Regex("""^    (get|post|put|patch|delete):\s*$""")

@@ -3,6 +3,8 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    // Borradores del reloj guardados cifrados (WC-40).
+    alias(libs.plugins.kotlin.serialization)
 }
 
 /**

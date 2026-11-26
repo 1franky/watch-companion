@@ -148,8 +148,8 @@ Se acepta la versión actual del protocolo y la anterior (N y N-1). Fuera de ese
 | `ActivitySyncStatus` | teléfono → reloj | no | Fase 1 |
 | `HeartRateZones` | teléfono → reloj | no | Fase 1 |
 | `FinanceSnapshotReport` (y `Pong.finance`) | teléfono → reloj | no | implementado (WC-38): el reloj lo pide con su Ping, como la actividad; no hace falta un `Request` aparte |
-| `QuickTransactionDraft` | reloj → teléfono | no (la confirmación ocurre en el teléfono) | Fase 2 |
-| `TransactionResult` | teléfono → reloj | no | Fase 2 |
+| `QuickTransactionDraft` | reloj → teléfono | no (la confirmación ocurre en el teléfono) | implementado (WC-40); se reenvía hasta su acuse y el teléfono lo deduplica por su `Idempotency-Key` |
+| `TransactionResult` (y `Pong.drafts`) | teléfono → reloj | no | implementado (WC-40): solo clave, estado y código; el importe no vuelve |
 | `GuardianCommand` / `GuardianCommandResult` | reloj ↔ teléfono | sí / no | Fase 3 |
 | `GuardianEvent` | ambas | no | Fase 3 |
 | `SmartHomeCommand` / `SmartHomeCommandResult` | reloj ↔ teléfono | sí / no | Fase 4 |

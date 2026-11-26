@@ -26,6 +26,13 @@ Cada dato debe mostrar su fecha/hora de actualización. No presentar una cifra c
 - Nada se guarda en disco, ni en el teléfono ni en el reloj. Al cerrar la sesión de Nexora en el teléfono, el reloj recibe enseguida «sin sesión» y borra las cifras.
 - En modo ambiente las finanzas no se muestran (§6).
 
+**Implementado (WC-39):** los próximos pagos de tarjeta y los últimos movimientos salen de la misma consulta a `/dashboard` (`recentTransactionsLimit=5`), con la misma hora y la misma marca de desactualizado que las cifras.
+- **Qué viaja:** de cada pago, el nombre de la tarjeta, la fecha límite y el pago estimado. De cada movimiento, la fecha, el comercio o la descripción, el `balanceEffect` de Nexora y el tipo. Como mucho 5 de cada uno.
+- **Qué no viaja:** la referencia bancaria. Los anulados no se muestran.
+- **Enmascarado:** toda etiqueta va enmascarada: una cadena de 6 o más dígitos (cuenta, tarjeta, CLABE) se reduce a «••» y sus últimos 4 dígitos. El protocolo rechaza una etiqueta sin enmascarar.
+- **Tolerancia:** los movimientos se leen uno por uno, así que uno con un tipo nuevo se omite sin tumbar las cifras.
+- No hace falta `/credit-cards/{id}`: el dashboard ya trae lo necesario.
+
 ### Movimientos rápidos
 
 Permitir capturar en el reloj un borrador de:

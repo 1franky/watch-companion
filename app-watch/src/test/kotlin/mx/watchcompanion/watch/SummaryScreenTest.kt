@@ -20,6 +20,8 @@ import mx.watchcompanion.core.communication.DraftOptions
 import mx.watchcompanion.core.communication.DraftStatus
 import mx.watchcompanion.core.communication.FinanceFigures
 import mx.watchcompanion.core.communication.QuickTransactionDraft
+import mx.watchcompanion.core.communication.RecentTransaction
+import mx.watchcompanion.core.communication.UpcomingPayment
 import mx.watchcompanion.watch.drafts.WatchDraft
 import mx.watchcompanion.core.communication.FinanceSnapshot
 import mx.watchcompanion.core.communication.IntegrationStatus
@@ -192,6 +194,27 @@ class SummaryScreenTest {
     fun sinCuentasNoOfreceCapturar() {
         compose.setContent { SummaryScreen(now = AHORA, link = conectado(), onCheck = {}, finance = finanzas(AHORA)) }
         compose.onNodeWithText("Registrar gasto o ingreso").assertDoesNotExist()
+    }
+
+    @Test
+    fun proximosPagosYUltimosMovimientosConSuHora() {
+        val conListas = finanzas(AHORA - 3 * MIN).let { snapshot ->
+            snapshot.copy(
+                figures = snapshot.figures!!.copy(
+                    upcomingPayments = listOf(UpcomingPayment("Oro", "2027-01-20", "1500.50")),
+                    recentTransactions = listOf(
+                        RecentTransaction("2027-01-14", "Oxxo", "-85.00", "EXPENSE"),
+                        RecentTransaction("2027-01-13", "", "500.00", "TIPO_NUEVO"),
+                    ),
+                ),
+            )
+        }
+        compose.setContent { SummaryScreen(now = AHORA, link = conectado(), onCheck = {}, finance = conListas, zoneId = utc) }
+        compose.onNodeWithText("Próximos pagos · 07:57").performScrollTo().assertIsDisplayed()
+        compose.onNode(hasText("Oro · vence 20 ene", substring = true) and hasText("1,500.50", substring = true)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Últimos movimientos · 07:57").performScrollTo().assertIsDisplayed()
+        compose.onNode(hasText("Oxxo · 14 ene", substring = true) and hasText("85.00", substring = true)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Movimiento · 13 ene", substring = true).performScrollTo().assertIsDisplayed()
     }
 
     @Test

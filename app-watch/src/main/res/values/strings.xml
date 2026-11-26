@@ -104,6 +104,16 @@
     <string name="finance_expenses">Gastos de %1$s</string>
     <string name="finance_figure_time">%1$s</string>
     <string name="finance_figure_stale">%1$s, desactualizado</string>
+    <!-- Nexora: próximos pagos y movimientos recientes (WC-39) -->
+    <string name="finance_upcoming">Próximos pagos · %1$s</string>
+    <string name="finance_upcoming_item">%1$s · vence %2$s</string>
+    <string name="finance_recent">Últimos movimientos · %1$s</string>
+    <string name="tx_expense">Gasto</string>
+    <string name="tx_income">Ingreso</string>
+    <string name="tx_transfer">Transferencia</string>
+    <string name="tx_card_purchase">Compra con tarjeta</string>
+    <string name="tx_card_payment">Pago de tarjeta</string>
+    <string name="tx_other">Movimiento</string>
     <!-- Nexora: borrador de gasto o ingreso (WC-40) -->
     <string name="draft_new">Registrar gasto o ingreso</string>
     <string name="draft_title">Nuevo movimiento</string>

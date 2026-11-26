@@ -65,17 +65,66 @@ data class FinanceFigures(
     val creditCardDebt: String,
     val expenseThisMonth: String,
     val currency: String = "MXN",
+    /** Próximos pagos de tarjeta del dashboard (WC-39), por fecha límite. */
+    val upcomingPayments: List<UpcomingPayment> = emptyList(),
+    /** Últimos movimientos del dashboard (WC-39), del más reciente al más viejo. */
+    val recentTransactions: List<RecentTransaction> = emptyList(),
 ) {
     init {
         require(MONTH.matches(month)) { "mes inválido" }
         require(listOf(availableBalance, creditCardDebt, expenseThisMonth).all { AMOUNT.matches(it) }) { "importe inválido" }
         require(CURRENCY.matches(currency)) { "moneda inválida" }
+        require(upcomingPayments.size <= MAX_ITEMS && recentTransactions.size <= MAX_ITEMS) { "demasiados elementos" }
+    }
+
+    companion object {
+        const val MAX_ITEMS = 5
+        const val MAX_LABEL = 40
+        internal val MONTH = Regex("\\d{4}-\\d{2}")
+        internal val DATE = Regex("\\d{4}-\\d{2}-\\d{2}")
+        internal val AMOUNT = Regex("-?\\d{1,15}(\\.\\d{1,4})?")
+        internal val CURRENCY = Regex("[A-Z]{3}")
+
+        /** Una cadena de 6 o más dígitos (cuenta, tarjeta, CLABE) se reduce a sus 4 últimos: «••1234». */
+        private val LONG_NUMBER = Regex("\\d[\\d -]{4,}\\d")
+
+        fun mask(text: String): String = LONG_NUMBER.replace(text) { match ->
+            val digits = match.value.filter(Char::isDigit)
+            if (digits.length >= 6) "••" + digits.takeLast(4) else match.value
+        }
+    }
+}
+
+/**
+ * Un pago de tarjeta próximo (WC-39): el nombre que el usuario le puso a la tarjeta, nunca su número, la fecha límite y
+ * el pago estimado tal como lo calculó Nexora.
+ */
+@Serializable
+data class UpcomingPayment(val cardName: String, val dueDate: String, val expectedPayment: String) {
+    init {
+        require(cardName.length <= FinanceFigures.MAX_LABEL && FinanceFigures.mask(cardName) == cardName) { "nombre inválido" }
+        require(FinanceFigures.DATE.matches(dueDate)) { "fecha inválida" }
+        require(FinanceFigures.AMOUNT.matches(expectedPayment)) { "importe inválido" }
+    }
+}
+
+/**
+ * Un movimiento reciente (WC-39). [signedAmount] es el `balanceEffect` de Nexora (negativo si bajó el saldo); [label]
+ * sale del comercio o la descripción, ya enmascarado. La referencia bancaria nunca viaja.
+ *
+ * @property type el tipo de Nexora (`EXPENSE`, `INCOME`, `TRANSFER`…); el reloj muestra uno genérico si no lo conoce.
+ */
+@Serializable
+data class RecentTransaction(val date: String, val label: String, val signedAmount: String, val type: String) {
+    init {
+        require(FinanceFigures.DATE.matches(date)) { "fecha inválida" }
+        require(label.length <= FinanceFigures.MAX_LABEL && FinanceFigures.mask(label) == label) { "etiqueta inválida" }
+        require(FinanceFigures.AMOUNT.matches(signedAmount)) { "importe inválido" }
+        require(TYPE.matches(type)) { "tipo inválido" }
     }
 
     private companion object {
-        val MONTH = Regex("\\d{4}-\\d{2}")
-        val AMOUNT = Regex("-?\\d{1,15}(\\.\\d{1,4})?")
-        val CURRENCY = Regex("[A-Z]{3}")
+        val TYPE = Regex("[A-Z_]{1,32}")
     }
 }
 

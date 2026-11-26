@@ -15,6 +15,8 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import mx.watchcompanion.core.communication.ActivityStatus
+import mx.watchcompanion.core.communication.FinanceFigures
+import mx.watchcompanion.core.communication.FinanceSnapshot
 import mx.watchcompanion.core.communication.IntegrationStatus
 import mx.watchcompanion.core.communication.SyncSummary
 import org.junit.Assert.assertTrue
@@ -107,6 +109,51 @@ class SummaryScreenTest {
             compose.onNodeWithText("Sincronizada").assertDoesNotExist()
             compose.onNodeWithText("Consultado hace un momento").performScrollTo().assertIsDisplayed()
         }
+    }
+
+    private fun finanzas(fetchedAt: Long, state: FinanceSnapshot.State = FinanceSnapshot.State.OK, checkedAt: Long = fetchedAt, error: String? = null) =
+        FinanceSnapshot(state, checkedAt, FinanceFigures(fetchedAt, "2027-01", "15230.50", "4800.00", "9120.75"), error)
+
+    @Test
+    fun resumenFinancieroConCadaCifraYSuHora() {
+        // AHORA es 2027-01-15 08:00 UTC; consultado hace 3 min.
+        compose.setContent { SummaryScreen(now = AHORA, link = conectado(), onCheck = {}, finance = finanzas(AHORA - 3 * MIN), zoneId = utc) }
+        compose.onNodeWithText("Finanzas · Nexora").performScrollTo().assertIsDisplayed()
+        compose.onNode(hasText("Disponible · 07:57") and hasText("15,230.50", substring = true)).performScrollTo().assertIsDisplayed()
+        compose.onNode(hasText("Deuda de tarjetas · 07:57") and hasText("4,800.00", substring = true)).performScrollTo().assertIsDisplayed()
+        compose.onNode(hasText("Gastos de enero · 07:57") and hasText("9,120.75", substring = true)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Desactualizado", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun cifrasViejasOConConsultaFallidaSeMarcanDesactualizadas() {
+        var finanzas by mutableStateOf(finanzas(AHORA - 20 * MIN))
+        compose.setContent { SummaryScreen(now = AHORA, link = conectado(), onCheck = {}, finance = finanzas, zoneId = utc) }
+        compose.onNodeWithText("Desactualizado: consultado hace 20 min").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Disponible · 07:40, desactualizado").performScrollTo().assertIsDisplayed()
+
+        finanzas = finanzas(AHORA - 2 * MIN, FinanceSnapshot.State.ERROR, checkedAt = AHORA, error = "UNREACHABLE")
+        compose.onNodeWithText("Desactualizado: la última consulta falló (UNREACHABLE)").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Disponible · 07:58, desactualizado").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun sinSesionOSinDatosNoHayCifras() {
+        var finanzas by mutableStateOf<FinanceSnapshot?>(null)
+        compose.setContent { SummaryScreen(now = AHORA, link = conectado(), onCheck = {}, finance = finanzas, zoneId = utc) }
+        compose.onNodeWithText("Finanzas · Nexora").performScrollTo().assertIsDisplayed()
+        finanzas = FinanceSnapshot(FinanceSnapshot.State.SIGNED_OUT, AHORA)
+        compose.onNodeWithText("Sin sesión de Nexora en el teléfono").performScrollTo().assertIsDisplayed()
+        finanzas = FinanceSnapshot(FinanceSnapshot.State.ERROR, AHORA, errorCode = "HTTP_503")
+        compose.onNodeWithText("No se pudo consultar (HTTP_503)").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Disponible", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun enAmbienteNoSeMuestranLasFinanzas() {
+        compose.setContent { SummaryScreen(now = AHORA, link = conectado(), onCheck = {}, ambient = true, finance = finanzas(AHORA)) }
+        compose.onNodeWithText("Finanzas · Nexora").assertDoesNotExist()
+        compose.onNodeWithText("15,230.50", substring = true).assertDoesNotExist()
     }
 
     @Test

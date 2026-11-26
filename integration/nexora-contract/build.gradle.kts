@@ -33,6 +33,7 @@ android {
 val companionOperations = listOf(
     "authLogin", "authRefresh", "authLogout", // sesión propia de app-phone (WC-37, WC-ADR-013)
     "userMe", // comprobar la sesión y mostrar con qué cuenta se entró
+    "dashboardGet", // resumen financiero de solo lectura para el reloj (WC-38)
 )
 
 val generatedApi = layout.buildDirectory.dir("generated/openapi")
@@ -63,7 +64,12 @@ val generateNexoraApi by tasks.registering(GenerateTask::class) {
         mapOf(
             "apis" to "",
             "supportingFiles" to "",
-            "models" to listOf("LoginRequest", "RefreshRequest", "TokenResponse", "ApiError", "FieldError", "UserResponse").joinToString(","),
+            "models" to listOf(
+                "LoginRequest", "RefreshRequest", "TokenResponse", "ApiError", "FieldError", "UserResponse",
+                // dashboardGet (WC-38): la respuesta completa, aunque el reloj solo use tres cifras.
+                "DashboardResponse", "MonthlyPointResponse", "CategoryAmountResponse", "TransactionResponse",
+                "UpcomingCardPaymentResponse",
+            ).joinToString(","),
         ),
     )
     typeMappings.set(mapOf("number" to "kotlin.Double", "decimal" to "kotlin.Double"))

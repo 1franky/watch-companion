@@ -1,12 +1,17 @@
 package mx.watchcompanion.phone
 
 import android.app.Application
+import android.content.pm.PackageManager
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import mx.watchcompanion.core.communication.ActivityStatusReport
+import mx.watchcompanion.core.communication.FinanceSnapshotReport
 import mx.watchcompanion.core.communication.HeartRateZonesStore
 import mx.watchcompanion.core.communication.InMemoryNonceRegistry
 import mx.watchcompanion.core.communication.LinkSession
@@ -28,6 +33,7 @@ import com.google.android.gms.wearable.DataEvent
 import mx.watchcompanion.core.diagnostics.Diagnostics
 import mx.watchcompanion.core.diagnostics.FileDiagnosticsStorage
 import mx.watchcompanion.core.session.Backend
+import mx.watchcompanion.core.session.SessionState
 import mx.watchcompanion.core.session.createSessionStore
 import mx.watchcompanion.integration.nexora.NexoraClient
 import mx.watchcompanion.integration.nexora.NexoraSession
@@ -39,7 +45,14 @@ class PhoneCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
     /** Vive lo que el proceso: tareas que deben terminar aunque se cierre la pantalla (p. ej. avisar el logout). */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    private val appVersion: String by lazy { packageManager.getPackageInfo(packageName, 0).versionName.orEmpty() }
+    /** Vacía si el sistema no da el paquete (pasa en las pruebas con Robolectric); nunca tumba un arranque. */
+    private val appVersion: String by lazy {
+        try {
+            packageManager.getPackageInfo(packageName, 0).versionName.orEmpty()
+        } catch (_: PackageManager.NameNotFoundException) {
+            ""
+        }
+    }
 
     /** Registro técnico local (WC-23), fuera del respaldo: no sale del teléfono. */
     val diagnostics: Diagnostics by lazy {
@@ -60,7 +73,12 @@ class PhoneCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
             // Última actividad en Velora (WC-33): el Pong lleva lo último conocido y, si es viejo, se consulta aparte
             // y se reenvía al reloj al terminar.
             activityProvider = { activity.status.value },
-            onPeerPing = { refreshActivityForWatch() },
+            // Resumen financiero de Nexora (WC-38): igual que la actividad.
+            financeProvider = { finance.snapshot.value },
+            onPeerPing = {
+                refreshActivityForWatch()
+                refreshFinanceForWatch()
+            },
         )
     }
 
@@ -71,6 +89,16 @@ class PhoneCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
     /** Refresca el estado de la actividad si es viejo y lo manda al reloj; no bloquea a quien llama. */
     fun refreshActivityForWatch() {
         appScope.launch { activity.refreshIfStale()?.let { linkSession.sendToPeer(ActivityStatusReport(it)) } }
+    }
+
+    /** Resumen financiero de Nexora para el reloj (WC-38); solo en memoria. */
+    val finance: PhoneFinance by lazy {
+        PhoneFinance(session = { nexoraSession.state.value }, fetch = { now -> nexoraFinance(nexoraSession, now) })
+    }
+
+    /** Refresca el resumen financiero si es viejo y lo manda al reloj; no bloquea a quien llama. */
+    fun refreshFinanceForWatch() {
+        appScope.launch { finance.refreshIfStale()?.let { linkSession.sendToPeer(FinanceSnapshotReport(it)) } }
     }
 
     /** Zonas de FC configuradas (WC-32). Fuera del respaldo, como el resto de los datos locales. */
@@ -130,6 +158,14 @@ class PhoneCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
         appScope.launch { zonesStore.load() }
         appScope.launch { veloraSession.restore() }
         appScope.launch { nexoraSession.restore() }
+        // Al entrar o salir de Nexora el reloj se entera enseguida: al cerrar sesión, sus cifras se borran de él (WC-38).
+        appScope.launch {
+            nexoraSession.state
+                .map { it is SessionState.SignedIn }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { finance.refresh()?.let { linkSession.sendToPeer(FinanceSnapshotReport(it)) } }
+        }
         appScope.launch {
             recordingInbox.refresh()
             if (recordingInbox.pending.value > 0) RecordingUploadWorker.enqueue(this@PhoneCompanionApp)

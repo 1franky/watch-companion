@@ -20,6 +20,12 @@ Nexora API conserva toda regla financiera. El reloj nunca calcula saldos, intere
 
 Cada dato debe mostrar su fecha/hora de actualización. No presentar una cifra cacheada como actual.
 
+**Implementado (WC-38):** el reloj muestra en Resumen el disponible, la deuda total de tarjetas y los gastos del mes, cada uno con su hora de actualización. El próximo pago queda para después.
+- `app-phone` consulta `GET /api/v1/dashboard` (`PhoneFinance`) y manda las cifras al reloj tal como las da Nexora (texto decimal, en MXN) en el Pong y en `FinanceSnapshotReport`. Como la actividad de Velora, refresca si lo guardado tiene más de 5 min, cada vez que el reloj hace ping.
+- El reloj marca las cifras como **desactualizadas** si la última consulta falló (conserva las anteriores con su hora original) o si tienen más de 15 min (`FinanceSnapshot.STALE_AFTER_MS`).
+- Nada se guarda en disco, ni en el teléfono ni en el reloj. Al cerrar la sesión de Nexora en el teléfono, el reloj recibe enseguida «sin sesión» y borra las cifras.
+- En modo ambiente las finanzas no se muestran (§6).
+
 ### Movimientos rápidos
 
 Permitir capturar en el reloj un borrador de:

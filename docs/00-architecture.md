@@ -147,7 +147,7 @@ Se acepta la versión actual del protocolo y la anterior (N y N-1). Fuera de ese
 | `WorkoutStatus` | reloj → teléfono | no | Fase 1 |
 | `ActivitySyncStatus` | teléfono → reloj | no | Fase 1 |
 | `HeartRateZones` | teléfono → reloj | no | Fase 1 |
-| `FinanceSnapshotRequest` / `FinanceSnapshotResponse` | reloj ↔ teléfono | no | Fase 2 |
+| `FinanceSnapshotReport` (y `Pong.finance`) | teléfono → reloj | no | implementado (WC-38): el reloj lo pide con su Ping, como la actividad; no hace falta un `Request` aparte |
 | `QuickTransactionDraft` | reloj → teléfono | no (la confirmación ocurre en el teléfono) | Fase 2 |
 | `TransactionResult` | teléfono → reloj | no | Fase 2 |
 | `GuardianCommand` / `GuardianCommandResult` | reloj ↔ teléfono | sí / no | Fase 3 |

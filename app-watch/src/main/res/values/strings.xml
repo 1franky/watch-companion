@@ -93,6 +93,17 @@
     <string name="record_partial">Ruta guardada de forma parcial: %1$.2f km, %2$d puntos.</string>
     <string name="record_empty">No se registró ningún punto GPS.</string>
     <string name="record_location_unavailable">Para grabar la ruta hace falta el permiso de ubicación y el GPS del reloj. Las métricas siguen disponibles sin grabar.</string>
+    <!-- Nexora: resumen financiero de solo lectura (WC-38) -->
+    <string name="summary_finance">Finanzas · Nexora</string>
+    <string name="finance_signed_out">Sin sesión de Nexora en el teléfono</string>
+    <string name="finance_error">No se pudo consultar (%1$s)</string>
+    <string name="finance_stale">Desactualizado: consultado %1$s</string>
+    <string name="finance_stale_error">Desactualizado: la última consulta falló (%1$s)</string>
+    <string name="finance_available">Disponible</string>
+    <string name="finance_card_debt">Deuda de tarjetas</string>
+    <string name="finance_expenses">Gastos de %1$s</string>
+    <string name="finance_figure_time">%1$s</string>
+    <string name="finance_figure_stale">%1$s, desactualizado</string>
     <string name="summary_recordings">Rutas grabadas</string>
     <plurals name="recordings_pending">
         <item quantity="one">Una por enviar al teléfono</item>

@@ -26,6 +26,8 @@ import mx.watchcompanion.core.diagnostics.start
  * @param onZones recibe las zonas que llegan del otro lado (WC-32); solo lo usa el reloj, que decide si las guarda.
  * @param activityProvider último estado de la actividad en Velora, para el Pong (WC-33); solo lo da el teléfono.
  * @param onActivity recibe ese estado en el reloj (WC-33).
+ * @param financeProvider último resumen financiero de Nexora, para el Pong (WC-38); solo lo da el teléfono.
+ * @param onFinance recibe ese resumen en el reloj (WC-38).
  * @param onPeerPing se llama tras responder un Ping: el teléfono lo usa para refrescar en segundo plano lo que el Pong
  *   no pudo traer actualizado (no hay tiempo de consultar la red dentro del ping).
  */
@@ -43,6 +45,8 @@ class LinkSession(
     private val onZones: suspend (HeartRateZones) -> Unit = {},
     private val activityProvider: suspend () -> ActivityStatus? = { null },
     private val onActivity: suspend (ActivityStatus) -> Unit = {},
+    private val financeProvider: suspend () -> FinanceSnapshot? = { null },
+    private val onFinance: suspend (FinanceSnapshot) -> Unit = {},
     private val onPeerPing: suspend () -> Unit = {},
 ) {
     private val _state = MutableStateFlow<LinkState>(LinkState.Unknown)
@@ -115,7 +119,13 @@ class LinkSession(
     private suspend fun handle(fromPeerId: String, envelope: Envelope) {
         when (val payload = envelope.payload) {
             Ping -> {
-                val pong = Pong(appVersion, currentSync(), currentZones(), guardedValue { activityProvider() })
+                val pong = Pong(
+                    appVersion,
+                    currentSync(),
+                    currentZones(),
+                    guardedValue { activityProvider() },
+                    guardedValue { financeProvider() },
+                )
                 sendQuietly(fromPeerId, envelope(pong, correlationId = envelope.messageId))
                 guardedValue { onPeerPing() }
             }
@@ -124,10 +134,12 @@ class LinkSession(
                 val pending = envelope.correlationId?.let { pendingPings[it] } ?: return
                 payload.zones?.let { deliverZones(it) }
                 payload.activity?.let { status -> guardedValue { onActivity(status) } }
+                payload.finance?.let { snapshot -> guardedValue { onFinance(snapshot) } }
                 pending.complete(payload)
             }
             is HeartRateZonesConfig -> deliverZones(payload.zones)
             is ActivityStatusReport -> guardedValue { onActivity(payload.status) }
+            is FinanceSnapshotReport -> guardedValue { onFinance(payload.snapshot) }
             is IntegrationStatus ->
                 if (payload.integration == IntegrationStatus.Integration.PHONE_LINK &&
                     payload.state == IntegrationStatus.State.INCOMPATIBLE

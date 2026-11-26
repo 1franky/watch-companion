@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import mx.watchcompanion.core.communication.ActivityStatus
+import mx.watchcompanion.core.communication.FinanceSnapshot
 import mx.watchcompanion.core.communication.HeartRateZonesStore
 import mx.watchcompanion.core.communication.InMemoryNonceRegistry
 import mx.watchcompanion.core.communication.LinkSession
@@ -45,11 +46,16 @@ class WatchCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
             onZones = { zones.saveIfNewer(it) },
             // Última actividad en Velora (WC-33): solo en memoria; gana la consulta más reciente.
             onActivity = { status -> activity.update { current -> if (current == null || status.checkedAt >= current.checkedAt) status else current } },
+            // Resumen financiero de Nexora (WC-38): solo en memoria, nunca en disco; gana la consulta más reciente.
+            onFinance = { snapshot -> finance.update { current -> if (current == null || snapshot.checkedAt >= current.checkedAt) snapshot else current } },
         )
     }
 
     /** Último estado de la actividad en Velora que informó el teléfono (WC-33). */
     val activity = MutableStateFlow<ActivityStatus?>(null)
+
+    /** Último resumen financiero de Nexora que informó el teléfono (WC-38). Se pierde al cerrar el proceso. */
+    val finance = MutableStateFlow<FinanceSnapshot?>(null)
 
     /** Zonas de FC recibidas del teléfono, guardadas aquí para usarlas sin teléfono ni internet (01 §3.1). */
     val zones: HeartRateZonesStore by lazy { HeartRateZonesStore.inFile(File(noBackupFilesDir, "zonas.json")) }

@@ -9,7 +9,8 @@ cd "$(dirname "$0")/.."
 source_of() {
   case "$1" in
     velora) echo "1franky/velora-api openapi/openapi-v1.yaml" ;;
-    *) echo "Backend desconocido: $1 (velora)" >&2; exit 2 ;;
+    nexora) echo "1franky/nexora-api openapi/openapi-v1.yaml" ;;
+    *) echo "Backend desconocido: $1 (velora, nexora)" >&2; exit 2 ;;
   esac
 }
 

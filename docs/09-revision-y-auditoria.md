@@ -120,11 +120,13 @@ Las notificaciones son bandeja in-app (`GET /api/v1/notifications`), sin FCM. Ti
 
 **Propuesta:** en `03` §2 especificar que `app-phone` sondea con WorkManager (por ejemplo, cada 6–12 h) y genera notificaciones locales puenteadas al reloj. Solo se usan los tipos activos.
 
-### A-10 · Media — Nexora no publica un OpenAPI versionado
+### A-10 · Resuelto — Nexora no publicaba un OpenAPI versionado
 
 WC-ADR-009 (OpenAPI como contrato y generación de clientes) choca con dos cosas: `nexora-api` solo expone springdoc en runtime, y `nexora-android` usa DTOs manuales.
 
 **Propuesta:** tarea en `nexora-api` para exportar `openapi.yaml` en build/CI (rama `develop`). En el companion, replicar el patrón de `velora-android`: copia fijada (`contract/REF`) + `update-contract.sh --check` en CI.
+
+**Resolución:** `nexora-api` #50 (WC-25) exporta `openapi/openapi-v1.yaml` con operationIds estables y una prueba que lo mantiene al día. El companion lo fija en `contract/nexora` (WC-36), genera el cliente en `integration:nexora-contract` y el CI corre `update-contract.sh --check nexora`. Queda una limitación del contrato: springdoc no marca campos obligatorios, así que los modelos generados son todos opcionales y el companion valida lo que necesita.
 
 ### A-11 · Baja — Flujo de ramas distinto en Nexora
 

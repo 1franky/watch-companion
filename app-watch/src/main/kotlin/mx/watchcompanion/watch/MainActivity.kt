@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import java.time.LocalDate
+import mx.watchcompanion.watch.guardian.DisconnectMonitor
 import mx.watchcompanion.watch.drafts.DraftScreen
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -78,6 +79,8 @@ class MainActivity : ComponentActivity() {
             val finance by (application as WatchCompanionApp).finance.collectAsStateWithLifecycle()
             val financeHidden by (application as WatchCompanionApp).financePrivacy.hidden.collectAsStateWithLifecycle()
             val drafts by (application as WatchCompanionApp).drafts.drafts.collectAsStateWithLifecycle()
+            val disconnectDelay by (application as WatchCompanionApp).disconnectMonitor.delayMinutes.collectAsStateWithLifecycle()
+            val disconnect by (application as WatchCompanionApp).disconnectMonitor.state.collectAsStateWithLifecycle()
             // Con una sesión en curso, la app abre directamente en Métricas.
             var screen by rememberSaveable { mutableStateOf(Screen.SUMMARY) }
             val scope = rememberCoroutineScope()
@@ -113,6 +116,15 @@ class MainActivity : ComponentActivity() {
                 )
                     .filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
                 if (missing.isEmpty()) scope.launch { live.start(SessionMode.RECORDING) } else requestRecording.launch(missing.toTypedArray())
+            }
+            // Aviso de desconexión (WC-45): la notificación es opcional (sin ella solo vibra), se pide al activarlo.
+            val requestGuardianNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+            val cycleDisconnectDelay = {
+                val next = DisconnectMonitor.next(disconnectDelay)
+                (application as WatchCompanionApp).setDisconnectDelay(next)
+                if (next != null && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    requestGuardianNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
             }
             LaunchedEffect(Unit) { session.refresh() }
             val pendingRecordings by (application as WatchCompanionApp).outbox.pending.collectAsStateWithLifecycle()
@@ -174,6 +186,9 @@ class MainActivity : ComponentActivity() {
                 onFinanceHidden = { (application as WatchCompanionApp).financePrivacy.setHidden(it) },
                 drafts = drafts,
                 onNewDraft = { screen = Screen.DRAFT },
+                disconnectDelay = disconnectDelay,
+                onDisconnectDelay = cycleDisconnectDelay,
+                awaySince = disconnect.since?.takeIf { disconnect.alerted },
                 pendingRecordings = pendingRecordings,
                 live = liveState,
                 onLive = {

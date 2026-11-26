@@ -151,4 +151,12 @@
         <item quantity="many">%d por enviar al teléfono</item>
         <item quantity="other">%d por enviar al teléfono</item>
     </plurals>
+    <!-- Guardian: aviso de desconexión (WC-45). Sin hablar de robo: solo desde cuándo no está el teléfono. -->
+    <string name="summary_guardian">Guardian</string>
+    <string name="guardian_delay_off">Aviso sin teléfono: apagado</string>
+    <string name="guardian_delay">Aviso sin teléfono: %1$d min</string>
+    <string name="guardian_away_since">Sin el teléfono cerca desde las %1$s</string>
+    <string name="guardian_channel">Aviso de desconexión</string>
+    <string name="guardian_alert_title">Teléfono fuera de alcance</string>
+    <string name="guardian_alert_text">Sin conexión con el teléfono desde las %1$s.</string>
 </resources>

@@ -1,5 +1,6 @@
 package mx.watchcompanion.core.datalayer
 
+import com.google.android.gms.wearable.CapabilityInfo
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.WearableListenerService
@@ -43,6 +44,12 @@ class LinkListenerService : WearableListenerService() {
                 }
             }
         }
+    }
+
+    /** Aviso de desconexión (WC-45): la otra app dejó de estar cerca o volvió. */
+    override fun onCapabilityChanged(info: CapabilityInfo) {
+        val handler = application as? PeerReachabilityHandler ?: return
+        handler.onPeerReachability(info.name, info.nodes.any { it.isNearby })
     }
 
     private companion object {

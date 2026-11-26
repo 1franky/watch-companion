@@ -34,6 +34,11 @@ import androidx.wear.compose.material3.Text
 import androidx.wear.tooling.preview.devices.WearDevices
 import mx.watchcompanion.core.communication.IntegrationStatus
 import mx.watchcompanion.core.communication.LinkState
+import mx.watchcompanion.core.communication.GuardianCommandResult.Outcome
+import mx.watchcompanion.watch.guardian.PhoneLock
+import mx.watchcompanion.watch.guardian.PhoneLockState
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import mx.watchcompanion.core.communication.SyncSummary
 import mx.watchcompanion.core.permissions.ModuleStatus
 import java.math.BigDecimal
@@ -69,6 +74,8 @@ import mx.watchcompanion.watch.live.LiveMetricsState
  * @param drafts borradores de Nexora capturados aquí y su estado según el teléfono (WC-40); tampoco en ambiente.
  * @param disconnectDelay plazo del aviso de desconexión en minutos, o `null` si está apagado (WC-45).
  * @param awaySince desde cuándo no está el teléfono cerca, solo si ya se avisó.
+ * @param phoneLock en qué va el bloqueo del teléfono pedido desde aquí (WC-44); solo dice «bloqueado» si el teléfono
+ *   lo confirmó.
  * @param pendingRecordings grabaciones del modo B que siguen en el reloj esperando al teléfono (WC-54).
  * @param zoneId zona horaria para mostrar la fecha de la actividad; inyectable para pruebas.
  */
@@ -93,6 +100,8 @@ fun SummaryScreen(
     disconnectDelay: Int? = null,
     onDisconnectDelay: () -> Unit = {},
     awaySince: Long? = null,
+    phoneLock: PhoneLockState = PhoneLockState.Idle,
+    onLockPhone: () -> Unit = {},
     zoneId: ZoneId = ZoneId.systemDefault(),
 ) {
     MaterialTheme {
@@ -163,7 +172,7 @@ fun SummaryScreen(
                     Text(stringResource(R.string.link_check))
                 }
                 ModuleRow(title = stringResource(R.string.module_velora), status = velora, onAction = onVeloraAction)
-                GuardianSection(disconnectDelay, onDisconnectDelay, awaySince, zoneId, primary, secondary)
+                GuardianSection(disconnectDelay, onDisconnectDelay, awaySince, phoneLock, onLockPhone, zoneId, primary, secondary)
             }
         }
         LaunchedEffect(ambient) { if (!ambient) focus.requestFocus() }
@@ -294,9 +303,21 @@ private fun FinanceSection(
     OutlinedButton(onClick = { onHidden(true) }) { Text(stringResource(R.string.finance_hide)) }
 }
 
-/** Guardian (WC-45): el plazo del aviso de desconexión, que se cambia tocándolo, y desde cuándo falta el teléfono. */
+/**
+ * Guardian: bloquear el teléfono (WC-44) con su resultado real, el plazo del aviso de desconexión (WC-45), que se
+ * cambia tocándolo, y desde cuándo falta el teléfono.
+ */
 @Composable
-private fun GuardianSection(delay: Int?, onDelay: () -> Unit, awaySince: Long?, zoneId: ZoneId, primary: Color, secondary: Color) {
+private fun GuardianSection(
+    delay: Int?,
+    onDelay: () -> Unit,
+    awaySince: Long?,
+    lock: PhoneLockState,
+    onLock: () -> Unit,
+    zoneId: ZoneId,
+    primary: Color,
+    secondary: Color,
+) {
     Text(
         stringResource(R.string.summary_guardian),
         modifier = Modifier.semantics { heading() },
@@ -307,8 +328,38 @@ private fun GuardianSection(delay: Int?, onDelay: () -> Unit, awaySince: Long?, 
         val time = FINANCE_TIME.format(Instant.ofEpochMilli(it).atZone(zoneId))
         Text(stringResource(R.string.guardian_away_since, time), color = primary, textAlign = TextAlign.Center)
     }
+    val sending = lock is PhoneLockState.Sending
+    Button(onClick = onLock, enabled = !sending) {
+        Text(stringResource(if (sending) R.string.guardian_locking else R.string.guardian_lock))
+    }
+    if (lock is PhoneLockState.Done) {
+        Text(
+            lockResultText(lock, zoneId),
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            color = primary,
+            textAlign = TextAlign.Center,
+        )
+    }
     OutlinedButton(onClick = onDelay) {
         Text(if (delay == null) stringResource(R.string.guardian_delay_off) else stringResource(R.string.guardian_delay, delay))
+    }
+}
+
+/** Solo [Outcome.LOCKED] se lee como «bloqueado»; lo demás dice por qué no, o que no hubo confirmación. */
+@Composable
+private fun lockResultText(lock: PhoneLockState.Done, zoneId: ZoneId): String {
+    val code = lock.result.errorCode
+    return when (lock.result.outcome) {
+        Outcome.LOCKED -> stringResource(R.string.guardian_locked, FINANCE_TIME.format(Instant.ofEpochMilli(lock.at).atZone(zoneId)))
+        Outcome.EXPIRED -> stringResource(R.string.guardian_lock_expired)
+        Outcome.REJECTED -> stringResource(R.string.guardian_lock_rejected, code ?: "?")
+        Outcome.UNAVAILABLE -> when (code) {
+            PhoneLock.NO_PHONE -> stringResource(R.string.guardian_lock_no_phone)
+            "ADMIN_INACTIVE" -> stringResource(R.string.guardian_lock_admin_inactive)
+            "NO_SECURE_LOCK" -> stringResource(R.string.guardian_lock_no_pin)
+            "NOT_CONFIRMED" -> stringResource(R.string.guardian_lock_not_confirmed)
+            else -> stringResource(R.string.guardian_lock_unavailable, code ?: "?")
+        }
     }
 }
 

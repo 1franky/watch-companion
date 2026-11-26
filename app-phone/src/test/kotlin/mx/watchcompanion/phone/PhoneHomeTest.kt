@@ -149,4 +149,27 @@ class PhoneHomeTest {
         compose.setContent { PhoneHome(LinkState.NoPeer, onCheck = {}, alertsAllowed = false) }
         compose.onNodeWithText("Permitir avisos").assertDoesNotExist()
     }
+
+    @Test
+    fun guardianPideActivarElAdministradorYAvisaSiNoHayPin() {
+        var activo by mutableStateOf(false)
+        var activar = 0
+        compose.setContent {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                PhoneHome(
+                    LinkState.NoPeer, onCheck = {}, guardianActive = activo, deviceSecure = false,
+                    onGuardianActivate = { activar++ }, onGuardianDeactivate = { activo = false },
+                )
+            }
+        }
+        compose.onNodeWithText("Bloqueo desde el reloj: desactivado", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("no tiene PIN", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Activar bloqueo desde el reloj").performScrollTo().performClick()
+        assertEquals(1, activar)
+
+        activo = true
+        compose.onNodeWithText("Bloqueo desde el reloj: activado", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Desactivar").performScrollTo().performClick()
+        compose.onNodeWithText("Activar bloqueo desde el reloj").performScrollTo().assertIsDisplayed()
+    }
 }

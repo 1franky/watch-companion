@@ -112,4 +112,13 @@
         <item quantity="many">%d rutas del reloj por subir a Velora</item>
         <item quantity="other">%d rutas del reloj por subir a Velora</item>
     </plurals>
+
+    <!-- Guardian (WC-44) -->
+    <string name="guardian_section">Guardian</string>
+    <string name="guardian_admin_explanation">Watch Companion solo usará este permiso para bloquear el teléfono cuando lo pidas desde tu reloj. No puede borrar datos ni cambiar tu PIN.</string>
+    <string name="guardian_lock_off">Bloqueo desde el reloj: desactivado. Al activarlo, Android te pedirá permitir que la app bloquee la pantalla.</string>
+    <string name="guardian_lock_on">Bloqueo desde el reloj: activado. Después de bloquear, el teléfono pide tu PIN; la huella no basta.</string>
+    <string name="guardian_lock_insecure">Tu teléfono no tiene PIN, patrón ni contraseña: el reloj no podrá bloquearlo hasta que configures uno.</string>
+    <string name="guardian_activate">Activar bloqueo desde el reloj</string>
+    <string name="guardian_deactivate">Desactivar</string>
 </resources>

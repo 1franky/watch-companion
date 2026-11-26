@@ -81,6 +81,7 @@ class MainActivity : ComponentActivity() {
             val drafts by (application as WatchCompanionApp).drafts.drafts.collectAsStateWithLifecycle()
             val disconnectDelay by (application as WatchCompanionApp).disconnectMonitor.delayMinutes.collectAsStateWithLifecycle()
             val disconnect by (application as WatchCompanionApp).disconnectMonitor.state.collectAsStateWithLifecycle()
+            val phoneLock by (application as WatchCompanionApp).phoneLock.state.collectAsStateWithLifecycle()
             // Con una sesión en curso, la app abre directamente en Métricas.
             var screen by rememberSaveable { mutableStateOf(Screen.SUMMARY) }
             val scope = rememberCoroutineScope()
@@ -189,6 +190,8 @@ class MainActivity : ComponentActivity() {
                 disconnectDelay = disconnectDelay,
                 onDisconnectDelay = cycleDisconnectDelay,
                 awaySince = disconnect.since?.takeIf { disconnect.alerted },
+                phoneLock = phoneLock,
+                onLockPhone = { (application as WatchCompanionApp).lockPhone() },
                 pendingRecordings = pendingRecordings,
                 live = liveState,
                 onLive = {

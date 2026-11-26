@@ -31,6 +31,9 @@ import mx.watchcompanion.core.diagnostics.start
  * @param draftsProvider estado de los borradores del reloj, para el Pong (WC-40); solo lo da el teléfono.
  * @param onDraft recibe un borrador en el teléfono y devuelve su estado, que se le contesta al reloj (WC-40).
  * @param onDraftStatus recibe en el reloj el estado de sus borradores, suelto o en el Pong (WC-40).
+ * @param onGuardianCommand ejecuta en el teléfono una orden de Guardian ya validada (nonce y caducidad, WC-44) y
+ *   devuelve lo que de verdad pasó; el segundo argumento es su `expiresAt`. Solo lo da el teléfono.
+ * @param onGuardianResult recibe en el reloj el resultado de una orden de Guardian (WC-44).
  * @param onPeerPing se llama tras responder un Ping: el teléfono lo usa para refrescar en segundo plano lo que el Pong
  *   no pudo traer actualizado (no hay tiempo de consultar la red dentro del ping).
  */
@@ -53,7 +56,10 @@ class LinkSession(
     private val draftsProvider: suspend () -> List<DraftStatus> = { emptyList() },
     private val onDraft: suspend (QuickTransactionDraft) -> DraftStatus? = { null },
     private val onDraftStatus: suspend (List<DraftStatus>) -> Unit = {},
+    private val onGuardianCommand: suspend (GuardianCommand, Long) -> GuardianCommandResult? = { _, _ -> null },
+    private val onGuardianResult: suspend (GuardianCommandResult) -> Unit = {},
     private val onPeerPing: suspend () -> Unit = {},
+    private val newNonce: () -> String = { UUID.randomUUID().toString() },
 ) {
     private val _state = MutableStateFlow<LinkState>(LinkState.Unknown)
     val state: StateFlow<LinkState> = _state.asStateFlow()
@@ -153,6 +159,14 @@ class LinkSession(
                 sendQuietly(fromPeerId, envelope(TransactionResult(it), correlationId = envelope.messageId))
             }
             is TransactionResult -> guardedValue { onDraftStatus(listOf(payload.status)) }
+            // El codec ya rechazó repetidos y caducados; aquí siempre hay expiresAt. Un fallo del ejecutor se contesta
+            // como no disponible: el reloj nunca se queda creyendo que se bloqueó.
+            is GuardianCommand -> {
+                val result = guardedValue { onGuardianCommand(payload, checkNotNull(envelope.expiresAt)) }
+                    ?: GuardianCommandResult(payload.commandId, GuardianCommandResult.Outcome.UNAVAILABLE, "NOT_SUPPORTED")
+                sendQuietly(fromPeerId, envelope(result, correlationId = envelope.messageId))
+            }
+            is GuardianCommandResult -> guardedValue { onGuardianResult(payload) }
             is IntegrationStatus ->
                 if (payload.integration == IntegrationStatus.Integration.PHONE_LINK &&
                     payload.state == IntegrationStatus.State.INCOMPATIBLE
@@ -176,6 +190,30 @@ class LinkSession(
         } ?: return false
         return try {
             transport.send(peer.id, codec.encode(envelope(payload)))
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Envía una orden sensible (WC-44) con `nonce` nuevo y caducidad a [ttlMs]. Devuelve `false` si no hay a quién o el
+     * envío falla. No reintenta: reenviar el mismo sobre lo rechazaría el otro lado como repetido.
+     */
+    suspend fun sendCommand(payload: Payload, ttlMs: Long): Boolean {
+        require(payload.sensitive) { "Solo para mensajes sensibles" }
+        val peer = try {
+            transport.reachablePeers().firstOrNull()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
+        } ?: return false
+        val command = envelope(payload).copy(nonce = newNonce(), expiresAt = clock() + ttlMs)
+        return try {
+            transport.send(peer.id, codec.encode(command))
             true
         } catch (e: CancellationException) {
             throw e

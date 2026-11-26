@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Guardian (WC-44, 04 §3): única política, bloquear la pantalla. Nada de borrar datos ni cambiar contraseñas. -->
+<device-admin>
+    <uses-policies>
+        <force-lock />
+    </uses-policies>
+</device-admin>

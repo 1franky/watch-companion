@@ -40,6 +40,9 @@ import kotlinx.coroutines.launch
 import mx.watchcompanion.core.communication.DraftOptions
 import mx.watchcompanion.core.communication.LinkState
 import mx.watchcompanion.phone.drafts.DraftsSection
+import mx.watchcompanion.phone.guardian.GuardianAdmin
+import android.app.KeyguardManager
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import mx.watchcompanion.phone.drafts.StoredDraft
 import mx.watchcompanion.core.session.Backend
 import mx.watchcompanion.core.session.LoginResult
@@ -73,6 +76,17 @@ class MainActivity : ComponentActivity() {
             var busy by remember { mutableStateOf(false) }
             var loginError by remember { mutableStateOf<LoginResult?>(null) }
             LaunchedEffect(Unit) { app.linkSession.refresh() }
+            // Guardian (WC-44): el administrador puede quitarse desde Ajustes, y el PIN cambiarse; se revisa al volver.
+            val guardianActive by GuardianAdmin.active.collectAsStateWithLifecycle()
+            var deviceSecure by remember { mutableStateOf(true) }
+            LifecycleResumeEffect(Unit) {
+                GuardianAdmin.refresh(this@MainActivity)
+                deviceSecure = getSystemService(KeyguardManager::class.java).isDeviceSecure
+                onPauseOrDispose {}
+            }
+            val activateGuardian = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+                GuardianAdmin.refresh(this@MainActivity)
+            }
             // Avisos de Nexora (WC-41): al conceder el permiso se revisa la bandeja enseguida.
             val notifier = remember { NexoraAlertNotifier(this@MainActivity) }
             var alertsAllowed by remember { mutableStateOf(notifier.canNotify()) }
@@ -161,6 +175,10 @@ class MainActivity : ComponentActivity() {
                                 draftOptions = finance?.options,
                                 onDraftConfirm = { key -> scope.launch { app.drafts.confirm(key) } },
                                 onDraftDiscard = { key -> scope.launch { app.drafts.discard(key) } },
+                                guardianActive = guardianActive,
+                                deviceSecure = deviceSecure,
+                                onGuardianActivate = { activateGuardian.launch(GuardianAdmin.activationIntent(this@MainActivity)) },
+                                onGuardianDeactivate = { GuardianAdmin.deactivate(this@MainActivity) },
                                 alertsAllowed = alertsAllowed,
                                 onAllowAlerts = {
                                     if (Build.VERSION.SDK_INT >= 33) requestAlerts.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -195,6 +213,10 @@ fun PhoneHome(
     onDraftDiscard: (String) -> Unit = {},
     alertsAllowed: Boolean = true,
     onAllowAlerts: () -> Unit = {},
+    guardianActive: Boolean = false,
+    deviceSecure: Boolean = true,
+    onGuardianActivate: () -> Unit = {},
+    onGuardianDeactivate: () -> Unit = {},
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.home_title), style = MaterialTheme.typography.headlineMedium)
@@ -258,6 +280,16 @@ fun PhoneHome(
         }
         // Borradores del reloj (WC-40): se ven aunque no haya sesión; confirmarlos la necesita.
         DraftsSection(drafts, draftsSending, draftOptions, onDraftConfirm, onDraftDiscard)
+        HorizontalDivider()
+        // Guardian (WC-44): bloquear desde el reloj exige activar el administrador de dispositivo (solo force-lock).
+        Text(stringResource(R.string.guardian_section), style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(if (guardianActive) R.string.guardian_lock_on else R.string.guardian_lock_off))
+        if (!deviceSecure) Text(stringResource(R.string.guardian_lock_insecure), style = MaterialTheme.typography.bodyMedium)
+        if (guardianActive) {
+            OutlinedButton(onClick = onGuardianDeactivate) { Text(stringResource(R.string.guardian_deactivate)) }
+        } else {
+            Button(onClick = onGuardianActivate) { Text(stringResource(R.string.guardian_activate)) }
+        }
         HorizontalDivider()
         TextButton(onClick = onDiagnostics) { Text(stringResource(R.string.diagnostics_open)) }
     }

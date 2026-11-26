@@ -150,7 +150,7 @@ Se acepta la versión actual del protocolo y la anterior (N y N-1). Fuera de ese
 | `FinanceSnapshotReport` (y `Pong.finance`) | teléfono → reloj | no | implementado (WC-38): el reloj lo pide con su Ping, como la actividad; no hace falta un `Request` aparte |
 | `QuickTransactionDraft` | reloj → teléfono | no (la confirmación ocurre en el teléfono) | implementado (WC-40); se reenvía hasta su acuse y el teléfono lo deduplica por su `Idempotency-Key` |
 | `TransactionResult` (y `Pong.drafts`) | teléfono → reloj | no | implementado (WC-40): solo clave, estado y código; el importe no vuelve |
-| `GuardianCommand` / `GuardianCommandResult` | reloj ↔ teléfono | sí / no | Fase 3 |
+| `GuardianCommand` / `GuardianCommandResult` | reloj ↔ teléfono | sí / no | implementado (WC-44): solo `LOCK`; `LinkSession.sendCommand` le pone `nonce` y `expiresAt`, y la respuesta (`LOCKED`, `REJECTED`, `UNAVAILABLE`, `EXPIRED`) vuelve con el `correlationId` de la orden |
 | `GuardianEvent` | ambas | no | Fase 3 |
 | `SmartHomeCommand` / `SmartHomeCommandResult` | reloj ↔ teléfono | sí / no | Fase 4 |
 | `WatchTelemetryBatch` | reloj → teléfono | no | Fase 5 |

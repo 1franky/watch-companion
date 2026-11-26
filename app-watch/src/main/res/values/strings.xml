@@ -156,6 +156,16 @@
     <string name="guardian_delay_off">Aviso sin teléfono: apagado</string>
     <string name="guardian_delay">Aviso sin teléfono: %1$d min</string>
     <string name="guardian_away_since">Sin el teléfono cerca desde las %1$s</string>
+    <string name="guardian_lock">Bloquear teléfono</string>
+    <string name="guardian_locking">Bloqueando…</string>
+    <string name="guardian_locked">Teléfono bloqueado a las %1$s</string>
+    <string name="guardian_lock_expired">Sin confirmación del teléfono: puede que no se haya bloqueado.</string>
+    <string name="guardian_lock_rejected">El teléfono rechazó el bloqueo (%1$s).</string>
+    <string name="guardian_lock_no_phone">No se bloqueó: el teléfono no está al alcance.</string>
+    <string name="guardian_lock_admin_inactive">No se bloqueó: activa «Bloqueo desde el reloj» en la app del teléfono.</string>
+    <string name="guardian_lock_no_pin">No se bloqueó: el teléfono no tiene PIN, patrón ni contraseña.</string>
+    <string name="guardian_lock_not_confirmed">El teléfono no confirmó el bloqueo.</string>
+    <string name="guardian_lock_unavailable">No se pudo bloquear (%1$s).</string>
     <string name="guardian_channel">Aviso de desconexión</string>
     <string name="guardian_alert_title">Teléfono fuera de alcance</string>
     <string name="guardian_alert_text">Sin conexión con el teléfono desde las %1$s.</string>

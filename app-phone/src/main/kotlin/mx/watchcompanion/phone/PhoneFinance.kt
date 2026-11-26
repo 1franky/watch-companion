@@ -14,7 +14,15 @@ import mx.watchcompanion.core.communication.FinanceSnapshot
 import mx.watchcompanion.core.session.SessionExpiredException
 import mx.watchcompanion.core.session.SessionState
 import mx.watchcompanion.integration.nexora.NexoraSession
+import io.ktor.client.statement.bodyAsText
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
+import mx.watchcompanion.core.communication.RecentTransaction
+import mx.watchcompanion.core.communication.UpcomingPayment
+import mx.watchcompanion.integration.nexora.NexoraClient
 import mx.watchcompanion.integration.nexora.api.models.DashboardResponse
+import mx.watchcompanion.integration.nexora.api.models.TransactionResponse
 
 class NexoraHttpException(status: Int) : Exception("Nexora respondió $status") {
     val code = "HTTP_$status"
@@ -103,24 +111,75 @@ class PhoneFinance(
 }
 
 /**
- * Solo las tres cifras que muestra el reloj, tal como las da Nexora; el teléfono tampoco las recalcula. Se normalizan a
- * dos decimales (MXN) solo para su presentación.
+ * Lo que muestra el reloj, tal como lo da Nexora; el teléfono tampoco recalcula. Los importes se normalizan a dos
+ * decimales (MXN) solo para su presentación.
+ *
+ * - Tres cifras (WC-38): si falta una, es un error, no un cero.
+ * - Próximos pagos y últimos movimientos (WC-39): un elemento incompleto se omite. Del movimiento solo viaja la fecha,
+ *   el comercio o la descripción (enmascarados y recortados), el `balanceEffect` y el tipo; la referencia bancaria no.
+ *   Los anulados (`VOIDED`) no se muestran.
+ *
+ * @param recent movimientos leídos uno por uno (ver [parseDashboard]).
  */
-fun financeFigures(body: DashboardResponse, fetchedAt: Long): FinanceFigures {
-    fun amount(value: Double?) = value?.let { BigDecimal.valueOf(it).setScale(2, RoundingMode.HALF_EVEN).toPlainString() }
-        ?: throw IncompleteDashboardException()
+fun financeFigures(body: DashboardResponse, fetchedAt: Long, recent: List<TransactionResponse> = emptyList()): FinanceFigures {
+    fun amount(value: Double?) = value?.let(::decimal) ?: throw IncompleteDashboardException()
     return FinanceFigures(
         fetchedAt = fetchedAt,
         month = body.month ?: throw IncompleteDashboardException(),
         availableBalance = amount(body.availableBalance),
         creditCardDebt = amount(body.creditCardDebt),
         expenseThisMonth = amount(body.expenseThisMonth),
+        upcomingPayments = body.upcomingPayments.orEmpty().mapNotNull { p ->
+            UpcomingPayment(
+                cardName = label(p.creditCardName ?: return@mapNotNull null),
+                dueDate = (p.dueDate ?: return@mapNotNull null).toString(),
+                expectedPayment = decimal(p.expectedPayment ?: return@mapNotNull null),
+            )
+        }.sortedBy { it.dueDate }.take(FinanceFigures.MAX_ITEMS),
+        recentTransactions = recent.mapNotNull { t ->
+            if (t.status == TransactionResponse.Status.VOIDED) return@mapNotNull null
+            RecentTransaction(
+                date = (t.date ?: return@mapNotNull null).toString(),
+                label = label(t.merchant?.takeIf { it.isNotBlank() } ?: t.description.orEmpty()),
+                signedAmount = decimal(t.balanceEffect ?: return@mapNotNull null),
+                type = (t.type ?: return@mapNotNull null).value,
+            )
+        }.take(FinanceFigures.MAX_ITEMS),
     )
 }
 
+private fun decimal(value: Double) = BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_EVEN).toPlainString()
+
+/** Sin números de cuenta o tarjeta, sin saltos de línea y del largo que cabe en el reloj. */
+private fun label(text: String): String =
+    FinanceFigures.mask(text.replace(Regex("\\s+"), " ").trim()).take(FinanceFigures.MAX_LABEL).trim()
+
+/**
+ * Lee el dashboard tolerando movimientos que el contrato fijado no entiende (un tipo nuevo, por ejemplo): se decodifican
+ * uno por uno y el ilegible se omite, en lugar de tumbar las cifras.
+ */
+fun parseDashboard(body: String): Pair<DashboardResponse, List<TransactionResponse>> {
+    val json = NexoraClient.json
+    val obj = json.parseToJsonElement(body).jsonObject
+    val recent = (obj["recentTransactions"] as? JsonArray).orEmpty().mapNotNull { element ->
+        try {
+            json.decodeFromJsonElement(TransactionResponse.serializer(), element)
+        } catch (_: SerializationException) {
+            null
+        } catch (_: IllegalArgumentException) {
+            null
+        }
+    }
+    val rest = JsonObject(obj - "recentTransactions")
+    return json.decodeFromJsonElement(DashboardResponse.serializer(), rest) to recent
+}
+
 suspend fun nexoraFinance(session: NexoraSession, now: Long): FinanceFigures {
-    // Mes actual según Nexora; el mínimo de movimientos recientes es 1 y el reloj no los usa.
-    val response = session.call("nexora.dashboardGet") { dashboardGet(month = null, recentTransactionsLimit = 1) }
+    // Mes actual según Nexora, con los últimos movimientos para el reloj (WC-39).
+    val response = session.call("nexora.dashboardGet") {
+        dashboardGet(month = null, recentTransactionsLimit = FinanceFigures.MAX_ITEMS)
+    }
     if (!response.success) throw NexoraHttpException(response.status)
-    return financeFigures(response.body(), now)
+    val (dashboard, recent) = parseDashboard(response.response.bodyAsText())
+    return financeFigures(dashboard, now, recent)
 }

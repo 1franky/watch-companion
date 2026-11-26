@@ -38,6 +38,7 @@ import mx.watchcompanion.core.permissions.ModuleStatus
 import java.math.BigDecimal
 import java.text.NumberFormat
 import java.time.Instant
+import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Currency
@@ -238,7 +239,65 @@ private fun FinanceSection(finance: FinanceSnapshot?, now: Long, zoneId: ZoneId,
     FigureItem(stringResource(R.string.finance_available), figures.availableBalance, figures.currency, time, stale, primary, secondary)
     FigureItem(stringResource(R.string.finance_card_debt), figures.creditCardDebt, figures.currency, time, stale, primary, secondary)
     FigureItem(stringResource(R.string.finance_expenses, month), figures.expenseThisMonth, figures.currency, time, stale, primary, secondary)
+    // Próximos pagos y últimos movimientos (WC-39): misma consulta, misma hora y misma marca de desactualizado.
+    val itemColor = if (stale) secondary else primary
+    if (figures.upcomingPayments.isNotEmpty()) {
+        ListTitle(stringResource(R.string.finance_upcoming, time), secondary)
+        for (payment in figures.upcomingPayments) {
+            ListItem(
+                stringResource(R.string.finance_upcoming_item, payment.cardName, SHORT_DATE.format(LocalDate.parse(payment.dueDate))),
+                formatAmount(payment.expectedPayment, figures.currency),
+                itemColor,
+                secondary,
+            )
+        }
+    }
+    if (figures.recentTransactions.isNotEmpty()) {
+        ListTitle(stringResource(R.string.finance_recent, time), secondary)
+        for (transaction in figures.recentTransactions) {
+            val label = transaction.label.ifEmpty { transactionType(transaction.type) }
+            ListItem(
+                "$label · ${SHORT_DATE.format(LocalDate.parse(transaction.date))}",
+                formatAmount(transaction.signedAmount, figures.currency),
+                itemColor,
+                secondary,
+            )
+        }
+    }
 }
+
+@Composable
+private fun ListTitle(text: String, color: Color) = Text(
+    text,
+    modifier = Modifier.semantics { heading() },
+    color = color,
+    style = MaterialTheme.typography.labelMedium,
+    textAlign = TextAlign.Center,
+)
+
+/** Etiqueta y monto como un solo elemento para TalkBack. */
+@Composable
+private fun ListItem(label: String, amount: String, primary: Color, secondary: Color) {
+    Column(
+        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(label, color = secondary, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, maxLines = 2)
+        Text(amount, color = primary, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+    }
+}
+
+@Composable
+private fun transactionType(type: String): String = stringResource(
+    when (type) {
+        "EXPENSE" -> R.string.tx_expense
+        "INCOME" -> R.string.tx_income
+        "TRANSFER" -> R.string.tx_transfer
+        "CREDIT_CARD_PURCHASE" -> R.string.tx_card_purchase
+        "CREDIT_CARD_PAYMENT" -> R.string.tx_card_payment
+        else -> R.string.tx_other
+    },
+)
 
 /** Un borrador y su estado. Nunca dice «registrado» sin que el teléfono lo confirme con Nexora. */
 @Composable
@@ -288,6 +347,7 @@ internal fun formatAmount(amount: String, currency: String): String =
 
 private val ES_MX = Locale.forLanguageTag("es-MX")
 private val FINANCE_TIME = DateTimeFormatter.ofPattern("HH:mm", ES_MX)
+private val SHORT_DATE = DateTimeFormatter.ofPattern("d MMM", ES_MX)
 
 @Composable
 private fun liveSummary(live: LiveMetricsState.Active): String = when {

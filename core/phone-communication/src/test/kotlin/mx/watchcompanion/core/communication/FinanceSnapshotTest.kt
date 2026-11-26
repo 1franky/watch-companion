@@ -1,5 +1,6 @@
 package mx.watchcompanion.core.communication
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -35,5 +36,24 @@ class FinanceSnapshotTest {
         assertThrows(IllegalArgumentException::class.java) { cifras.copy(creditCardDebt = "NaN") }
         assertThrows(IllegalArgumentException::class.java) { cifras.copy(month = "noviembre") }
         cifras.copy(availableBalance = "-120.5")
+    }
+}
+
+class FinanceListsTest {
+    @Test
+    fun losNumerosLargosSeEnmascaranYLosCortosNo() {
+        assertEquals("Pago ••5678", FinanceFigures.mask("Pago 1234 5678"))
+        assertEquals("Transferencia ••9012", FinanceFigures.mask("Transferencia 012180001234569012"))
+        assertEquals("Oxxo 24", FinanceFigures.mask("Oxxo 24"))
+        assertEquals("Mensualidad 3/12", FinanceFigures.mask("Mensualidad 3/12"))
+    }
+
+    @Test
+    fun unaEtiquetaSinEnmascararNoPuedeViajar() {
+        assertThrows(IllegalArgumentException::class.java) {
+            RecentTransaction("2026-11-24", "Tarjeta 4152313412345678", "-250.00", "EXPENSE")
+        }
+        assertThrows(IllegalArgumentException::class.java) { UpcomingPayment("Oro 4152313412345678", "2026-11-28", "1500.00") }
+        RecentTransaction("2026-11-24", "Oxxo", "-250.00", "EXPENSE")
     }
 }

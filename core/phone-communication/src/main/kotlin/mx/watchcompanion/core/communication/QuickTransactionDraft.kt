@@ -34,6 +34,9 @@ data class QuickTransactionDraft(
         require(DATE.matches(date)) { "fecha inválida" }
     }
 
+    /** Sin importe ni nota (WC-42): nada de lo que capturó el usuario acaba en un log. */
+    override fun toString() = "QuickTransactionDraft(idempotencyKey=$idempotencyKey, kind=$kind, date=$date, …)"
+
     @Serializable
     enum class Kind { EXPENSE, INCOME }
 
@@ -103,7 +106,9 @@ data class TransactionResult(val status: DraftStatus) : Payload
  * `EXPENSE`.
  */
 @Serializable
-data class DraftOptions(val accounts: List<DraftOption>, val categories: List<DraftOption>)
+data class DraftOptions(val accounts: List<DraftOption>, val categories: List<DraftOption>) {
+    override fun toString() = "DraftOptions(accounts=${accounts.size}, categories=${categories.size})"
+}
 
 /**
  * @property currency moneda de la cuenta (el importe se captura en ella); solo en cuentas.

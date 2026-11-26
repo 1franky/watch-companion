@@ -26,6 +26,7 @@ import mx.watchcompanion.watch.drafts.WatchDraft
 import mx.watchcompanion.core.communication.FinanceSnapshot
 import mx.watchcompanion.core.communication.IntegrationStatus
 import mx.watchcompanion.core.communication.SyncSummary
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -161,6 +162,34 @@ class SummaryScreenTest {
         compose.setContent { SummaryScreen(now = AHORA, link = conectado(), onCheck = {}, ambient = true, finance = finanzas(AHORA)) }
         compose.onNodeWithText("Finanzas · Nexora").assertDoesNotExist()
         compose.onNodeWithText("15,230.50", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun elUsuarioPuedeOcultarYMostrarLasCifras() {
+        var ocultas by mutableStateOf(false)
+        compose.setContent {
+            SummaryScreen(
+                now = AHORA, link = conectado(), onCheck = {}, finance = finanzas(AHORA), zoneId = utc,
+                financeHidden = ocultas, onFinanceHidden = { ocultas = it },
+            )
+        }
+        compose.onNodeWithText("Ocultar cifras").performScrollTo().performClick()
+        assertTrue(ocultas)
+        compose.onNodeWithText("Cifras ocultas").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("15,230.50", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Disponible", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Mostrar cifras").performScrollTo().performClick()
+        assertFalse(ocultas)
+        compose.onNode(hasText("15,230.50", substring = true)).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun cifrasCaducadasNoSeMuestranNiComoDesactualizadas() {
+        val viejas = finanzas(AHORA - FinanceSnapshot.EXPIRE_AFTER_MS - 1)
+        compose.setContent { SummaryScreen(now = AHORA, link = conectado(), onCheck = {}, finance = viejas, zoneId = utc) }
+        compose.onNodeWithText("Finanzas · Nexora").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("15,230.50", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Desactualizado", substring = true).assertDoesNotExist()
     }
 
     @Test

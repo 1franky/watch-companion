@@ -38,6 +38,9 @@ data class StoredDraft(
 
     /** Confirmar (o reintentar, con la misma clave y el mismo cuerpo). */
     val confirmable: Boolean get() = state == State.RECEIVED || state == State.UNKNOWN
+
+    /** Sin el cuerpo de la solicitud (WC-42): lleva el importe y la nota. */
+    override fun toString() = "StoredDraft(draft=$draft, state=$state, updatedAt=$updatedAt, errorCode=$errorCode)"
 }
 
 /** Dónde viven los borradores: cifrados, fuera del respaldo (03 §2). */

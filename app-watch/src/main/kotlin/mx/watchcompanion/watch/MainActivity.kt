@@ -76,6 +76,7 @@ class MainActivity : ComponentActivity() {
             val zones by (application as WatchCompanionApp).zones.zones.collectAsStateWithLifecycle()
             val activity by (application as WatchCompanionApp).activity.collectAsStateWithLifecycle()
             val finance by (application as WatchCompanionApp).finance.collectAsStateWithLifecycle()
+            val financeHidden by (application as WatchCompanionApp).financePrivacy.hidden.collectAsStateWithLifecycle()
             val drafts by (application as WatchCompanionApp).drafts.drafts.collectAsStateWithLifecycle()
             // Con una sesión en curso, la app abre directamente en Métricas.
             var screen by rememberSaveable { mutableStateOf(Screen.SUMMARY) }
@@ -169,6 +170,8 @@ class MainActivity : ComponentActivity() {
             SummaryScreen(
                 activity = activity,
                 finance = finance,
+                financeHidden = financeHidden,
+                onFinanceHidden = { (application as WatchCompanionApp).financePrivacy.setHidden(it) },
                 drafts = drafts,
                 onNewDraft = { screen = Screen.DRAFT },
                 pendingRecordings = pendingRecordings,

@@ -95,6 +95,9 @@
     <string name="record_location_unavailable">Para grabar la ruta hace falta el permiso de ubicación y el GPS del reloj. Las métricas siguen disponibles sin grabar.</string>
     <!-- Nexora: resumen financiero de solo lectura (WC-38) -->
     <string name="summary_finance">Finanzas · Nexora</string>
+    <string name="finance_hidden">Cifras ocultas</string>
+    <string name="finance_show">Mostrar cifras</string>
+    <string name="finance_hide">Ocultar cifras</string>
     <string name="finance_signed_out">Sin sesión de Nexora en el teléfono</string>
     <string name="finance_error">No se pudo consultar (%1$s)</string>
     <string name="finance_stale">Desactualizado: consultado %1$s</string>

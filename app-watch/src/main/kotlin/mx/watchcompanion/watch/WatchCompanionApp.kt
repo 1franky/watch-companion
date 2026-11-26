@@ -7,7 +7,13 @@ import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import mx.watchcompanion.core.session.KeystoreCipher
+import mx.watchcompanion.watch.finance.FinanceCache
+import mx.watchcompanion.watch.finance.FinancePrivacy
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import mx.watchcompanion.core.communication.ActivityStatus
@@ -48,8 +54,8 @@ class WatchCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
             onZones = { zones.saveIfNewer(it) },
             // Última actividad en Velora (WC-33): solo en memoria; gana la consulta más reciente.
             onActivity = { status -> activity.update { current -> if (current == null || status.checkedAt >= current.checkedAt) status else current } },
-            // Resumen financiero de Nexora (WC-38): solo en memoria, nunca en disco; gana la consulta más reciente.
-            onFinance = { snapshot -> finance.update { current -> if (current == null || snapshot.checkedAt >= current.checkedAt) snapshot else current } },
+            // Resumen financiero de Nexora (WC-38): gana la consulta más reciente; se guarda cifrado (WC-42).
+            onFinance = { snapshot -> receiveFinance(snapshot) },
             // Borradores de Nexora (WC-40): el teléfono contesta cada uno y el Pong repite todos.
             onDraftStatus = { drafts.onStatus(it) },
         )
@@ -67,8 +73,27 @@ class WatchCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
     /** Último estado de la actividad en Velora que informó el teléfono (WC-33). */
     val activity = MutableStateFlow<ActivityStatus?>(null)
 
-    /** Último resumen financiero de Nexora que informó el teléfono (WC-38). Se pierde al cerrar el proceso. */
+    /**
+     * Último resumen financiero de Nexora que informó el teléfono (WC-38). Al arrancar sale de la caché cifrada (WC-42)
+     * y se vacía solo al caducar ([FinanceSnapshot.EXPIRE_AFTER_MS]).
+     */
     val finance = MutableStateFlow<FinanceSnapshot?>(null)
+
+    /** Copia cifrada del resumen (WC-42), fuera del respaldo y con su propia llave del Keystore. */
+    private val financeCache: FinanceCache by lazy {
+        FinanceCache(File(noBackupFilesDir, "finanzas-nexora.bin"), KeystoreCipher("wc-finanzas-nexora"))
+    }
+
+    /** Si el usuario pidió ocultar las cifras de Nexora (WC-42). */
+    val financePrivacy: FinancePrivacy by lazy { FinancePrivacy(this) }
+
+    private suspend fun receiveFinance(snapshot: FinanceSnapshot) {
+        var accepted = false
+        finance.update { current ->
+            if (current == null || snapshot.checkedAt >= current.checkedAt) snapshot.also { accepted = true } else current
+        }
+        if (accepted) withContext(Dispatchers.IO) { financeCache.save(snapshot) }
+    }
 
     /** Borradores de gasto o ingreso capturados aquí (WC-40); solo en memoria. */
     val drafts: WatchDrafts by lazy { WatchDrafts(send = { linkSession.sendToPeer(it) }) }
@@ -81,6 +106,19 @@ class WatchCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
     override fun onCreate() {
         super.onCreate()
         appScope.launch { zones.load() }
+        // Resumen de Nexora guardado (WC-42): solo si sigue vigente y no llegó ya uno del teléfono.
+        appScope.launch {
+            val cached = withContext(Dispatchers.IO) { financeCache.load() } ?: return@launch
+            finance.update { current -> if (current == null || cached.checkedAt > current.checkedAt) cached else current }
+        }
+        // Caducidad (WC-42): las cifras se borran a su hora aunque no llegue nada nuevo del teléfono.
+        appScope.launch {
+            finance.collectLatest { snapshot ->
+                val expiresAt = snapshot?.expiresAt ?: return@collectLatest
+                delay((expiresAt - System.currentTimeMillis()).coerceAtLeast(0) + 1)
+                if (finance.compareAndSet(snapshot, null)) withContext(Dispatchers.IO) { financeCache.clear() }
+            }
+        }
         // Al recuperar el enlace se reenvían los borradores que el teléfono aún no acusa (WC-40).
         appScope.launch {
             linkSession.state.filter { it is LinkState.Connected }.collect { drafts.resendUnacknowledged() }

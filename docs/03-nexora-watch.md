@@ -23,7 +23,7 @@ Cada dato debe mostrar su fecha/hora de actualización. No presentar una cifra c
 **Implementado (WC-38):** el reloj muestra en Resumen el disponible, la deuda total de tarjetas y los gastos del mes, cada uno con su hora de actualización. El próximo pago queda para después.
 - `app-phone` consulta `GET /api/v1/dashboard` (`PhoneFinance`) y manda las cifras al reloj tal como las da Nexora (texto decimal, en MXN) en el Pong y en `FinanceSnapshotReport`. Como la actividad de Velora, refresca si lo guardado tiene más de 5 min, cada vez que el reloj hace ping.
 - El reloj marca las cifras como **desactualizadas** si la última consulta falló (conserva las anteriores con su hora original) o si tienen más de 15 min (`FinanceSnapshot.STALE_AFTER_MS`).
-- Nada se guarda en disco, ni en el teléfono ni en el reloj. Al cerrar la sesión de Nexora en el teléfono, el reloj recibe enseguida «sin sesión» y borra las cifras.
+- El teléfono no guarda las cifras en disco. El reloj guarda una copia cifrada desde WC-42 (ver abajo). Al cerrar la sesión de Nexora en el teléfono, el reloj recibe enseguida «sin sesión» y borra las cifras, también las guardadas.
 - En modo ambiente las finanzas no se muestran (§6).
 
 **Implementado (WC-39):** los próximos pagos de tarjeta y los últimos movimientos salen de la misma consulta a `/dashboard` (`recentTransactionsLimit=5`), con la misma hora y la misma marca de desactualizado que las cifras.
@@ -32,6 +32,13 @@ Cada dato debe mostrar su fecha/hora de actualización. No presentar una cifra c
 - **Enmascarado:** toda etiqueta va enmascarada: una cadena de 6 o más dígitos (cuenta, tarjeta, CLABE) se reduce a «••» y sus últimos 4 dígitos. El protocolo rechaza una etiqueta sin enmascarar.
 - **Tolerancia:** los movimientos se leen uno por uno, así que uno con un tipo nuevo se omite sin tumbar las cifras.
 - No hace falta `/credit-cards/{id}`: el dashboard ya trae lo necesario.
+
+**Implementado (WC-42):** caché cifrada, caducidad y cifras ocultables.
+- **Caché en el reloj:** el último resumen con cifras se guarda en `noBackupFilesDir/finanzas-nexora.bin`, cifrado con su propia llave del Keystore (`wc-finanzas-nexora`, AES-GCM). Al abrir la app se muestra con su hora original y su marca de desactualizado, sin esperar al teléfono.
+- **Caducidad:** pasadas 6 h desde que respondió Nexora (`FinanceSnapshot.EXPIRE_AFTER_MS`), las cifras se borran de memoria y de disco aunque no llegue nada nuevo, y ya no se muestran ni como desactualizadas.
+- **Revocación:** un resumen «sin sesión» borra el archivo. Uno sin cifras (error sin datos previos) también lo borra. Si el archivo no se puede descifrar o guardar, se borra: la caché nunca es la única copia.
+- **Ocultar cifras:** en Resumen, «Ocultar cifras» deja solo el título y «Mostrar cifras», y oculta también los importes de los borradores. La preferencia se recuerda entre aperturas.
+- **Logs:** ningún módulo escribe en Logcat ni en la salida estándar (`NoLogsTest` revisa todo `src/main`). Los `toString` de cifras, pagos, movimientos, opciones y borradores omiten importes, nombres y notas, por si alguno acaba en un mensaje de error.
 
 ### Movimientos rápidos
 

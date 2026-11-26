@@ -18,3 +18,7 @@ keystore.properties
 
 # macOS
 .DS_Store
+
+# Tokens de prueba de proveedores (spikes): nunca al repo
+token*.txt
+*.token

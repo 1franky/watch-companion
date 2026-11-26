@@ -214,6 +214,8 @@ Existe `schemaVersion`, pero no se dice qué ocurre si el reloj y el teléfono t
 
 **Propuesta:** decisión explícita entre (a) un BFF mínimo propio para Smart Hub, (b) un token personal del usuario guardado en el Keystore del teléfono, si el proveedor lo permite (verificar caducidad y alcance actuales de los PAT de SmartThings), o (c) posponer.
 
+**Avance (WC-48):** SmartThings confirmado: PAT de 24 h (no sirve para la app), OAuth con `client_secret` y refresh de 30 días, eventos solo con webhook y API de pago desde oct 2026. Detalle en `05` §2. La decisión sigue en WC-12, tras WC-49 (TTLock).
+
 ### R-10 · Resuelto — Contradicción sobre la sesión del reloj
 
 > **Actualización 2026-11-20 (WC-3):** `00` §6 reescrito según WC-ADR-013.

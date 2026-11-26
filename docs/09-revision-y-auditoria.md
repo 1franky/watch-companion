@@ -194,6 +194,8 @@ Existe `schemaVersion`, pero no se dice qué ocurre si el reloj y el teléfono t
 
 **Propuesta:** PoC en Fase 3 para confirmar en el S26 Ultra (One UI vigente) si el administrador de dispositivo con force-lock sigue disponible para apps no-DPC, y si hay alguna rutina de Samsung invocable. Reescribir `04` §3 con el resultado.
 
+**Resuelto (WC-43):** el administrador de dispositivo con `force-lock` funciona en el S26 Ultra (One UI 9.0) para una app normal, también en segundo plano. `04` §3 queda reescrito con un solo mecanismo.
+
 ### R-07 · Alta — Señal de sueño: disponibilidad no verificada
 
 `04` §4 asume una «señal de posible sueño» en tiempo casi real. Hay que verificar si Health Services o el Samsung Health Sensor SDK la exponen a apps de terceros en vivo; los datos de sueño suelen ser sesiones retrospectivas.

@@ -47,7 +47,7 @@ Probado en SM-S948B, Android 17 (SDK 37), One UI 9.0, compilación `S948BXXS4BZI
 - **Comprobar antes de prometer:** antes de cada `lockNow()`, `isAdminActive()`; si no, responder al reloj con un error, no fingir éxito. Después, confirmar con `KeyguardManager.isKeyguardLocked` y responder eso (caso de uso «confirmación de que el teléfono quedó bloqueado»).
 - **Pantalla sin bloqueo seguro:** si `isDeviceSecure` es falso, `lockNow()` solo apaga la pantalla; avisarlo al activar el módulo.
 - **Revocar (WC-47):** apagar el módulo llama a `removeActiveAdmin()`. No hace falta un flujo para poder desinstalar.
-- **Mensaje sensible:** la orden de bloqueo viaja con `nonce` y caducidad como cualquier acción con efecto (07).
+- **Mensaje sensible:** la orden de bloqueo viaja con `nonce` y caducidad como cualquier acción con efecto (00, mensajes sensibles).
 
 ### Descartado
 

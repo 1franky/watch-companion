@@ -24,15 +24,51 @@ No prometer bloqueo automático basado únicamente en la detección de sueño: l
 
 ## 3. Política de bloqueo
 
-Separar explícitamente:
+**Conclusión (spike WC-43, 26 nov 2026):** hay **un solo mecanismo de bloqueo**: `DevicePolicyManager.lockNow()` con la app registrada como **administrador de dispositivo** y solo la política `force-lock`. Funciona en el S26 Ultra; el «bloqueo normal» y el «reforzado» colapsan en él (R-06), así que esta sección ya no los separa.
 
-### Bloqueo normal
-Usar las capacidades Android/Samsung disponibles para bloquear o apagar la pantalla, sujetas a restricciones de versión y permisos.
+### Resultado en el dispositivo
 
-### Bloqueo reforzado
-Investigar `DevicePolicyManager.lockNow()` y sus requisitos reales. No asumir que una app ordinaria puede usarlo. Requiere administración de dispositivo/política autorizada; evaluar implicaciones de enrolamiento, desinstalación y compatibilidad.
+Probado en SM-S948B, Android 17 (SDK 37), One UI 9.0, compilación `S948BXXS4BZIG`, con la app instalada fuera de Play (debug, sin ser *device owner* ni *profile owner*).
 
-No implementar accesibilidad como atajo para eludir las restricciones del sistema. No usar root ni APIs ocultas.
+| Prueba | Resultado |
+|---|---|
+| Activar el administrador | One UI lo permite: el diálogo estándar de Android con la explicación de la app, sin advertencias extra. |
+| `lockNow()` con la app en primer plano | Bloquea: sin excepción, `isKeyguardLocked`, `isDeviceSecure` y pantalla apagada. |
+| `lockNow()` con la app en segundo plano (Chrome al frente) | Bloquea igual. |
+| `lockNow()` con el proceso cerrado | El sistema arranca la app para el mensaje y bloquea igual. Es el caso real: la orden llega del reloj. |
+| Desbloquear después | **Pide el PIN; la huella no sirve.** Es un bloqueo fuerte: con el teléfono en otra mano no basta el dedo del usuario dormido. |
+| Desinstalar con el administrador activo | No queda atrapado: «Desinstalar» sigue activo y One UI ofrece «Desactivar y desinstalar» en un solo diálogo. |
+| Desactivar el administrador | `removeActiveAdmin()` lo quita al instante. |
+
+### Reglas para implementarlo (WC-44, WC-47)
+
+- **Política mínima:** `device_admin.xml` solo con `<force-lock/>`. Nada de borrar datos, cambiar contraseñas ni cifrado.
+- **Activación explícita:** `ACTION_ADD_DEVICE_ADMIN` desde Guardian en el teléfono, con `EXTRA_ADD_EXPLANATION` en es-MX que diga para qué es («bloquear el teléfono cuando lo pidas desde el reloj»). Sin administrador, el reloj muestra el bloqueo como no disponible.
+- **Comprobar antes de prometer:** antes de cada `lockNow()`, `isAdminActive()`; si no, responder al reloj con un error, no fingir éxito. Después, confirmar con `KeyguardManager.isKeyguardLocked` y responder eso (caso de uso «confirmación de que el teléfono quedó bloqueado»).
+- **Pantalla sin bloqueo seguro:** si `isDeviceSecure` es falso, `lockNow()` solo apaga la pantalla; avisarlo al activar el módulo.
+- **Revocar (WC-47):** apagar el módulo llama a `removeActiveAdmin()`. No hace falta un flujo para poder desinstalar.
+- **Mensaje sensible:** la orden de bloqueo viaja con `nonce` y caducidad como cualquier acción con efecto (00, mensajes sensibles).
+
+### Descartado
+
+- **Accesibilidad** (`GLOBAL_ACTION_LOCK_SCREEN`): prohibida como atajo (WC-ADR-007).
+- **Root y APIs ocultas:** prohibidas (WC-ADR-007).
+- **Knox SDK:** requiere licencia de socio de Samsung; innecesario porque el administrador estándar basta.
+- **Rutinas de Samsung (Modos y rutinas):** no exponen una API pública para que otra app las dispare.
+- **Device owner / DPC:** exige aprovisionar el teléfono de fábrica; desproporcionado para un teléfono personal.
+
+### Cómo repetir el spike
+
+El prototipo vive solo en el *source set* debug de `app-phone` (`src/debug/.../spike/`); el manifiesto de release no lo incluye. Con el teléfono conectado por adb:
+
+```
+./gradlew :app-phone:installDebug
+adb shell am start -n mx.watchcompanion/mx.watchcompanion.phone.spike.LockSpikeActivity
+adb shell am broadcast -n mx.watchcompanion/mx.watchcompanion.phone.spike.LockSpikeTrigger   # bloqueo en segundo plano
+adb shell run-as mx.watchcompanion cat files/spike-locknow.txt                              # registro
+```
+
+Ambos componentes exportados exigen el permiso `DUMP`: solo los dispara el shell de adb, no otra app.
 
 ## 4. Detección de sueño
 

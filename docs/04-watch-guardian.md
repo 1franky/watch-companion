@@ -64,6 +64,7 @@ Probado en SM-S948B, Android 17 (SDK 37), One UI 9.0, compilación `S948BXXS4BZI
 - **Retención:** 1, 7 (por omisión) o 30 días, que se cambia tocando «Conservar: N días»; además, como mucho 200 eventos. Se recorta en cada evento y al cambiarla.
 - **Desactivar (un toque):** Resumen → Guardian → «Desactivar Guardian». Apaga el aviso de desconexión, esconde el bloqueo y deja de registrar; el historial se conserva. «Activar Guardian» lo vuelve a mostrar (el plazo del aviso se elige de nuevo).
 - **Revocar:** desde el historial, con confirmación. El reloj manda `GuardianCommand(REVOKE)`; el teléfono quita el administrador (`removeActiveAdmin`, idempotente) y responde `REVOKED`. El reloj desactiva el módulo y borra el historial y el estado del aviso **aunque el teléfono no conteste**; entonces dice que falta quitar el permiso en la app del teléfono (Guardian → Desactivar).
+- **Probado en dispositivos (26 nov 2026):** el bloqueo aparece en el historial; desactivar y activar conserva el historial; revocar quitó el administrador del teléfono (confirmado con `dumpsys device_policy`) y borró `guardian-historial.json` del reloj.
 - **Preferencias:** activo y retención, en las `SharedPreferences` «guardian» del reloj (no son datos personales). Guardian viene activo por omisión.
 
 ### Descartado

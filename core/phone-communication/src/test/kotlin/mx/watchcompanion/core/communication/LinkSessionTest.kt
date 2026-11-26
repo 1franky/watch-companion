@@ -178,6 +178,53 @@ class LinkSessionTest {
         assertEquals(listOf(actividad), recibidas)
     }
 
+    private val finanzas = FinanceSnapshot(
+        FinanceSnapshot.State.OK,
+        checkedAt = 1_000,
+        figures = FinanceFigures(1_000, "2026-11", "15230.50", "4800.00", "9120.75"),
+    )
+
+    @Test
+    fun elPongTraeElResumenFinancieroYElInformeAparteTambienLlega() = runTest {
+        val haciaTelefono = Loopback(listOf(telefono))
+        val haciaReloj = Loopback(listOf(Peer("nodo-reloj", "Galaxy Watch Ultra", true)))
+        val recibidos = mutableListOf<FinanceSnapshot>()
+        val reloj = LinkSession(
+            haciaTelefono, codec, deviceId = "dev-reloj", appVersion = "0.1.0",
+            clock = { testScheduler.currentTime }, onFinance = { recibidos += it },
+        )
+        val phone = LinkSession(
+            haciaReloj, codec, deviceId = "dev-tel", appVersion = "0.1.0",
+            clock = { testScheduler.currentTime }, financeProvider = { finanzas },
+        )
+        haciaTelefono.other = phone
+        haciaReloj.other = reloj
+
+        assertTrue(reloj.refresh() is LinkState.Connected)
+        val sinSesion = FinanceSnapshot(FinanceSnapshot.State.SIGNED_OUT, checkedAt = 2_000)
+        assertTrue(phone.sendToPeer(FinanceSnapshotReport(sinSesion)))
+        assertEquals(listOf(finanzas, sinSesion), recibidos)
+    }
+
+    @Test
+    fun siElResumenFinancieroFallaElPongSaleSinEl() = runTest {
+        val haciaTelefono = Loopback(listOf(telefono))
+        val haciaReloj = Loopback(listOf(Peer("nodo-reloj", "Galaxy Watch Ultra", true)))
+        val recibidos = mutableListOf<FinanceSnapshot>()
+        val reloj = LinkSession(
+            haciaTelefono, codec, deviceId = "dev-reloj", appVersion = "0.1.0",
+            clock = { testScheduler.currentTime }, onFinance = { recibidos += it },
+        )
+        val phone = LinkSession(
+            haciaReloj, codec, deviceId = "dev-tel", appVersion = "0.1.0",
+            clock = { testScheduler.currentTime }, financeProvider = { error("x") },
+        )
+        haciaTelefono.other = phone
+        haciaReloj.other = reloj
+        assertTrue(reloj.refresh() is LinkState.Connected)
+        assertTrue(recibidos.isEmpty())
+    }
+
     @Test
     fun siRefrescarFallaElPingSigueRespondido() = runTest {
         val haciaTelefono = Loopback(listOf(telefono))

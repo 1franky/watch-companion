@@ -35,11 +35,17 @@ import mx.watchcompanion.core.communication.IntegrationStatus
 import mx.watchcompanion.core.communication.LinkState
 import mx.watchcompanion.core.communication.SyncSummary
 import mx.watchcompanion.core.permissions.ModuleStatus
+import java.math.BigDecimal
+import java.text.NumberFormat
 import java.time.Instant
+import java.time.YearMonth
+import java.time.format.TextStyle
+import java.util.Currency
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import mx.watchcompanion.core.communication.ActivityStatus
+import mx.watchcompanion.core.communication.FinanceSnapshot
 import mx.watchcompanion.watch.live.LiveMetricsState
 
 /**
@@ -51,6 +57,8 @@ import mx.watchcompanion.watch.live.LiveMetricsState
  *
  * @param now instante actual (ms epoch), para el «hace N min»; inyectable para pruebas.
  * @param activity último estado de la actividad en Velora que informó el teléfono (WC-33).
+ * @param finance último resumen financiero de Nexora que informó el teléfono (WC-38). No se muestra en ambiente: la
+ *   pantalla siempre encendida queda a la vista de cualquiera (03 §6).
  * @param pendingRecordings grabaciones del modo B que siguen en el reloj esperando al teléfono (WC-54).
  * @param zoneId zona horaria para mostrar la fecha de la actividad; inyectable para pruebas.
  */
@@ -67,6 +75,7 @@ fun SummaryScreen(
     onRecord: () -> Unit = {},
     pendingRecordings: Int = 0,
     activity: ActivityStatus? = null,
+    finance: FinanceSnapshot? = null,
     zoneId: ZoneId = ZoneId.systemDefault(),
 ) {
     MaterialTheme {
@@ -97,6 +106,7 @@ fun SummaryScreen(
             SummaryItem(stringResource(R.string.summary_mode), stringResource(R.string.summary_mode_a), primary, secondary)
             SummaryItem(stringResource(R.string.summary_velora), veloraSyncText(link, now), primary, secondary)
             ActivityItem(activity, now, zoneId, primary, secondary)
+            if (!ambient) FinanceSection(finance, now, zoneId, primary, secondary)
             // Modo B (WC-54): rutas grabadas que aún no confirma el teléfono; salen solas cuando haya enlace.
             if (pendingRecordings > 0) {
                 SummaryItem(
@@ -175,6 +185,69 @@ private fun activityDetail(startedAt: Long, distanceMeters: Double?, zoneId: Zon
 }
 
 private val ACTIVITY_DATE = DateTimeFormatter.ofPattern("d MMM HH:mm", Locale.forLanguageTag("es-MX"))
+
+/**
+ * Resumen financiero de Nexora (WC-38): las cifras tal como las calculó Nexora, cada una con su hora de actualización.
+ * Si la última consulta falló o pasaron más de [FinanceSnapshot.STALE_AFTER_MS], se marcan como desactualizadas.
+ */
+@Composable
+private fun FinanceSection(finance: FinanceSnapshot?, now: Long, zoneId: ZoneId, primary: Color, secondary: Color) {
+    Text(
+        stringResource(R.string.summary_finance),
+        modifier = Modifier.semantics { heading() },
+        color = secondary,
+        style = MaterialTheme.typography.labelLarge,
+    )
+    val figures = finance?.figures
+    if (finance == null || figures == null) {
+        val message = when (finance?.state) {
+            null -> stringResource(R.string.sync_no_data)
+            FinanceSnapshot.State.SIGNED_OUT -> stringResource(R.string.finance_signed_out)
+            else -> stringResource(R.string.finance_error, finance.errorCode ?: "?")
+        }
+        Text(message, color = primary, textAlign = TextAlign.Center)
+        return
+    }
+    val stale = finance.isStale(now)
+    if (stale) {
+        val reason = if (finance.state == FinanceSnapshot.State.ERROR) {
+            stringResource(R.string.finance_stale_error, finance.errorCode ?: "?")
+        } else {
+            stringResource(R.string.finance_stale, elapsed(now - figures.fetchedAt))
+        }
+        Text(reason, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+    }
+    val time = FINANCE_TIME.format(Instant.ofEpochMilli(figures.fetchedAt).atZone(zoneId))
+    val month = YearMonth.parse(figures.month).month.getDisplayName(TextStyle.FULL_STANDALONE, ES_MX)
+    FigureItem(stringResource(R.string.finance_available), figures.availableBalance, figures.currency, time, stale, primary, secondary)
+    FigureItem(stringResource(R.string.finance_card_debt), figures.creditCardDebt, figures.currency, time, stale, primary, secondary)
+    FigureItem(stringResource(R.string.finance_expenses, month), figures.expenseThisMonth, figures.currency, time, stale, primary, secondary)
+}
+
+/** Una cifra con su hora; para TalkBack, «Disponible, actualizado 12:33, desactualizado, $15,230.50». */
+@Composable
+private fun FigureItem(label: String, amount: String, currency: String, time: String, stale: Boolean, primary: Color, secondary: Color) {
+    Column(
+        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        val status = if (stale) stringResource(R.string.finance_figure_stale, time) else stringResource(R.string.finance_figure_time, time)
+        Text("$label · $status", color = secondary, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
+        Text(
+            formatAmount(amount, currency),
+            color = if (stale) secondary else primary,
+            style = MaterialTheme.typography.titleLarge,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+/** Solo da formato (es-MX): el importe es el que mandó Nexora, sin recalcular. */
+internal fun formatAmount(amount: String, currency: String): String =
+    NumberFormat.getCurrencyInstance(ES_MX).apply { this.currency = Currency.getInstance(currency) }.format(BigDecimal(amount))
+
+private val ES_MX = Locale.forLanguageTag("es-MX")
+private val FINANCE_TIME = DateTimeFormatter.ofPattern("HH:mm", ES_MX)
 
 @Composable
 private fun liveSummary(live: LiveMetricsState.Active): String = when {

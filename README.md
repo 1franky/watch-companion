@@ -49,6 +49,7 @@ Solo `app-phone` inicia sesión en Velora y en Nexora (WC-37), con sesiones prop
 - Las renovaciones se serializan (`VeloraSession`, `NexoraSession`): los dos backends rotan el refresh token en cada uso y revocan el anterior, así que dos llamadas no pueden renovar a la vez.
 - Cerrar la sesión de Nexora desde el teléfono la **revoca** en Nexora (`POST /auth/logout`); sin red, se borra del teléfono igual y el token vence solo.
 - El contrato de Nexora no marca campos obligatorios: un login que no trae los dos tokens se trata como «Nexora no está disponible», nunca como una sesión a medias.
+- Con sesión de Nexora, el reloj muestra en Resumen el disponible, la deuda de tarjetas y los gastos del mes con su hora de actualización (WC-38). Las cifras viven solo en memoria y no aparecen en modo ambiente.
 - La versión release solo acepta servidores `https://`. En debug se puede usar `http://10.0.2.2` o `http://localhost` contra una API local; el campo «Servidor» solo aparece en debug.
 - El cifrado real con Keystore se prueba en dispositivo o emulador: `./gradlew :core:session:connectedDebugAndroidTest`.
 

@@ -35,6 +35,8 @@ data class Pong(
     val zones: HeartRateZones? = null,
     /** Último estado conocido de la actividad en Velora (WC-33); el teléfono lo actualiza aparte y lo reenvía. */
     val activity: ActivityStatus? = null,
+    /** Último resumen financiero de Nexora (WC-38); como la actividad, se refresca aparte y se reenvía. */
+    val finance: FinanceSnapshot? = null,
 ) : Payload
 
 /** El teléfono envía las zonas en cuanto el usuario las guarda (WC-32). Si el reloj no está, llegan con el próximo Pong. */

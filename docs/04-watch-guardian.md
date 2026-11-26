@@ -49,6 +49,14 @@ Probado en SM-S948B, Android 17 (SDK 37), One UI 9.0, compilación `S948BXXS4BZI
 - **Revocar (WC-47):** apagar el módulo llama a `removeActiveAdmin()`. No hace falta un flujo para poder desinstalar.
 - **Mensaje sensible:** la orden de bloqueo viaja con `nonce` y caducidad como cualquier acción con efecto (00, mensajes sensibles).
 
+### Implementado (WC-44): bloqueo manual desde el reloj
+
+- **En el teléfono:** pantalla principal → Guardian → «Activar bloqueo desde el reloj» abre el diálogo del sistema (`GuardianAdminReceiver`, `res/xml/guardian_device_admin.xml` solo con `force-lock`). Si el teléfono no tiene PIN, la pantalla lo avisa. «Desactivar» llama a `removeActiveAdmin()`; el estado se revisa al volver a la app, porque también puede quitarse desde Ajustes.
+- **En el reloj:** Resumen → Guardian → «Bloquear teléfono». Sale una `GuardianCommand(LOCK)` con `commandId`, `nonce` y `expiresAt` a 15 s (`GuardianCommand.TTL_MS`). No se reintenta: otro toque es otra orden.
+- **Lo que hace el teléfono (`PhoneGuardian`):** el codec ya descartó repetidos y caducados. Luego, por orden: id inválido → `REJECTED INVALID_COMMAND`; caducada → `EXPIRED`; sin administrador → `UNAVAILABLE ADMIN_INACTIVE`; sin PIN → `UNAVAILABLE NO_SECURE_LOCK` (no bloquea: solo apagaría la pantalla); `SecurityException` → `REJECTED SECURITY_EXCEPTION`. Tras `lockNow()` espera hasta 2 s a que `isKeyguardLocked` sea verdadero: solo entonces `LOCKED`; si no, `UNAVAILABLE NOT_CONFIRMED`. Un fallo del ejecutor se contesta `UNAVAILABLE`, nunca se calla.
+- **Lo que muestra el reloj (`PhoneLock`):** «Teléfono bloqueado a las HH:mm» solo con `LOCKED`. Sin teléfono al alcance: «No se bloqueó: el teléfono no está al alcance». Sin respuesta antes de caducar más 5 s de margen: «Sin confirmación del teléfono: puede que no se haya bloqueado» (`EXPIRED`). Una confirmación tardía de la misma orden corrige ese texto; la de una orden anterior se ignora.
+- **Registro:** cada resultado queda en el diagnóstico del teléfono (`guardian.lock`, solo resultado y código). El historial de Guardian es WC-47.
+
 ### Descartado
 
 - **Accesibilidad** (`GLOBAL_ACTION_LOCK_SCREEN`): prohibida como atajo (WC-ADR-007).

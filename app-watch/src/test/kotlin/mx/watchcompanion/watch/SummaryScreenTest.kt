@@ -39,6 +39,8 @@ import mx.watchcompanion.core.permissions.ModuleStatus
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import mx.watchcompanion.core.communication.GuardianCommandResult
+import mx.watchcompanion.watch.guardian.PhoneLockState
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
@@ -208,6 +210,31 @@ class SummaryScreenTest {
         lejos = AHORA - 12 * MIN
         compose.onNodeWithText("Sin el teléfono cerca desde las 07:48").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("robo", substring = true, ignoreCase = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun elBloqueoSoloDiceBloqueadoConLaConfirmacionDelTelefono() {
+        val id = "0b9f2c4e-5d6a-4f1b-8c7d-9e0f1a2b3c4d"
+        var estado by mutableStateOf<PhoneLockState>(PhoneLockState.Idle)
+        var pedido = 0
+        compose.setContent {
+            SummaryScreen(now = AHORA, link = LinkState.NoPeer, onCheck = {}, zoneId = utc, phoneLock = estado, onLockPhone = { pedido++ })
+        }
+        compose.onNodeWithText("Bloquear teléfono").performScrollTo().performClick()
+        assertEquals(1, pedido)
+
+        estado = PhoneLockState.Sending(id)
+        compose.onNodeWithText("Bloqueando…").performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithText("bloqueado", substring = true).assertDoesNotExist()
+
+        estado = PhoneLockState.Done(GuardianCommandResult(id, GuardianCommandResult.Outcome.EXPIRED), AHORA)
+        compose.onNodeWithText("Sin confirmación del teléfono: puede que no se haya bloqueado.").performScrollTo().assertIsDisplayed()
+
+        estado = PhoneLockState.Done(GuardianCommandResult(id, GuardianCommandResult.Outcome.UNAVAILABLE, "ADMIN_INACTIVE"), AHORA)
+        compose.onNodeWithText("activa «Bloqueo desde el reloj»", substring = true).performScrollTo().assertIsDisplayed()
+
+        estado = PhoneLockState.Done(GuardianCommandResult(id, GuardianCommandResult.Outcome.LOCKED), AHORA)
+        compose.onNodeWithText("Teléfono bloqueado a las 08:00").performScrollTo().assertIsDisplayed()
     }
 
     @Test

@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.map
 import mx.watchcompanion.core.communication.ActivityStatusReport
 import mx.watchcompanion.core.communication.FinanceSnapshotReport
 import mx.watchcompanion.core.communication.TransactionResult
+import mx.watchcompanion.core.communication.GuardianCommandResult
 import mx.watchcompanion.core.communication.HeartRateZonesStore
 import mx.watchcompanion.core.communication.InMemoryNonceRegistry
 import mx.watchcompanion.core.communication.LinkSession
@@ -41,6 +42,9 @@ import mx.watchcompanion.phone.alerts.NexoraAlertPoller
 import mx.watchcompanion.phone.alerts.NexoraAlertWorker
 import mx.watchcompanion.phone.alerts.ShownAlerts
 import mx.watchcompanion.phone.alerts.fetchNexoraAlerts
+import mx.watchcompanion.phone.guardian.AndroidDeviceLocker
+import mx.watchcompanion.phone.guardian.GuardianAdmin
+import mx.watchcompanion.phone.guardian.PhoneGuardian
 import mx.watchcompanion.phone.drafts.EncryptedFileDraftStore
 import mx.watchcompanion.phone.drafts.PhoneDrafts
 import mx.watchcompanion.phone.drafts.nexoraDraftOptions
@@ -91,10 +95,28 @@ class PhoneCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
             // Borradores del reloj (WC-40): se guardan cifrados y se contesta con su estado; el Pong repite todos.
             onDraft = { drafts.receive(it) },
             draftsProvider = { drafts.statuses() },
+            // Bloqueo desde el reloj (WC-44): solo responde LOCKED si el teléfono quedó bloqueado de verdad.
+            onGuardianCommand = { command, expiresAt -> guardian.execute(command, expiresAt).also { recordGuardian(it) } },
             onPeerPing = {
                 refreshActivityForWatch()
                 refreshFinanceForWatch()
             },
+        )
+    }
+
+    /** Guardian (WC-44): bloqueo con el administrador de dispositivo (solo `force-lock`). */
+    val guardian: PhoneGuardian by lazy { PhoneGuardian(AndroidDeviceLocker(this)) }
+
+    /** Solo el resultado y su código, en el registro técnico local (el historial completo es WC-47). */
+    private suspend fun recordGuardian(result: GuardianCommandResult) {
+        val ok = result.outcome == GuardianCommandResult.Outcome.LOCKED
+        diagnostics.record(
+            DiagnosticModule.LINK,
+            "guardian.lock",
+            DiagnosticEvent.newCorrelationId(),
+            if (ok) Outcome.OK else Outcome.ERROR,
+            result.errorCode ?: result.outcome.name,
+            0,
         )
     }
 
@@ -198,6 +220,7 @@ class PhoneCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
     override fun onCreate() {
         super.onCreate()
         appScope.launch { diagnostics.load() }
+        GuardianAdmin.refresh(this)
         appScope.launch { zonesStore.load() }
         appScope.launch { veloraSession.restore() }
         appScope.launch { nexoraSession.restore() }

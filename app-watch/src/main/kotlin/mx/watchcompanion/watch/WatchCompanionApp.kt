@@ -30,6 +30,8 @@ import mx.watchcompanion.core.datalayer.DeviceId
 import mx.watchcompanion.core.datalayer.LinkSessionOwner
 import mx.watchcompanion.core.datalayer.PeerReachabilityHandler
 import mx.watchcompanion.watch.guardian.DisconnectMonitor
+import mx.watchcompanion.watch.guardian.PhoneLock
+import mx.watchcompanion.core.communication.GuardianCommand
 import mx.watchcompanion.watch.guardian.NotificationDisconnectAlerter
 import mx.watchcompanion.watch.guardian.SharedPreferencesDisconnectStore
 import mx.watchcompanion.watch.guardian.WorkDisconnectScheduler
@@ -64,6 +66,8 @@ class WatchCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
             onFinance = { snapshot -> receiveFinance(snapshot) },
             // Borradores de Nexora (WC-40): el teléfono contesta cada uno y el Pong repite todos.
             onDraftStatus = { drafts.onStatus(it) },
+            // Bloqueo desde el reloj (WC-44): la respuesta real del teléfono.
+            onGuardianResult = { phoneLock.onResult(it) },
         )
     }
 
@@ -108,6 +112,14 @@ class WatchCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
     val zones: HeartRateZonesStore by lazy { HeartRateZonesStore.inFile(File(noBackupFilesDir, "zonas.json")) }
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    /** Bloqueo manual del teléfono (WC-44): orden sensible con nonce y caducidad; solo «bloqueado» si el teléfono lo confirma. */
+    val phoneLock: PhoneLock by lazy { PhoneLock(send = { linkSession.sendCommand(it, GuardianCommand.TTL_MS) }) }
+
+    /** Lo lanza la pantalla, pero vive en la app: girar la muñeca no corta la espera de la respuesta. */
+    fun lockPhone() {
+        appScope.launch { phoneLock.lock() }
+    }
 
     /** Aviso de desconexión del teléfono (WC-45, Guardian). Apagado hasta que el usuario elige un plazo. */
     val disconnectMonitor: DisconnectMonitor by lazy {

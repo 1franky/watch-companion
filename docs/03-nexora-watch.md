@@ -77,7 +77,7 @@ No incluir números completos de cuenta, referencias bancarias o información se
 
 ## 5. Endpoints de Nexora que usa el companion
 
-Revisados en `nexora-api` (`develop`, 2026-11-23). Los DTO exactos salen del contrato fijado en el companion (WC-36, a partir de WC-25); esta tabla no los reespecifica.
+Revisados en `nexora-api` (`develop`, 2026-11-23). Los DTO exactos salen del contrato fijado en el companion (`contract/nexora`, WC-36, a partir de WC-25); esta tabla no los reespecifica. Cada tarjeta agrega al cliente (`integration:nexora-contract`) las operaciones que usa.
 
 | Necesidad | Endpoint real | Notas |
 |---|---|---|

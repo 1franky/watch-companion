@@ -124,10 +124,18 @@ Las lecturas sí están permitidas: p. ej. `GET /integrations/strava` para mostr
 
 ```bash
 scripts/update-contract.sh velora <sha-de-velora-api>   # fija otro commit y descarga su contrato
-scripts/update-contract.sh --check velora               # comprueba la copia (lo corre el CI)
+scripts/update-contract.sh nexora <sha-de-nexora-api>   # Nexora: el contrato vive en develop (A-11)
+scripts/update-contract.sh --check velora               # comprueba la copia (lo corre el CI, igual con nexora)
 ```
 
-Solo se generan las operaciones que usa el companion (lista `companionOperations` en `integration/velora-contract/build.gradle.kts`) y sus modelos. Agregar una operación es parte de la tarjeta que la necesita.
+| Backend | Módulo | Cliente | Fijado en |
+|---|---|---|---|
+| Velora | `integration:velora-contract` | `VeloraClient` (generado `DefaultApi` + la subida de grabaciones secundarias, escrita a mano) | `velora-api` `main` |
+| Nexora | `integration:nexora-contract` | `NexoraApi` (generado; todas las operaciones en una sola clase) | `nexora-api` `develop` (WC-36) |
+
+Solo se generan las operaciones que usa el companion (lista `companionOperations` en el `build.gradle.kts` de cada módulo) y sus modelos. Agregar una operación es parte de la tarjeta que la necesita. `ModeAContractTest` (Velora) y `NexoraScopeTest` (Nexora) fallan si entra una escritura no justificada.
+
+El contrato de Nexora lo exporta springdoc y no marca campos obligatorios: en los modelos generados todo es opcional, así que el código del companion valida lo que necesita (p. ej. que el login traiga los dos tokens).
 
 ## Permisos
 

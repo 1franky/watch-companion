@@ -14,52 +14,17 @@ import mx.watchcompanion.core.diagnostics.DiagnosticModule
 import mx.watchcompanion.core.diagnostics.DiagnosticsRecorder
 import mx.watchcompanion.core.diagnostics.Span
 import mx.watchcompanion.core.diagnostics.start
+import mx.watchcompanion.core.session.LoginResult
+import mx.watchcompanion.core.session.ServiceUnavailableException
+import mx.watchcompanion.core.session.SessionExpiredException
+import mx.watchcompanion.core.session.SessionState
 import mx.watchcompanion.core.session.SessionStore
+import mx.watchcompanion.core.session.SignOutReason
 import mx.watchcompanion.core.session.StoredSession
 import mx.watchcompanion.integration.velora.api.infrastructure.HttpResponse
 import mx.watchcompanion.integration.velora.api.models.LoginRequest
 import mx.watchcompanion.integration.velora.api.models.RefreshRequest
 import mx.watchcompanion.integration.velora.api.models.TokenResponse
-
-sealed interface SessionState {
-    /** Leyendo la sesión guardada al abrir la app. */
-    data object Restoring : SessionState
-
-    data class SignedOut(val reason: SignOutReason? = null) : SessionState
-
-    data class SignedIn(val serverUrl: String, val email: String) : SessionState
-}
-
-enum class SignOutReason {
-    /** Velora rechazó el refresh token: venció, se cerró la sesión en otro lado o se reutilizó un token rotado. */
-    EXPIRED,
-}
-
-sealed interface LoginResult {
-    data object Success : LoginResult
-    data object InvalidCredentials : LoginResult
-
-    /** Límite de intentos de login de Velora; [retryAfterSeconds] viene de `Retry-After`. */
-    data class TooManyAttempts(val retryAfterSeconds: Long?) : LoginResult
-
-    /** Velora rechazó el formato (p. ej. un correo inválido). */
-    data object InvalidInput : LoginResult
-
-    /** Servidor `http://` en una versión que exige HTTPS. */
-    data object InsecureServer : LoginResult
-
-    /** No hubo respuesta: sin red, servidor apagado o dirección equivocada. */
-    data object Unreachable : LoginResult
-
-    /** Respondió algo que no es Velora, o un error del servidor. */
-    data object Unavailable : LoginResult
-}
-
-/** Ya no hay sesión; el estado cambió a [SessionState.SignedOut]. */
-class SessionExpiredException : IOException("La sesión de Velora terminó")
-
-/** Velora respondió un error al renovar; la sesión sigue y se puede reintentar. */
-class ServiceUnavailableException(status: Int) : IOException("Velora respondió $status al renovar la sesión")
 
 /**
  * Sesión de `app-phone` en Velora (WC-ADR-013), independiente de la de velora-android y de la de Nexora.
@@ -170,7 +135,7 @@ class VeloraSession(
         val span = span(operation)
         try {
             val token = validAccessToken()
-            val api = api ?: throw SessionExpiredException()
+            val api = api ?: throw SessionExpiredException("Velora")
             var response = traced(span) { api.request() }
             if (response.status == 401) {
                 refresh(stale = token)
@@ -218,8 +183,8 @@ class VeloraSession(
     /** Renueva salvo que otra llamada ya lo haya hecho mientras esta esperaba el candado. */
     private suspend fun refresh(stale: String?): String = mutex.withLock {
         access?.let { if (it.value != stale && it.isFresh()) return it.value }
-        val api = api ?: throw SessionExpiredException()
-        val token = refreshToken ?: throw SessionExpiredException()
+        val api = api ?: throw SessionExpiredException("Velora")
+        val token = refreshToken ?: throw SessionExpiredException("Velora")
         val span = span("velora.refresh")
         val response = try {
             traced(span) { api.refreshTokens(RefreshRequest(token)) }
@@ -232,15 +197,15 @@ class VeloraSession(
         if (response.status == 401) {
             span.error(SESSION_EXPIRED)
             endLocked(SignOutReason.EXPIRED)
-            throw SessionExpiredException()
+            throw SessionExpiredException("Velora")
         }
         if (!response.success) {
             span.error(http(response.status))
-            throw ServiceUnavailableException(response.status)
+            throw ServiceUnavailableException("Velora", response.status)
         }
         val tokens = bodyOrNull(response) ?: run {
             span.error(INVALID_BODY)
-            throw ServiceUnavailableException(response.status)
+            throw ServiceUnavailableException("Velora", response.status)
         }
         // Se guarda antes de usarlo: el anterior ya no sirve.
         store.write(StoredSession(checkNotNull(serverUrl), checkNotNull(email), tokens.refreshToken))

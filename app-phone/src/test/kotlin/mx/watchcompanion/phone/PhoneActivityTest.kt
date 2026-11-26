@@ -4,7 +4,7 @@ import java.io.IOException
 import kotlinx.coroutines.test.runTest
 import mx.watchcompanion.core.communication.ActivityStatus
 import mx.watchcompanion.core.communication.ActivityStatus.State
-import mx.watchcompanion.integration.velora.SessionExpiredException
+import mx.watchcompanion.core.session.SessionExpiredException
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -39,7 +39,7 @@ class PhoneActivityTest {
     @Test
     fun unFalloDeLaConsultaNuncaSeVeComoExito() = runTest {
         suspend fun con(e: Exception) = PhoneActivity({ throw e }, { rodada }, clock = { 7 }).refresh()
-        assertEquals(ActivityStatus(State.ERROR, 7, errorCode = "SIGNED_OUT"), con(SessionExpiredException()))
+        assertEquals(ActivityStatus(State.ERROR, 7, errorCode = "SIGNED_OUT"), con(SessionExpiredException("Velora")))
         assertEquals(ActivityStatus(State.ERROR, 7, errorCode = "HTTP_503"), con(VeloraHttpException(503)))
         assertEquals(ActivityStatus(State.ERROR, 7, errorCode = "UNREACHABLE"), con(IOException("sin red")))
         assertEquals(

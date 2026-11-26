@@ -6,7 +6,7 @@ import mx.watchcompanion.core.communication.HeartRateZones
 import mx.watchcompanion.core.communication.HeartRateZonesConfig
 import mx.watchcompanion.core.communication.HeartRateZonesStore
 import mx.watchcompanion.core.communication.LinkSession
-import mx.watchcompanion.integration.velora.SessionExpiredException
+import mx.watchcompanion.core.session.SessionExpiredException
 import mx.watchcompanion.integration.velora.VeloraSession
 
 /** Resultado de pedir la FC máxima a Velora. */

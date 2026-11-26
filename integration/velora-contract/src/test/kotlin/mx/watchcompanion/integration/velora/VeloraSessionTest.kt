@@ -1,5 +1,10 @@
 package mx.watchcompanion.integration.velora
 
+import mx.watchcompanion.core.session.SessionState
+import mx.watchcompanion.core.session.LoginResult
+import mx.watchcompanion.core.session.SignOutReason
+import mx.watchcompanion.core.session.SessionExpiredException
+import mx.watchcompanion.core.session.ServiceUnavailableException
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.MockRequestHandleScope
 import io.ktor.client.engine.mock.respond

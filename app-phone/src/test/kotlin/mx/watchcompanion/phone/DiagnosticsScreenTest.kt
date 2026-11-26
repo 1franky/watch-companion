@@ -1,5 +1,10 @@
 package mx.watchcompanion.phone
 
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -70,8 +75,13 @@ class DiagnosticsScreenTest {
     @Test
     fun elInicioAbreElDiagnostico() {
         var opened = false
-        compose.setContent { PhoneHome(LinkState.NoPeer, onCheck = {}, onDiagnostics = { opened = true }) }
-        compose.onNodeWithText("Diagnóstico").performClick()
+        compose.setContent {
+            // En la app, la pantalla principal va dentro de una columna desplazable.
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                PhoneHome(LinkState.NoPeer, onCheck = {}, onDiagnostics = { opened = true })
+            }
+        }
+        compose.onNodeWithText("Diagnóstico").performScrollTo().performClick()
         assertEquals(true, opened)
     }
 }

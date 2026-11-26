@@ -16,7 +16,12 @@
     <string name="velora_signed_in">Conectado como %1$s</string>
     <string name="velora_login">Iniciar sesión en Velora</string>
     <string name="velora_logout">Cerrar sesión</string>
-    <string name="login_title">Entrar a Velora</string>
+    <string name="nexora_section">Nexora</string>
+    <string name="nexora_signed_out">Sin sesión: tus finanzas no llegan al reloj.</string>
+    <string name="nexora_expired">Tu sesión de Nexora terminó. Vuelve a entrar.</string>
+    <string name="nexora_login">Iniciar sesión en Nexora</string>
+    <string name="nexora_logout">Cerrar sesión y revocarla</string>
+    <string name="login_title">Entrar a %1$s</string>
     <string name="login_server">Servidor (solo desarrollo)</string>
     <string name="login_email">Correo</string>
     <string name="login_password">Contraseña</string>
@@ -27,8 +32,8 @@
     <string name="login_error_too_many_generic">Demasiados intentos. Espera un momento.</string>
     <string name="login_error_input">Revisa el correo.</string>
     <string name="login_error_insecure">El servidor debe usar HTTPS.</string>
-    <string name="login_error_unreachable">No hay conexión con Velora.</string>
-    <string name="login_error_unavailable">Velora no está disponible. Intenta más tarde.</string>
+    <string name="login_error_unreachable">No hay conexión con %1$s.</string>
+    <string name="login_error_unavailable">%1$s no está disponible. Intenta más tarde.</string>
     <string name="diagnostics_open">Diagnóstico</string>
     <string name="diagnostics_title">Diagnóstico</string>
     <string name="diagnostics_back">Volver</string>

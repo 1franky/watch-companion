@@ -77,6 +77,7 @@ kotlin { jvmToolchain(21) }
 dependencies {
     implementation(project(":core:data-layer"))
     implementation(project(":integration:velora-contract"))
+    implementation(project(":integration:nexora-contract"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)

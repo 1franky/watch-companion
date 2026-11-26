@@ -1,14 +1,22 @@
 package mx.watchcompanion.phone
 
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mx.watchcompanion.core.communication.LinkState
-import mx.watchcompanion.integration.velora.SessionState
-import mx.watchcompanion.integration.velora.SignOutReason
+import mx.watchcompanion.core.session.SessionState
+import mx.watchcompanion.core.session.SignOutReason
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -83,5 +91,35 @@ class PhoneHomeTest {
         compose.onNodeWithText("Conectado como propietario@example.com").assertIsDisplayed()
         compose.onNodeWithText("Cerrar sesión").performClick()
         assertEquals(1, salir)
+    }
+
+    @Test
+    fun nexoraTieneSuPropiaSesionIndependienteDeVelora() {
+        var entrar = 0
+        var salir = 0
+        var nexora by mutableStateOf<SessionState>(SessionState.SignedOut())
+        compose.setContent {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                PhoneHome(
+                    LinkState.NoPeer,
+                    onCheck = {},
+                    velora = SessionState.SignedIn("https://velora.example", "velora@example.com"),
+                    nexora = nexora,
+                    onNexoraLogin = { entrar++ },
+                    onNexoraLogout = { salir++ },
+                )
+            }
+        }
+        compose.onNodeWithText("Iniciar sesión en Nexora").performScrollTo().performClick()
+        assertEquals(1, entrar)
+
+        nexora = SessionState.SignedIn("https://nexora.example", "nexora@example.com")
+        compose.onNodeWithText("Conectado como nexora@example.com").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Conectado como velora@example.com").assertExists()
+        compose.onNodeWithText("Cerrar sesión y revocarla").performScrollTo().performClick()
+        assertEquals(1, salir)
+
+        nexora = SessionState.SignedOut(SignOutReason.EXPIRED)
+        compose.onNodeWithText("Tu sesión de Nexora terminó. Vuelve a entrar.").performScrollTo().assertIsDisplayed()
     }
 }

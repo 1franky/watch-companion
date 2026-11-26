@@ -11,7 +11,7 @@ import mx.watchcompanion.core.communication.LinkSession
 import mx.watchcompanion.core.communication.LinkTransport
 import mx.watchcompanion.core.communication.Peer
 import mx.watchcompanion.core.communication.ProtocolCodec
-import mx.watchcompanion.integration.velora.SessionExpiredException
+import mx.watchcompanion.core.session.SessionExpiredException
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -35,7 +35,7 @@ class PhoneZonesTest {
     fun laFcMaximaDeVelora() = runTest {
         assertEquals(VeloraMax.Value(185), zones().veloraMax())
         assertEquals(VeloraMax.NotSet, zones(max = { null }).veloraMax())
-        assertEquals(VeloraMax.SignedOut, zones(max = { throw SessionExpiredException() }).veloraMax())
+        assertEquals(VeloraMax.SignedOut, zones(max = { throw SessionExpiredException("Velora") }).veloraMax())
         assertEquals(VeloraMax.Failed("HTTP_503"), zones(max = { throw VeloraHttpException(503) }).veloraMax())
         assertEquals(VeloraMax.Failed("IOEXCEPTION"), zones(max = { throw IOException("sin red") }).veloraMax())
     }

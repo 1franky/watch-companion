@@ -10,7 +10,7 @@ import java.nio.file.Files
 import kotlinx.coroutines.test.runTest
 import mx.watchcompanion.core.session.SessionStore
 import mx.watchcompanion.core.session.StoredSession
-import mx.watchcompanion.integration.velora.LoginResult
+import mx.watchcompanion.core.session.LoginResult
 import mx.watchcompanion.integration.velora.VeloraApi
 import mx.watchcompanion.integration.velora.VeloraSession
 import org.junit.Assert.assertEquals

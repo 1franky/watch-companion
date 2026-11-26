@@ -28,6 +28,12 @@ import mx.watchcompanion.core.datalayer.Capabilities
 import mx.watchcompanion.core.datalayer.DataLayerTransport
 import mx.watchcompanion.core.datalayer.DeviceId
 import mx.watchcompanion.core.datalayer.LinkSessionOwner
+import mx.watchcompanion.core.datalayer.PeerReachabilityHandler
+import mx.watchcompanion.watch.guardian.DisconnectMonitor
+import mx.watchcompanion.watch.guardian.NotificationDisconnectAlerter
+import mx.watchcompanion.watch.guardian.SharedPreferencesDisconnectStore
+import mx.watchcompanion.watch.guardian.WorkDisconnectScheduler
+import mx.watchcompanion.watch.guardian.phoneNearby
 import mx.watchcompanion.watch.alerts.VibratorHaptics
 import mx.watchcompanion.watch.alerts.ZoneAlerts
 import mx.watchcompanion.watch.live.HealthServicesBackend
@@ -43,7 +49,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 
 /** Contenedor de dependencias del reloj (inyección manual, como nexora-android). */
-class WatchCompanionApp : Application(), LinkSessionOwner, RecordingTransferHandler {
+class WatchCompanionApp : Application(), LinkSessionOwner, RecordingTransferHandler, PeerReachabilityHandler {
     override val linkSession: LinkSession by lazy {
         LinkSession(
             transport = DataLayerTransport(this, peerCapability = Capabilities.PHONE_APP),
@@ -103,9 +109,28 @@ class WatchCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    /** Aviso de desconexión del teléfono (WC-45, Guardian). Apagado hasta que el usuario elige un plazo. */
+    val disconnectMonitor: DisconnectMonitor by lazy {
+        DisconnectMonitor(SharedPreferencesDisconnectStore(this), WorkDisconnectScheduler(this), NotificationDisconnectAlerter(this))
+    }
+
+    override fun onPeerReachability(capability: String, nearby: Boolean) {
+        if (capability == Capabilities.PHONE_APP) disconnectMonitor.onReachability(nearby)
+    }
+
+    /** Cambia el plazo del aviso y, si quedó activo, mira enseguida si el teléfono está cerca. */
+    fun setDisconnectDelay(minutes: Int?) {
+        disconnectMonitor.setDelay(minutes)
+        if (minutes != null) appScope.launch { phoneNearby(this@WatchCompanionApp)?.let { disconnectMonitor.onReachability(it) } }
+    }
+
     override fun onCreate() {
         super.onCreate()
         appScope.launch { zones.load() }
+        // Aviso de desconexión (WC-45): al arrancar se pone al día con el estado real del teléfono.
+        appScope.launch {
+            if (disconnectMonitor.delayMinutes.value != null) phoneNearby(this@WatchCompanionApp)?.let { disconnectMonitor.onReachability(it) }
+        }
         // Resumen de Nexora guardado (WC-42): solo si sigue vigente y no llegó ya uno del teléfono.
         appScope.launch {
             val cached = withContext(Dispatchers.IO) { financeCache.load() } ?: return@launch

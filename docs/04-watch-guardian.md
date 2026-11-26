@@ -15,6 +15,13 @@ No prometer bloqueo automático basado únicamente en la detección de sueño: l
 - Confirmación de que el teléfono quedó bloqueado.
 - Historial local de eventos de seguridad.
 
+**Implementado (WC-45): aviso de desconexión.**
+- **Cómo lo sabe:** el reloj recibe de la Data Layer los cambios de alcance de la app del teléfono (`CAPABILITY_CHANGED` de `wc_phone_app`, en `LinkListenerService`) aunque la app esté cerrada. «Cerca» es alcanzable con `Node.isNearby`; alcanzable solo por la nube (LTE o Wi-Fi lejos del teléfono) cuenta como lejos. No usa ubicación, ni sondeo, ni intensidad de señal (R-08).
+- **Cuándo avisa:** tras un plazo seguido sin el teléfono, que se elige en Resumen → Guardian: apagado (por omisión), 2, 5, 15 o 30 min. Una revisión de WorkManager confirma al cumplirse el plazo; si la Data Layer no responde, reintenta en vez de avisar.
+- **El aviso:** una vibración propia (uso de alarma) y, si hay permiso de notificaciones, una notificación «Teléfono fuera de alcance · Sin conexión con el teléfono desde las HH:mm». Una vez por desconexión; se retira sola cuando el teléfono vuelve. No habla de robo ni de pérdida.
+- **Estado:** el plazo y desde cuándo falta el teléfono se guardan en `SharedPreferences` (no son datos personales) para sobrevivir a que el sistema cierre el proceso.
+- **Fuera del alcance:** proximidad por intensidad de señal (R-08) y cualquier acción automática en el teléfono.
+
 ## 3. Política de bloqueo
 
 Separar explícitamente:

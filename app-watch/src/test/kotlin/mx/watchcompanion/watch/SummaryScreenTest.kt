@@ -193,6 +193,24 @@ class SummaryScreenTest {
     }
 
     @Test
+    fun elAvisoDeDesconexionMuestraSuPlazoYDesdeCuandoFaltaElTelefono() {
+        var plazo by mutableStateOf<Int?>(null)
+        var lejos by mutableStateOf<Long?>(null)
+        compose.setContent {
+            SummaryScreen(
+                now = AHORA, link = LinkState.NoPeer, onCheck = {}, zoneId = utc,
+                disconnectDelay = plazo, onDisconnectDelay = { plazo = 5 }, awaySince = lejos,
+            )
+        }
+        compose.onNodeWithText("Aviso sin teléfono: apagado").performScrollTo().performClick()
+        compose.onNodeWithText("Aviso sin teléfono: 5 min").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Sin el teléfono cerca", substring = true).assertDoesNotExist()
+        lejos = AHORA - 12 * MIN
+        compose.onNodeWithText("Sin el teléfono cerca desde las 07:48").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("robo", substring = true, ignoreCase = true).assertDoesNotExist()
+    }
+
+    @Test
     fun losBorradoresMuestranSuEstadoYNuncaSeDanPorRegistradosSinElTelefono() {
         val borrador = QuickTransactionDraft(
             "3d6f0a7e-1b2c-4d5e-8f90-a1b2c3d4e5f6", QuickTransactionDraft.Kind.EXPENSE, "250.5",

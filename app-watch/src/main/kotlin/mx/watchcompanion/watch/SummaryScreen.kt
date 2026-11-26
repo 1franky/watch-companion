@@ -67,6 +67,8 @@ import mx.watchcompanion.watch.live.LiveMetricsState
  * @param financeHidden el usuario pidió ocultar las cifras de Nexora (WC-42): solo queda el título y «Mostrar cifras».
  *   También oculta los importes de los borradores.
  * @param drafts borradores de Nexora capturados aquí y su estado según el teléfono (WC-40); tampoco en ambiente.
+ * @param disconnectDelay plazo del aviso de desconexión en minutos, o `null` si está apagado (WC-45).
+ * @param awaySince desde cuándo no está el teléfono cerca, solo si ya se avisó.
  * @param pendingRecordings grabaciones del modo B que siguen en el reloj esperando al teléfono (WC-54).
  * @param zoneId zona horaria para mostrar la fecha de la actividad; inyectable para pruebas.
  */
@@ -88,6 +90,9 @@ fun SummaryScreen(
     onFinanceHidden: (Boolean) -> Unit = {},
     drafts: List<WatchDraft> = emptyList(),
     onNewDraft: () -> Unit = {},
+    disconnectDelay: Int? = null,
+    onDisconnectDelay: () -> Unit = {},
+    awaySince: Long? = null,
     zoneId: ZoneId = ZoneId.systemDefault(),
 ) {
     MaterialTheme {
@@ -158,6 +163,7 @@ fun SummaryScreen(
                     Text(stringResource(R.string.link_check))
                 }
                 ModuleRow(title = stringResource(R.string.module_velora), status = velora, onAction = onVeloraAction)
+                GuardianSection(disconnectDelay, onDisconnectDelay, awaySince, zoneId, primary, secondary)
             }
         }
         LaunchedEffect(ambient) { if (!ambient) focus.requestFocus() }
@@ -286,6 +292,24 @@ private fun FinanceSection(
         }
     }
     OutlinedButton(onClick = { onHidden(true) }) { Text(stringResource(R.string.finance_hide)) }
+}
+
+/** Guardian (WC-45): el plazo del aviso de desconexión, que se cambia tocándolo, y desde cuándo falta el teléfono. */
+@Composable
+private fun GuardianSection(delay: Int?, onDelay: () -> Unit, awaySince: Long?, zoneId: ZoneId, primary: Color, secondary: Color) {
+    Text(
+        stringResource(R.string.summary_guardian),
+        modifier = Modifier.semantics { heading() },
+        color = secondary,
+        style = MaterialTheme.typography.labelLarge,
+    )
+    awaySince?.let {
+        val time = FINANCE_TIME.format(Instant.ofEpochMilli(it).atZone(zoneId))
+        Text(stringResource(R.string.guardian_away_since, time), color = primary, textAlign = TextAlign.Center)
+    }
+    OutlinedButton(onClick = onDelay) {
+        Text(if (delay == null) stringResource(R.string.guardian_delay_off) else stringResource(R.string.guardian_delay, delay))
+    }
 }
 
 @Composable

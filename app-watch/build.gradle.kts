@@ -76,6 +76,10 @@ dependencies {
     // Caché cifrada del resumen de Nexora (WC-42) con la misma llave del Keystore que las sesiones del teléfono.
     implementation(project(":core:session"))
     implementation(libs.kotlinx.serialization.json)
+    // Aviso de desconexión (WC-45): revisión diferida en segundo plano y consulta directa a la Data Layer.
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.play.services.wearable)
+    implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)

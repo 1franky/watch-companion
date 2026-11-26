@@ -42,6 +42,20 @@
             android:foregroundServiceType="health|location"
             tools:ignore="ForegroundServicePermission" />
 
+        <!-- Aviso de desconexión (WC-45): el servicio de core:data-layer recibe también los cambios de alcance de la
+             app del teléfono. Solo esa capacidad; no se usa ubicación. -->
+        <service
+            android:name="mx.watchcompanion.core.datalayer.LinkListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.CAPABILITY_CHANGED" />
+                <data
+                    android:host="*"
+                    android:path="/wc_phone_app"
+                    android:scheme="wear" />
+            </intent-filter>
+        </service>
+
         <activity
             android:name=".MainActivity"
             android:taskAffinity=""

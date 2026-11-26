@@ -153,11 +153,12 @@ Cada módulo pide sus permisos **solo cuando el usuario lo activa**. Si se revoc
 | `android.permission.POST_NOTIFICATIONS` (opcional) | reloj | Velora | Mostrar la notificación de la sesión, que lleva el ícono de la esfera (Ongoing Activity, WC-58). Se pide al tocar **Iniciar métricas**; si se niega, la sesión funciona igual, sin ícono | Fase 1 |
 | `android.permission.ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` (opcional) | reloj | Velora | GPS del reloj para grabar la ruta en el modo B (WC-53). Se pide al tocar **Grabar ruta**; Android exige pedir las dos y sin la precisa no se graba. Se revoca al desactivar Velora | Fase 5 |
 | `android.permission.FOREGROUND_SERVICE_LOCATION` (normal, sin diálogo) | reloj | Velora | Mantener el GPS con la pantalla apagada durante la grabación (WC-53) | Fase 5 |
-| `WAKE_LOCK`, `ACCESS_NETWORK_STATE`, `RECEIVE_BOOT_COMPLETED`, `FOREGROUND_SERVICE` (normales, sin diálogo; los agrega WorkManager) | teléfono | Velora | Subir las grabaciones del reloj con reintentos, aunque la app esté cerrada o el teléfono se reinicie (WC-54) | Fase 5 |
+| `WAKE_LOCK`, `ACCESS_NETWORK_STATE`, `RECEIVE_BOOT_COMPLETED`, `FOREGROUND_SERVICE` (normales, sin diálogo; los agrega WorkManager) | teléfono | Velora, Nexora | Subir las grabaciones del reloj con reintentos (WC-54) y sondear los avisos de Nexora (WC-41), aunque la app esté cerrada o el teléfono se reinicie | Fase 5 |
 | `android.permission.INTERNET` (normal, sin diálogo) | teléfono | Velora | Llamar a Velora API por HTTPS (WC-22) | Fase 0 |
+| `android.permission.POST_NOTIFICATIONS` (opcional) | teléfono | Nexora | Avisos de Nexora (pagos y mensualidades por vencer, cargos programados fallidos) como notificaciones que el sistema puentea al reloj, sin montos (WC-41). Se pide con **Permitir avisos** en la sección de Nexora; sin él no se muestra ningún aviso, pero tampoco se pierden | Fase 2 |
 | `mx.watchcompanion.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | ambas | — | Permiso interno de firma que agrega AndroidX (`core-ktx`); no muestra diálogo | Fase 0 |
 
-El reloj no declara `INTERNET`: no llama a los backends (WC-ADR-013). Las notificaciones de Nexora (WC-41), Guardian y Smart Hub agregan sus permisos a esta tabla en la tarjeta que los necesita.
+El reloj no declara `INTERNET`: no llama a los backends (WC-ADR-013). Guardian y Smart Hub agregan sus permisos a esta tabla en la tarjeta que los necesita.
 
 ## Probar el enlace en dispositivos
 

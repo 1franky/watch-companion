@@ -35,6 +35,7 @@ val companionOperations = listOf(
     "userMe", // comprobar la sesión y mostrar con qué cuenta se entró
     "dashboardGet", // resumen financiero de solo lectura para el reloj (WC-38)
     "accountList", "categoryList", // opciones del borrador del reloj (WC-40)
+    "notificationList", // avisos de Nexora por sondeo (WC-41); marcar como leídas no entra
     // transactionCreate (WC-40) no se genera: va escrito a mano en NexoraCompanionApi con su Idempotency-Key.
 )
 
@@ -73,6 +74,8 @@ val generateNexoraApi by tasks.registering(GenerateTask::class) {
                 "UpcomingCardPaymentResponse",
                 // WC-40: cuentas y categorías para el borrador, y el cuerpo del movimiento.
                 "AccountResponse", "CategoryResponse", "CreateTransactionRequest",
+                // WC-41: avisos de la bandeja de Nexora.
+                "NotificationResponse",
             ).joinToString(","),
         ),
     )

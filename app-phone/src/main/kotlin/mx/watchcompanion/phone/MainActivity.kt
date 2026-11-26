@@ -1,6 +1,11 @@
 package mx.watchcompanion.phone
 
+import android.Manifest
+import android.os.Build
 import android.os.Bundle
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import mx.watchcompanion.phone.alerts.NexoraAlertNotifier
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -68,6 +73,13 @@ class MainActivity : ComponentActivity() {
             var busy by remember { mutableStateOf(false) }
             var loginError by remember { mutableStateOf<LoginResult?>(null) }
             LaunchedEffect(Unit) { app.linkSession.refresh() }
+            // Avisos de Nexora (WC-41): al conceder el permiso se revisa la bandeja enseguida.
+            val notifier = remember { NexoraAlertNotifier(this@MainActivity) }
+            var alertsAllowed by remember { mutableStateOf(notifier.canNotify()) }
+            val requestAlerts = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+                alertsAllowed = granted
+                if (granted) scope.launch { app.nexoraAlerts.poll() }
+            }
             // Al iniciar sesión (o abrir la app con sesión) se consulta la última actividad para el reloj (WC-33).
             LaunchedEffect(velora is SessionState.SignedIn) { if (velora is SessionState.SignedIn) app.refreshActivityForWatch() }
             // Con sesión de Nexora se traen las cuentas y categorías, para mostrar los borradores con sus nombres (WC-40).
@@ -149,6 +161,10 @@ class MainActivity : ComponentActivity() {
                                 draftOptions = finance?.options,
                                 onDraftConfirm = { key -> scope.launch { app.drafts.confirm(key) } },
                                 onDraftDiscard = { key -> scope.launch { app.drafts.discard(key) } },
+                                alertsAllowed = alertsAllowed,
+                                onAllowAlerts = {
+                                    if (Build.VERSION.SDK_INT >= 33) requestAlerts.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                },
                             )
                         }
                     }
@@ -177,6 +193,8 @@ fun PhoneHome(
     draftOptions: DraftOptions? = null,
     onDraftConfirm: (String) -> Unit = {},
     onDraftDiscard: (String) -> Unit = {},
+    alertsAllowed: Boolean = true,
+    onAllowAlerts: () -> Unit = {},
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.home_title), style = MaterialTheme.typography.headlineMedium)
@@ -230,6 +248,11 @@ fun PhoneHome(
             }
             is SessionState.SignedIn -> {
                 Text(stringResource(R.string.velora_signed_in, nexora.email))
+                // Avisos de Nexora (WC-41): el permiso se pide aquí, solo con sesión; sin él no se pierde ningún aviso.
+                if (!alertsAllowed) {
+                    Text(stringResource(R.string.alerts_permission), style = MaterialTheme.typography.bodyMedium)
+                    Button(onClick = onAllowAlerts) { Text(stringResource(R.string.alerts_allow)) }
+                }
                 OutlinedButton(onClick = onNexoraLogout) { Text(stringResource(R.string.nexora_logout)) }
             }
         }

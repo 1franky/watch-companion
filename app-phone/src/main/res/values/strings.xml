@@ -21,6 +21,21 @@
     <string name="nexora_expired">Tu sesión de Nexora terminó. Vuelve a entrar.</string>
     <string name="nexora_login">Iniciar sesión en Nexora</string>
     <string name="nexora_logout">Cerrar sesión y revocarla</string>
+    <!-- Avisos de Nexora (WC-41): textos propios, sin montos ni tarjetas -->
+    <string name="alerts_channel">Avisos de Nexora</string>
+    <string name="alerts_channel_description">Pagos y mensualidades por vencer, y cargos programados que fallaron. Sin montos.</string>
+    <string name="alert_public_title">Nexora</string>
+    <string name="alert_public_text">Tienes un aviso nuevo</string>
+    <string name="alert_payment_due_soon_title">Pago de tarjeta próximo</string>
+    <string name="alert_payment_due_soon_text">Una tarjeta vence en los próximos días. Revisa Nexora.</string>
+    <string name="alert_payment_due_title">Pago de tarjeta hoy</string>
+    <string name="alert_payment_due_text">Hoy vence el pago de una tarjeta. Revisa Nexora.</string>
+    <string name="alert_installment_due_title">Mensualidad por vencer</string>
+    <string name="alert_installment_due_text">Tienes una mensualidad MSI/MCI por vencer. Revisa Nexora.</string>
+    <string name="alert_charge_failed_title">Cargo programado no aplicado</string>
+    <string name="alert_charge_failed_text">Un cargo programado no se pudo aplicar. Revisa Nexora.</string>
+    <string name="alerts_permission">Los avisos de Nexora llegan al reloj como notificaciones. Sin montos.</string>
+    <string name="alerts_allow">Permitir avisos</string>
     <!-- Borradores del reloj (WC-40) -->
     <string name="drafts_title">Movimientos del reloj por confirmar</string>
     <string name="draft_expense">Gasto</string>

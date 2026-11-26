@@ -122,4 +122,31 @@ class PhoneHomeTest {
         nexora = SessionState.SignedOut(SignOutReason.EXPIRED)
         compose.onNodeWithText("Tu sesión de Nexora terminó. Vuelve a entrar.").performScrollTo().assertIsDisplayed()
     }
+
+    @Test
+    fun conSesionDeNexoraYSinPermisoOfreceActivarLosAvisos() {
+        var pedir = 0
+        var permitido by mutableStateOf(false)
+        compose.setContent {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                PhoneHome(
+                    LinkState.NoPeer,
+                    onCheck = {},
+                    nexora = SessionState.SignedIn("https://nexora.example", "nexora@example.com"),
+                    alertsAllowed = permitido,
+                    onAllowAlerts = { pedir++ },
+                )
+            }
+        }
+        compose.onNodeWithText("Permitir avisos").performScrollTo().performClick()
+        assertEquals(1, pedir)
+        permitido = true
+        compose.onNodeWithText("Permitir avisos").assertDoesNotExist()
+    }
+
+    @Test
+    fun sinSesionDeNexoraNoPideElPermisoDeAvisos() {
+        compose.setContent { PhoneHome(LinkState.NoPeer, onCheck = {}, alertsAllowed = false) }
+        compose.onNodeWithText("Permitir avisos").assertDoesNotExist()
+    }
 }

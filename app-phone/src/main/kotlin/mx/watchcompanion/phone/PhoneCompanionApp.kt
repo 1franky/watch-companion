@@ -29,6 +29,8 @@ import mx.watchcompanion.core.diagnostics.Diagnostics
 import mx.watchcompanion.core.diagnostics.FileDiagnosticsStorage
 import mx.watchcompanion.core.session.Backend
 import mx.watchcompanion.core.session.createSessionStore
+import mx.watchcompanion.integration.nexora.NexoraClient
+import mx.watchcompanion.integration.nexora.NexoraSession
 import mx.watchcompanion.integration.velora.VeloraApi
 import mx.watchcompanion.integration.velora.VeloraSession
 
@@ -112,11 +114,22 @@ class PhoneCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
         RecordingUploadWorker.enqueue(this)
     }
 
+    /** Sesión propia de Nexora (WC-37): su refresh token va cifrado con su propia llave, aparte del de Velora. */
+    val nexoraSession: NexoraSession by lazy {
+        NexoraSession(
+            store = createSessionStore(this, Backend.NEXORA),
+            appScope = appScope,
+            apiFor = { NexoraClient.create(it, allowCleartext = BuildConfig.DEBUG) },
+            diagnostics = diagnostics,
+        )
+    }
+
     override fun onCreate() {
         super.onCreate()
         appScope.launch { diagnostics.load() }
         appScope.launch { zonesStore.load() }
         appScope.launch { veloraSession.restore() }
+        appScope.launch { nexoraSession.restore() }
         appScope.launch {
             recordingInbox.refresh()
             if (recordingInbox.pending.value > 0) RecordingUploadWorker.enqueue(this@PhoneCompanionApp)

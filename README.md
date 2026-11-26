@@ -43,10 +43,12 @@ Ambas apps comparten `applicationId` (`mx.watchcompanion`) y firma, porque la Da
 
 ## Sesiones de los backends
 
-Solo `app-phone` inicia sesión en Velora (y, desde la Fase 2, en Nexora), con sesiones propias e independientes de las apps de cada producto (WC-ADR-013):
+Solo `app-phone` inicia sesión en Velora y en Nexora (WC-37), con sesiones propias e independientes entre sí y de las apps de cada producto (WC-ADR-013). La pantalla principal tiene una sección por backend y el mismo formulario de login (`BackendLogin`):
 
-- El access token vive solo en memoria; el refresh token se guarda cifrado (`core:session`). La contraseña nunca se guarda.
-- Las renovaciones se serializan: en Velora el refresh token es de un solo uso y reutilizarlo revoca toda la sesión.
+- El access token vive solo en memoria; el refresh token se guarda cifrado (`core:session`), **cada backend en su archivo y con su propia llave del Keystore** (`Backend.VELORA`, `Backend.NEXORA`). La contraseña nunca se guarda.
+- Las renovaciones se serializan (`VeloraSession`, `NexoraSession`): los dos backends rotan el refresh token en cada uso y revocan el anterior, así que dos llamadas no pueden renovar a la vez.
+- Cerrar la sesión de Nexora desde el teléfono la **revoca** en Nexora (`POST /auth/logout`); sin red, se borra del teléfono igual y el token vence solo.
+- El contrato de Nexora no marca campos obligatorios: un login que no trae los dos tokens se trata como «Nexora no está disponible», nunca como una sesión a medias.
 - La versión release solo acepta servidores `https://`. En debug se puede usar `http://10.0.2.2` o `http://localhost` contra una API local; el campo «Servidor» solo aparece en debug.
 - El cifrado real con Keystore se prueba en dispositivo o emulador: `./gradlew :core:session:connectedDebugAndroidTest`.
 

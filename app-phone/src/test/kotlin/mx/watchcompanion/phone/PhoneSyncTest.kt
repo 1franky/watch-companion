@@ -5,8 +5,8 @@ import mx.watchcompanion.core.communication.SyncSummary
 import mx.watchcompanion.core.diagnostics.DiagnosticEvent
 import mx.watchcompanion.core.diagnostics.DiagnosticModule
 import mx.watchcompanion.core.diagnostics.Outcome
-import mx.watchcompanion.integration.velora.SessionState
-import mx.watchcompanion.integration.velora.SignOutReason
+import mx.watchcompanion.core.session.SessionState
+import mx.watchcompanion.core.session.SignOutReason
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

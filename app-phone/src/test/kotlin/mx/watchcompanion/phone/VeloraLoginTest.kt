@@ -7,8 +7,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import mx.watchcompanion.integration.velora.LoginResult
-import mx.watchcompanion.integration.velora.VeloraApi
+import mx.watchcompanion.core.session.LoginResult
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -27,19 +26,19 @@ class VeloraLoginTest {
     fun enviaCorreoYContrasenaAlServidorDeProduccion() {
         var enviado: Triple<String, String, String>? = null
         compose.setContent {
-            VeloraLogin(showServerField = false, busy = false, error = null, onSubmit = { s, e, p -> enviado = Triple(s, e, p) }, onCancel = {})
+            BackendLogin(backend = "Velora", defaultServer = "https://velora.example", showServerField = false, busy = false, error = null, onSubmit = { s, e, p -> enviado = Triple(s, e, p) }, onCancel = {})
         }
         compose.onNodeWithText("Servidor (solo desarrollo)").assertDoesNotExist()
         compose.onNodeWithText("Entrar").assertIsNotEnabled()
         compose.onNodeWithText("Correo").performTextInput(" propietario@example.com ")
         compose.onNodeWithText("Contraseña").performTextInput("secreta")
         compose.onNodeWithText("Entrar").performClick()
-        assertEquals(Triple(VeloraApi.DEFAULT_SERVER, "propietario@example.com", "secreta"), enviado)
+        assertEquals(Triple("https://velora.example", "propietario@example.com", "secreta"), enviado)
     }
 
     @Test
     fun enDebugSePuedeCambiarElServidor() {
-        compose.setContent { VeloraLogin(showServerField = true, busy = false, error = null, onSubmit = { _, _, _ -> }, onCancel = {}) }
+        compose.setContent { BackendLogin(backend = "Velora", defaultServer = "https://velora.example", showServerField = true, busy = false, error = null, onSubmit = { _, _, _ -> }, onCancel = {}) }
         compose.onNodeWithText("Servidor (solo desarrollo)").assertIsDisplayed()
     }
 
@@ -54,7 +53,7 @@ class VeloraLoginTest {
             LoginResult.Unavailable to "Velora no está disponible. Intenta más tarde.",
         )
         var actual by mutableStateOf<LoginResult?>(null)
-        compose.setContent { VeloraLogin(showServerField = false, busy = false, error = actual, onSubmit = { _, _, _ -> }, onCancel = {}) }
+        compose.setContent { BackendLogin(backend = "Velora", defaultServer = "https://velora.example", showServerField = false, busy = false, error = actual, onSubmit = { _, _, _ -> }, onCancel = {}) }
         casos.forEach { (resultado, mensaje) ->
             actual = resultado
             compose.onNodeWithText(mensaje).assertIsDisplayed()
@@ -63,7 +62,7 @@ class VeloraLoginTest {
 
     @Test
     fun mientrasEntraNoSePuedeRepetirNiCancelar() {
-        compose.setContent { VeloraLogin(showServerField = false, busy = true, error = null, onSubmit = { _, _, _ -> }, onCancel = {}) }
+        compose.setContent { BackendLogin(backend = "Velora", defaultServer = "https://velora.example", showServerField = false, busy = true, error = null, onSubmit = { _, _, _ -> }, onCancel = {}) }
         compose.onNodeWithText("Cancelar").assertIsNotEnabled()
     }
 }

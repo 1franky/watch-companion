@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.serialization.SerializationException
 import mx.watchcompanion.core.communication.ActivityStatus
-import mx.watchcompanion.integration.velora.SessionExpiredException
+import mx.watchcompanion.core.session.SessionExpiredException
 import mx.watchcompanion.integration.velora.VeloraSession
 
 /** Lo que interesa del conector de Strava de Velora (`GET /integrations/strava`). */

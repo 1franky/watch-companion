@@ -5,8 +5,8 @@ import mx.watchcompanion.core.communication.SyncSummary
 import mx.watchcompanion.core.diagnostics.DiagnosticEvent
 import mx.watchcompanion.core.diagnostics.DiagnosticModule
 import mx.watchcompanion.core.diagnostics.SyncStatus
-import mx.watchcompanion.integration.velora.SessionState
-import mx.watchcompanion.integration.velora.SignOutReason
+import mx.watchcompanion.core.session.SessionState
+import mx.watchcompanion.core.session.SignOutReason
 
 /**
  * Estado de sincronización de Velora que el teléfono informa al reloj en cada Pong (WC-29). Sale de la sesión propia

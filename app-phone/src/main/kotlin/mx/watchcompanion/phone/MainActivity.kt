@@ -33,9 +33,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import mx.watchcompanion.core.communication.LinkState
-import mx.watchcompanion.integration.velora.LoginResult
-import mx.watchcompanion.integration.velora.SessionState
-import mx.watchcompanion.integration.velora.SignOutReason
+import mx.watchcompanion.core.session.Backend
+import mx.watchcompanion.core.session.LoginResult
+import mx.watchcompanion.core.session.SessionState
+import mx.watchcompanion.core.session.SignOutReason
+import mx.watchcompanion.integration.nexora.NexoraClient
+import mx.watchcompanion.integration.velora.VeloraApi
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,9 +48,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             val link by app.linkSession.state.collectAsStateWithLifecycle()
             val velora by app.veloraSession.state.collectAsStateWithLifecycle()
+            val nexora by app.nexoraSession.state.collectAsStateWithLifecycle()
             val events by app.diagnostics.events.collectAsStateWithLifecycle()
             val scope = rememberCoroutineScope()
-            var showLogin by rememberSaveable { mutableStateOf(false) }
+            // Backend cuyo login está abierto, o null (WC-37: Velora y Nexora tienen sesiones independientes).
+            var loginFor by rememberSaveable { mutableStateOf<Backend?>(null) }
             var showDiagnostics by rememberSaveable { mutableStateOf(false) }
             var showZones by rememberSaveable { mutableStateOf(false) }
             val zones by app.zones.zones.collectAsStateWithLifecycle()
@@ -86,22 +91,29 @@ class MainActivity : ComponentActivity() {
                                 onClear = { scope.launch { app.diagnostics.clear() } },
                                 onBack = { showDiagnostics = false },
                             )
-                        } else if (showLogin && velora !is SessionState.SignedIn) {
-                            VeloraLogin(
+                        } else if (loginFor != null && (if (loginFor == Backend.NEXORA) nexora else velora) !is SessionState.SignedIn) {
+                            val backend = checkNotNull(loginFor)
+                            BackendLogin(
+                                backend = if (backend == Backend.NEXORA) "Nexora" else "Velora",
+                                defaultServer = if (backend == Backend.NEXORA) NexoraClient.DEFAULT_SERVER else VeloraApi.DEFAULT_SERVER,
                                 showServerField = BuildConfig.DEBUG,
                                 busy = busy,
                                 error = loginError,
                                 onSubmit = { server, email, password ->
                                     busy = true
                                     scope.launch {
-                                        val result = app.veloraSession.login(server, email, password)
+                                        val result = if (backend == Backend.NEXORA) {
+                                            app.nexoraSession.login(server, email, password)
+                                        } else {
+                                            app.veloraSession.login(server, email, password)
+                                        }
                                         busy = false
                                         loginError = result.takeUnless { it == LoginResult.Success }
-                                        if (result == LoginResult.Success) showLogin = false
+                                        if (result == LoginResult.Success) loginFor = null
                                     }
                                 },
                                 onCancel = {
-                                    showLogin = false
+                                    loginFor = null
                                     loginError = null
                                 },
                             )
@@ -112,8 +124,14 @@ class MainActivity : ComponentActivity() {
                                 velora = velora,
                                 onVeloraLogin = {
                                     loginError = null
-                                    showLogin = true
+                                    loginFor = Backend.VELORA
                                 },
+                                nexora = nexora,
+                                onNexoraLogin = {
+                                    loginError = null
+                                    loginFor = Backend.NEXORA
+                                },
+                                onNexoraLogout = { scope.launch { app.nexoraSession.logout() } },
                                 onVeloraLogout = { scope.launch { app.veloraSession.logout() } },
                                 onDiagnostics = { showDiagnostics = true },
                                 onZones = { showZones = true },
@@ -138,6 +156,9 @@ fun PhoneHome(
     onDiagnostics: () -> Unit = {},
     onZones: () -> Unit = {},
     pendingRecordings: Int = 0,
+    nexora: SessionState = SessionState.SignedOut(),
+    onNexoraLogin: () -> Unit = {},
+    onNexoraLogout: () -> Unit = {},
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.home_title), style = MaterialTheme.typography.headlineMedium)
@@ -176,6 +197,24 @@ fun PhoneHome(
             )
         }
         OutlinedButton(onClick = onZones) { Text(stringResource(R.string.zones_open)) }
+        HorizontalDivider()
+        // Sesión propia de Nexora (WC-37): independiente de la de Velora y de nexora-android; cerrar la revoca.
+        Text(stringResource(R.string.nexora_section), style = MaterialTheme.typography.titleMedium)
+        when (nexora) {
+            SessionState.Restoring -> Text(stringResource(R.string.velora_restoring))
+            is SessionState.SignedOut -> {
+                Text(
+                    stringResource(
+                        if (nexora.reason == SignOutReason.EXPIRED) R.string.nexora_expired else R.string.nexora_signed_out,
+                    ),
+                )
+                Button(onClick = onNexoraLogin) { Text(stringResource(R.string.nexora_login)) }
+            }
+            is SessionState.SignedIn -> {
+                Text(stringResource(R.string.velora_signed_in, nexora.email))
+                OutlinedButton(onClick = onNexoraLogout) { Text(stringResource(R.string.nexora_logout)) }
+            }
+        }
         HorizontalDivider()
         TextButton(onClick = onDiagnostics) { Text(stringResource(R.string.diagnostics_open)) }
     }

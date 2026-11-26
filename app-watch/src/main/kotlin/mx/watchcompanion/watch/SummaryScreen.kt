@@ -45,7 +45,10 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import mx.watchcompanion.core.communication.ActivityStatus
+import mx.watchcompanion.core.communication.DraftStatus
 import mx.watchcompanion.core.communication.FinanceSnapshot
+import mx.watchcompanion.core.communication.QuickTransactionDraft
+import mx.watchcompanion.watch.drafts.WatchDraft
 import mx.watchcompanion.watch.live.LiveMetricsState
 
 /**
@@ -59,6 +62,7 @@ import mx.watchcompanion.watch.live.LiveMetricsState
  * @param activity último estado de la actividad en Velora que informó el teléfono (WC-33).
  * @param finance último resumen financiero de Nexora que informó el teléfono (WC-38). No se muestra en ambiente: la
  *   pantalla siempre encendida queda a la vista de cualquiera (03 §6).
+ * @param drafts borradores de Nexora capturados aquí y su estado según el teléfono (WC-40); tampoco en ambiente.
  * @param pendingRecordings grabaciones del modo B que siguen en el reloj esperando al teléfono (WC-54).
  * @param zoneId zona horaria para mostrar la fecha de la actividad; inyectable para pruebas.
  */
@@ -76,6 +80,8 @@ fun SummaryScreen(
     pendingRecordings: Int = 0,
     activity: ActivityStatus? = null,
     finance: FinanceSnapshot? = null,
+    drafts: List<WatchDraft> = emptyList(),
+    onNewDraft: () -> Unit = {},
     zoneId: ZoneId = ZoneId.systemDefault(),
 ) {
     MaterialTheme {
@@ -106,7 +112,17 @@ fun SummaryScreen(
             SummaryItem(stringResource(R.string.summary_mode), stringResource(R.string.summary_mode_a), primary, secondary)
             SummaryItem(stringResource(R.string.summary_velora), veloraSyncText(link, now), primary, secondary)
             ActivityItem(activity, now, zoneId, primary, secondary)
-            if (!ambient) FinanceSection(finance, now, zoneId, primary, secondary)
+            if (!ambient) {
+                FinanceSection(finance, now, zoneId, primary, secondary)
+                // Borrador de gasto o ingreso (WC-40): solo con cuentas de Nexora que elegir.
+                if (!finance?.options?.accounts.isNullOrEmpty()) {
+                    FilledTonalButton(onClick = onNewDraft) { Text(stringResource(R.string.draft_new)) }
+                }
+                for (entry in drafts) {
+                    val currency = finance?.options?.accounts?.firstOrNull { it.id == entry.draft.accountId }?.currency
+                    DraftItem(entry, currency ?: "MXN", primary, secondary)
+                }
+            }
             // Modo B (WC-54): rutas grabadas que aún no confirma el teléfono; salen solas cuando haya enlace.
             if (pendingRecordings > 0) {
                 SummaryItem(
@@ -222,6 +238,30 @@ private fun FinanceSection(finance: FinanceSnapshot?, now: Long, zoneId: ZoneId,
     FigureItem(stringResource(R.string.finance_available), figures.availableBalance, figures.currency, time, stale, primary, secondary)
     FigureItem(stringResource(R.string.finance_card_debt), figures.creditCardDebt, figures.currency, time, stale, primary, secondary)
     FigureItem(stringResource(R.string.finance_expenses, month), figures.expenseThisMonth, figures.currency, time, stale, primary, secondary)
+}
+
+/** Un borrador y su estado. Nunca dice «registrado» sin que el teléfono lo confirme con Nexora. */
+@Composable
+private fun DraftItem(entry: WatchDraft, currency: String, primary: Color, secondary: Color) {
+    val draft = entry.draft
+    val kind = stringResource(if (draft.kind == QuickTransactionDraft.Kind.EXPENSE) R.string.draft_expense else R.string.draft_income)
+    val code = entry.status?.errorCode ?: "?"
+    val state = when (entry.status?.state) {
+        null -> stringResource(R.string.draft_state_sending)
+        DraftStatus.State.RECEIVED -> stringResource(R.string.draft_state_received)
+        DraftStatus.State.CREATED -> stringResource(R.string.draft_state_created)
+        DraftStatus.State.REJECTED -> stringResource(R.string.draft_state_rejected, code)
+        DraftStatus.State.CONFLICT -> stringResource(R.string.draft_state_conflict)
+        DraftStatus.State.UNKNOWN -> stringResource(R.string.draft_state_unknown)
+        DraftStatus.State.DISCARDED -> stringResource(R.string.draft_state_discarded)
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text("$kind · ${formatAmount(draft.amount, currency)}", color = secondary, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
+        Text(state, color = primary, textAlign = TextAlign.Center)
+    }
 }
 
 /** Una cifra con su hora; para TalkBack, «Disponible, actualizado 12:33, desactualizado, $15,230.50». */

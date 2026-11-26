@@ -19,7 +19,6 @@ import mx.watchcompanion.core.session.SessionState
 import mx.watchcompanion.core.session.SessionStore
 import mx.watchcompanion.core.session.SignOutReason
 import mx.watchcompanion.core.session.StoredSession
-import mx.watchcompanion.integration.nexora.api.apis.NexoraApi
 import mx.watchcompanion.integration.nexora.api.infrastructure.HttpResponse
 import mx.watchcompanion.integration.nexora.api.models.LoginRequest
 import mx.watchcompanion.integration.nexora.api.models.RefreshRequest
@@ -40,7 +39,7 @@ class NexoraSession(
     private val store: SessionStore,
     /** Alcance de la app: avisar a Nexora del cierre de sesión sigue aunque la pantalla ya no exista. */
     private val appScope: CoroutineScope,
-    private val apiFor: (serverUrl: String) -> NexoraApi = { NexoraClient.create(it) },
+    private val apiFor: (serverUrl: String) -> NexoraCompanionApi = { NexoraClient.create(it) },
     private val now: () -> Long = System::currentTimeMillis,
     private val diagnostics: DiagnosticsRecorder = DiagnosticsRecorder.NONE,
 ) {
@@ -48,7 +47,7 @@ class NexoraSession(
     val state: StateFlow<SessionState> = _state.asStateFlow()
 
     private val mutex = Mutex()
-    private var api: NexoraApi? = null
+    private var api: NexoraCompanionApi? = null
     private var serverUrl: String? = null
     private var email: String? = null
     private var refreshToken: String? = null
@@ -125,7 +124,7 @@ class NexoraSession(
      *
      * @param operation nombre para el registro, p. ej. `nexora.dashboardGet`.
      */
-    suspend fun <T : Any> call(operation: String, request: suspend NexoraApi.() -> HttpResponse<T>): HttpResponse<T> {
+    suspend fun <T : Any> call(operation: String, request: suspend NexoraCompanionApi.() -> HttpResponse<T>): HttpResponse<T> {
         val span = diagnostics.start(DiagnosticModule.NEXORA, operation, now)
         try {
             val token = validAccessToken()
@@ -210,7 +209,7 @@ class NexoraSession(
         tokens.access
     }
 
-    private fun adopt(api: NexoraApi, tokens: Tokens) {
+    private fun adopt(api: NexoraCompanionApi, tokens: Tokens) {
         refreshToken = tokens.refresh
         access = AccessToken(tokens.access, now() + tokens.expiresInSeconds * 1_000L)
         api.setBearerToken(tokens.access)

@@ -15,7 +15,12 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import mx.watchcompanion.core.communication.ActivityStatus
+import mx.watchcompanion.core.communication.DraftOption
+import mx.watchcompanion.core.communication.DraftOptions
+import mx.watchcompanion.core.communication.DraftStatus
 import mx.watchcompanion.core.communication.FinanceFigures
+import mx.watchcompanion.core.communication.QuickTransactionDraft
+import mx.watchcompanion.watch.drafts.WatchDraft
 import mx.watchcompanion.core.communication.FinanceSnapshot
 import mx.watchcompanion.core.communication.IntegrationStatus
 import mx.watchcompanion.core.communication.SyncSummary
@@ -154,6 +159,39 @@ class SummaryScreenTest {
         compose.setContent { SummaryScreen(now = AHORA, link = conectado(), onCheck = {}, ambient = true, finance = finanzas(AHORA)) }
         compose.onNodeWithText("Finanzas · Nexora").assertDoesNotExist()
         compose.onNodeWithText("15,230.50", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun losBorradoresMuestranSuEstadoYNuncaSeDanPorRegistradosSinElTelefono() {
+        val borrador = QuickTransactionDraft(
+            "3d6f0a7e-1b2c-4d5e-8f90-a1b2c3d4e5f6", QuickTransactionDraft.Kind.EXPENSE, "250.5",
+            "5b1d6a3e-0c1f-4a2b-9d3e-7f8a9b0c1d2e", date = "2027-01-15", capturedAt = AHORA,
+        )
+        var estado by mutableStateOf<DraftStatus?>(null)
+        var nuevo = false
+        val conCuentas = finanzas(AHORA).copy(options = DraftOptions(listOf(DraftOption(borrador.accountId, "Nómina", "MXN")), emptyList()))
+        compose.setContent {
+            SummaryScreen(now = AHORA, link = conectado(), onCheck = {}, finance = conCuentas, drafts = listOf(WatchDraft(borrador, estado)), onNewDraft = { nuevo = true })
+        }
+        compose.onNodeWithText("Registrar gasto o ingreso").performScrollTo().performClick()
+        assertTrue(nuevo)
+        val casos = listOf(
+            null to "Esperando al teléfono",
+            DraftStatus(borrador.idempotencyKey, DraftStatus.State.RECEIVED, AHORA) to "Confírmalo en el teléfono",
+            DraftStatus(borrador.idempotencyKey, DraftStatus.State.UNKNOWN, AHORA, "UNREACHABLE") to "Sin respuesta de Nexora: reintenta en el teléfono",
+            DraftStatus(borrador.idempotencyKey, DraftStatus.State.REJECTED, AHORA, "HTTP_400") to "Rechazado (HTTP_400): no se registró",
+            DraftStatus(borrador.idempotencyKey, DraftStatus.State.CREATED, AHORA) to "Registrado en Nexora",
+        )
+        for ((status, texto) in casos) {
+            estado = status
+            compose.onNode(hasText("Gasto · ", substring = true) and hasText(texto)).performScrollTo().assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun sinCuentasNoOfreceCapturar() {
+        compose.setContent { SummaryScreen(now = AHORA, link = conectado(), onCheck = {}, finance = finanzas(AHORA)) }
+        compose.onNodeWithText("Registrar gasto o ingreso").assertDoesNotExist()
     }
 
     @Test

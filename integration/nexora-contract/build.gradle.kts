@@ -34,6 +34,8 @@ val companionOperations = listOf(
     "authLogin", "authRefresh", "authLogout", // sesión propia de app-phone (WC-37, WC-ADR-013)
     "userMe", // comprobar la sesión y mostrar con qué cuenta se entró
     "dashboardGet", // resumen financiero de solo lectura para el reloj (WC-38)
+    "accountList", "categoryList", // opciones del borrador del reloj (WC-40)
+    // transactionCreate (WC-40) no se genera: va escrito a mano en NexoraCompanionApi con su Idempotency-Key.
 )
 
 val generatedApi = layout.buildDirectory.dir("generated/openapi")
@@ -69,6 +71,8 @@ val generateNexoraApi by tasks.registering(GenerateTask::class) {
                 // dashboardGet (WC-38): la respuesta completa, aunque el reloj solo use tres cifras.
                 "DashboardResponse", "MonthlyPointResponse", "CategoryAmountResponse", "TransactionResponse",
                 "UpcomingCardPaymentResponse",
+                // WC-40: cuentas y categorías para el borrador, y el cuerpo del movimiento.
+                "AccountResponse", "CategoryResponse", "CreateTransactionRequest",
             ).joinToString(","),
         ),
     )

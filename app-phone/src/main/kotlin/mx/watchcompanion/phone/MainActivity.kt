@@ -32,7 +32,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import mx.watchcompanion.core.communication.DraftOptions
 import mx.watchcompanion.core.communication.LinkState
+import mx.watchcompanion.phone.drafts.DraftsSection
+import mx.watchcompanion.phone.drafts.StoredDraft
 import mx.watchcompanion.core.session.Backend
 import mx.watchcompanion.core.session.LoginResult
 import mx.watchcompanion.core.session.SessionState
@@ -57,6 +60,9 @@ class MainActivity : ComponentActivity() {
             var showZones by rememberSaveable { mutableStateOf(false) }
             val zones by app.zones.zones.collectAsStateWithLifecycle()
             val pendingRecordings by app.recordingInbox.pending.collectAsStateWithLifecycle()
+            val drafts by app.drafts.drafts.collectAsStateWithLifecycle()
+            val draftsSending by app.drafts.sending.collectAsStateWithLifecycle()
+            val finance by app.finance.snapshot.collectAsStateWithLifecycle()
             var veloraMax by remember { mutableStateOf<VeloraMax?>(null) }
             var zonesDelivery by remember { mutableStateOf<ZonesDelivery?>(null) }
             var busy by remember { mutableStateOf(false) }
@@ -64,6 +70,8 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(Unit) { app.linkSession.refresh() }
             // Al iniciar sesión (o abrir la app con sesión) se consulta la última actividad para el reloj (WC-33).
             LaunchedEffect(velora is SessionState.SignedIn) { if (velora is SessionState.SignedIn) app.refreshActivityForWatch() }
+            // Con sesión de Nexora se traen las cuentas y categorías, para mostrar los borradores con sus nombres (WC-40).
+            LaunchedEffect(nexora is SessionState.SignedIn) { if (nexora is SessionState.SignedIn) app.refreshFinanceForWatch() }
 
             MaterialTheme {
                 Scaffold { padding ->
@@ -136,6 +144,11 @@ class MainActivity : ComponentActivity() {
                                 onDiagnostics = { showDiagnostics = true },
                                 onZones = { showZones = true },
                                 pendingRecordings = pendingRecordings,
+                                drafts = drafts,
+                                draftsSending = draftsSending,
+                                draftOptions = finance?.options,
+                                onDraftConfirm = { key -> scope.launch { app.drafts.confirm(key) } },
+                                onDraftDiscard = { key -> scope.launch { app.drafts.discard(key) } },
                             )
                         }
                     }
@@ -159,6 +172,11 @@ fun PhoneHome(
     nexora: SessionState = SessionState.SignedOut(),
     onNexoraLogin: () -> Unit = {},
     onNexoraLogout: () -> Unit = {},
+    drafts: List<StoredDraft> = emptyList(),
+    draftsSending: Set<String> = emptySet(),
+    draftOptions: DraftOptions? = null,
+    onDraftConfirm: (String) -> Unit = {},
+    onDraftDiscard: (String) -> Unit = {},
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.home_title), style = MaterialTheme.typography.headlineMedium)
@@ -215,6 +233,8 @@ fun PhoneHome(
                 OutlinedButton(onClick = onNexoraLogout) { Text(stringResource(R.string.nexora_logout)) }
             }
         }
+        // Borradores del reloj (WC-40): se ven aunque no haya sesión; confirmarlos la necesita.
+        DraftsSection(drafts, draftsSending, draftOptions, onDraftConfirm, onDraftDiscard)
         HorizontalDivider()
         TextButton(onClick = onDiagnostics) { Text(stringResource(R.string.diagnostics_open)) }
     }

@@ -48,6 +48,20 @@ Nexora no tiene borradores en el backend (A-08), y no hacen falta:
 
 Cancelar un borrador antes de confirmarlo lo borra del teléfono; nada llegó al backend.
 
+**Implementado (WC-40):**
+- **Reloj:** en Resumen, «Registrar gasto o ingreso» abre la captura: tipo, importe (teclado propio), cuenta, categoría opcional (filtrada por tipo), nota opcional (teclado o voz del reloj) y fecha (hoy o ayer). Al enviarlo se genera la `Idempotency-Key`. El borrador vive solo en memoria y se reenvía en cada enlace hasta que el teléfono lo acusa.
+- **Cuentas y categorías:** viajan con el resumen financiero (WC-38). Solo van las activas; las tarjetas de crédito quedan fuera, porque un gasto con tarjeta es una compra y `POST /transactions` no la admite.
+- **Teléfono:** guarda los borradores en `noBackupFilesDir/borradores-nexora.bin`, cifrados con su propia llave del Keystore (`wc-borradores-nexora`), y los muestra completos en «Movimientos del reloj por confirmar». Solo «Confirmar y registrar» manda el `POST`.
+- **Reintentos:** el cuerpo se congela en el primer envío y cada reintento manda los mismos bytes, porque el `IdempotencyFilter` de nexora-api compara la huella del cuerpo.
+- **Estados:**
+  - 2xx → registrado.
+  - 409 → conflicto.
+  - Otro 4xx → rechazado.
+  - Sin respuesta o 5xx → «sin respuesta». En ese estado ya **no se puede descartar**, solo reintentar.
+  - Sin sesión → no avanza.
+- **Al reloj** vuelve solo la clave, el estado y el código, nunca el importe.
+- **Pendiente:** el teléfono todavía no avisa con una notificación cuando llega un borrador; hay que abrir la app.
+
 ### Notificaciones
 
 Nexora no tiene push (A-09): sus notificaciones son una bandeja que se consulta con `GET /api/v1/notifications`. `app-phone` la **sondea con WorkManager** (cada 6–12 h, con red y sin ahorro de batería) y publica notificaciones locales que el sistema puentea al reloj. Una notificación ya mostrada no se repite (se recuerda su `id`).

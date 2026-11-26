@@ -37,6 +37,8 @@ data class Pong(
     val activity: ActivityStatus? = null,
     /** Último resumen financiero de Nexora (WC-38); como la actividad, se refresca aparte y se reenvía. */
     val finance: FinanceSnapshot? = null,
+    /** Estado de los borradores del reloj que el teléfono conoce (WC-40): repara un `TransactionResult` perdido. */
+    val drafts: List<DraftStatus> = emptyList(),
 ) : Payload
 
 /** El teléfono envía las zonas en cuanto el usuario las guarda (WC-32). Si el reloj no está, llegan con el próximo Pong. */

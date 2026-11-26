@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import mx.watchcompanion.core.communication.ActivityStatus
 import mx.watchcompanion.core.communication.FinanceSnapshot
+import mx.watchcompanion.core.communication.LinkState
+import mx.watchcompanion.watch.drafts.WatchDrafts
 import mx.watchcompanion.core.communication.HeartRateZonesStore
 import mx.watchcompanion.core.communication.InMemoryNonceRegistry
 import mx.watchcompanion.core.communication.LinkSession
@@ -41,14 +43,25 @@ class WatchCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
             transport = DataLayerTransport(this, peerCapability = Capabilities.PHONE_APP),
             codec = ProtocolCodec(InMemoryNonceRegistry()),
             deviceId = DeviceId.get(this),
-            appVersion = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty(),
+            appVersion = appVersion,
             // Zonas del teléfono (WC-32): llegan al guardarlas allá o en cada Pong; se queda la más reciente.
             onZones = { zones.saveIfNewer(it) },
             // Última actividad en Velora (WC-33): solo en memoria; gana la consulta más reciente.
             onActivity = { status -> activity.update { current -> if (current == null || status.checkedAt >= current.checkedAt) status else current } },
             // Resumen financiero de Nexora (WC-38): solo en memoria, nunca en disco; gana la consulta más reciente.
             onFinance = { snapshot -> finance.update { current -> if (current == null || snapshot.checkedAt >= current.checkedAt) snapshot else current } },
+            // Borradores de Nexora (WC-40): el teléfono contesta cada uno y el Pong repite todos.
+            onDraftStatus = { drafts.onStatus(it) },
         )
+    }
+
+    /** Vacía si el sistema no da el paquete (pasa en las pruebas con Robolectric); nunca tumba un arranque. */
+    private val appVersion: String by lazy {
+        try {
+            packageManager.getPackageInfo(packageName, 0).versionName.orEmpty()
+        } catch (_: PackageManager.NameNotFoundException) {
+            ""
+        }
     }
 
     /** Último estado de la actividad en Velora que informó el teléfono (WC-33). */
@@ -56,6 +69,9 @@ class WatchCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
 
     /** Último resumen financiero de Nexora que informó el teléfono (WC-38). Se pierde al cerrar el proceso. */
     val finance = MutableStateFlow<FinanceSnapshot?>(null)
+
+    /** Borradores de gasto o ingreso capturados aquí (WC-40); solo en memoria. */
+    val drafts: WatchDrafts by lazy { WatchDrafts(send = { linkSession.sendToPeer(it) }) }
 
     /** Zonas de FC recibidas del teléfono, guardadas aquí para usarlas sin teléfono ni internet (01 §3.1). */
     val zones: HeartRateZonesStore by lazy { HeartRateZonesStore.inFile(File(noBackupFilesDir, "zonas.json")) }
@@ -65,6 +81,10 @@ class WatchCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
     override fun onCreate() {
         super.onCreate()
         appScope.launch { zones.load() }
+        // Al recuperar el enlace se reenvían los borradores que el teléfono aún no acusa (WC-40).
+        appScope.launch {
+            linkSession.state.filter { it is LinkState.Connected }.collect { drafts.resendUnacknowledged() }
+        }
         // Alertas hápticas por zona (WC-31): solo actúan con una sesión de métricas activa; todo es local.
         ZoneAlerts(liveMetrics.state, zones.zones, VibratorHaptics(this)).start(appScope)
         // Modo B (WC-54): al arrancar y cada vez que termina una sesión, se ofrecen al teléfono las grabaciones cerradas.

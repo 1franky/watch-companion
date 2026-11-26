@@ -28,6 +28,9 @@ import mx.watchcompanion.core.diagnostics.start
  * @param onActivity recibe ese estado en el reloj (WC-33).
  * @param financeProvider último resumen financiero de Nexora, para el Pong (WC-38); solo lo da el teléfono.
  * @param onFinance recibe ese resumen en el reloj (WC-38).
+ * @param draftsProvider estado de los borradores del reloj, para el Pong (WC-40); solo lo da el teléfono.
+ * @param onDraft recibe un borrador en el teléfono y devuelve su estado, que se le contesta al reloj (WC-40).
+ * @param onDraftStatus recibe en el reloj el estado de sus borradores, suelto o en el Pong (WC-40).
  * @param onPeerPing se llama tras responder un Ping: el teléfono lo usa para refrescar en segundo plano lo que el Pong
  *   no pudo traer actualizado (no hay tiempo de consultar la red dentro del ping).
  */
@@ -47,6 +50,9 @@ class LinkSession(
     private val onActivity: suspend (ActivityStatus) -> Unit = {},
     private val financeProvider: suspend () -> FinanceSnapshot? = { null },
     private val onFinance: suspend (FinanceSnapshot) -> Unit = {},
+    private val draftsProvider: suspend () -> List<DraftStatus> = { emptyList() },
+    private val onDraft: suspend (QuickTransactionDraft) -> DraftStatus? = { null },
+    private val onDraftStatus: suspend (List<DraftStatus>) -> Unit = {},
     private val onPeerPing: suspend () -> Unit = {},
 ) {
     private val _state = MutableStateFlow<LinkState>(LinkState.Unknown)
@@ -125,6 +131,7 @@ class LinkSession(
                     currentZones(),
                     guardedValue { activityProvider() },
                     guardedValue { financeProvider() },
+                    guardedValue { draftsProvider() }.orEmpty(),
                 )
                 sendQuietly(fromPeerId, envelope(pong, correlationId = envelope.messageId))
                 guardedValue { onPeerPing() }
@@ -135,11 +142,17 @@ class LinkSession(
                 payload.zones?.let { deliverZones(it) }
                 payload.activity?.let { status -> guardedValue { onActivity(status) } }
                 payload.finance?.let { snapshot -> guardedValue { onFinance(snapshot) } }
+                if (payload.drafts.isNotEmpty()) guardedValue { onDraftStatus(payload.drafts) }
                 pending.complete(payload)
             }
             is HeartRateZonesConfig -> deliverZones(payload.zones)
             is ActivityStatusReport -> guardedValue { onActivity(payload.status) }
             is FinanceSnapshotReport -> guardedValue { onFinance(payload.snapshot) }
+            // El acuse sale aunque el borrador ya se conociera: así el reloj deja de reenviarlo.
+            is QuickTransactionDraft -> guardedValue { onDraft(payload) }?.let {
+                sendQuietly(fromPeerId, envelope(TransactionResult(it), correlationId = envelope.messageId))
+            }
+            is TransactionResult -> guardedValue { onDraftStatus(listOf(payload.status)) }
             is IntegrationStatus ->
                 if (payload.integration == IntegrationStatus.Integration.PHONE_LINK &&
                     payload.state == IntegrationStatus.State.INCOMPATIBLE

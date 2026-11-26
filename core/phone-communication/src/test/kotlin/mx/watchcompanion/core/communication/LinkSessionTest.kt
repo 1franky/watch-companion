@@ -226,6 +226,38 @@ class LinkSessionTest {
     }
 
     @Test
+    fun elBorradorDelRelojRecibeSuAcuseYElPongLlevaLosEstados() = runTest {
+        val haciaTelefono = Loopback(listOf(telefono))
+        val haciaReloj = Loopback(listOf(Peer("nodo-reloj", "Galaxy Watch Ultra", true)))
+        val estadosEnReloj = mutableListOf<DraftStatus>()
+        val recibidos = mutableListOf<QuickTransactionDraft>()
+        val reloj = LinkSession(
+            haciaTelefono, codec, deviceId = "dev-reloj", appVersion = "0.1.0",
+            clock = { testScheduler.currentTime }, onDraftStatus = { estadosEnReloj += it },
+        )
+        val enTelefono = DraftStatus("3d6f0a7e-1b2c-4d5e-8f90-a1b2c3d4e5f6", DraftStatus.State.RECEIVED, updatedAt = 5)
+        val phone = LinkSession(
+            haciaReloj, codec, deviceId = "dev-tel", appVersion = "0.1.0",
+            clock = { testScheduler.currentTime },
+            onDraft = { recibidos += it; enTelefono },
+            draftsProvider = { listOf(enTelefono) },
+        )
+        haciaTelefono.other = phone
+        haciaReloj.other = reloj
+        val borrador = QuickTransactionDraft(
+            "3d6f0a7e-1b2c-4d5e-8f90-a1b2c3d4e5f6", QuickTransactionDraft.Kind.EXPENSE, "250.50",
+            "5b1d6a3e-0c1f-4a2b-9d3e-7f8a9b0c1d2e", date = "2026-11-25", capturedAt = 0,
+        )
+
+        assertTrue(reloj.sendToPeer(borrador))
+        assertEquals(listOf(borrador), recibidos)
+        assertEquals(listOf(enTelefono), estadosEnReloj)
+
+        assertTrue(reloj.refresh() is LinkState.Connected)
+        assertEquals(listOf(enTelefono, enTelefono), estadosEnReloj)
+    }
+
+    @Test
     fun siRefrescarFallaElPingSigueRespondido() = runTest {
         val haciaTelefono = Loopback(listOf(telefono))
         val haciaReloj = Loopback(listOf(Peer("nodo-reloj", "Galaxy Watch Ultra", true)))

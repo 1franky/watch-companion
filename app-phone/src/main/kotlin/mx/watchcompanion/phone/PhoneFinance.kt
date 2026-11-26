@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.serialization.SerializationException
+import mx.watchcompanion.core.communication.DraftOptions
 import mx.watchcompanion.core.communication.FinanceFigures
 import mx.watchcompanion.core.communication.FinanceSnapshot
 import mx.watchcompanion.core.session.SessionExpiredException
@@ -32,6 +33,8 @@ class IncompleteDashboardException : Exception("Al dashboard le faltan cifras")
 class PhoneFinance(
     private val session: () -> SessionState,
     private val fetch: suspend (now: Long) -> FinanceFigures,
+    /** Cuentas y categorías para el borrador del reloj (WC-40). Si fallan, se quedan las anteriores: no tumban las cifras. */
+    private val fetchOptions: suspend () -> DraftOptions? = { null },
     private val clock: () -> Long = System::currentTimeMillis,
     private val maxAgeMs: Long = MAX_AGE_MS,
 ) {
@@ -52,9 +55,18 @@ class PhoneFinance(
     }
 
     private suspend fun query(now: Long): FinanceSnapshot {
-        fun failed(code: String) = FinanceSnapshot(FinanceSnapshot.State.ERROR, now, _snapshot.value?.figures, code)
+        val previous = _snapshot.value
+        fun failed(code: String) = FinanceSnapshot(FinanceSnapshot.State.ERROR, now, previous?.figures, code, previous?.options)
         return try {
-            FinanceSnapshot(FinanceSnapshot.State.OK, now, fetch(now))
+            val figures = fetch(now)
+            val options = try {
+                fetchOptions()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                null
+            } ?: previous?.options
+            FinanceSnapshot(FinanceSnapshot.State.OK, now, figures, options = options)
         } catch (e: CancellationException) {
             throw e
         } catch (_: SessionExpiredException) {

@@ -21,6 +21,27 @@
     <string name="nexora_expired">Tu sesión de Nexora terminó. Vuelve a entrar.</string>
     <string name="nexora_login">Iniciar sesión en Nexora</string>
     <string name="nexora_logout">Cerrar sesión y revocarla</string>
+    <!-- Borradores del reloj (WC-40) -->
+    <string name="drafts_title">Movimientos del reloj por confirmar</string>
+    <string name="draft_expense">Gasto</string>
+    <string name="draft_income">Ingreso</string>
+    <string name="draft_account">Cuenta: %1$s</string>
+    <string name="draft_unknown_account">cuenta no disponible</string>
+    <string name="draft_category">Categoría: %1$s</string>
+    <string name="draft_unknown_category">categoría no disponible</string>
+    <string name="draft_note">Nota: %1$s</string>
+    <string name="draft_date">Fecha: %1$s</string>
+    <string name="draft_received">Pendiente: aún no se registra en Nexora</string>
+    <string name="draft_needs_login">Entra a Nexora para confirmarlo</string>
+    <string name="draft_sending">Enviando a Nexora…</string>
+    <string name="draft_created">Registrado en Nexora</string>
+    <string name="draft_rejected">Nexora lo rechazó (%1$s): no se registró</string>
+    <string name="draft_conflict">Nexora ya tenía otro movimiento con esta clave (409): este no se registró</string>
+    <string name="draft_unknown">Sin respuesta de Nexora (%1$s): pudo registrarse o no. Reintenta para saberlo; no se duplica.</string>
+    <string name="draft_discarded">Descartado</string>
+    <string name="draft_confirm">Confirmar y registrar</string>
+    <string name="draft_retry">Reintentar</string>
+    <string name="draft_discard">Descartar</string>
     <string name="login_title">Entrar a %1$s</string>
     <string name="login_server">Servidor (solo desarrollo)</string>
     <string name="login_email">Correo</string>

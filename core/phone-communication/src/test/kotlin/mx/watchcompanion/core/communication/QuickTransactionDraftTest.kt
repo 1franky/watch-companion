@@ -42,4 +42,10 @@ class QuickTransactionDraftTest {
         assertFalse(DraftStatus.State.UNKNOWN.final)
         assertTrue(DraftStatus.State.CREATED.final)
     }
+
+    @Test
+    fun suTextoNoRevelaElImporteNiLaNota() {
+        val texto = borrador.copy(note = "Cena aniversario").toString()
+        assertFalse(texto, texto.contains("250") || texto.contains("Cena"))
+    }
 }

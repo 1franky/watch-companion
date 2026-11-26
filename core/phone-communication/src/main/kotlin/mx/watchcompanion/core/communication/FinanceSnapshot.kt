@@ -33,6 +33,18 @@ data class FinanceSnapshot(
         return state != State.OK || now - fetchedAt > STALE_AFTER_MS
     }
 
+    /**
+     * Caducado (WC-42): las cifras tienen más de [EXPIRE_AFTER_MS]. Ya no se muestran ni se guardan, ni siquiera como
+     * desactualizadas; un resumen sin cifras (sin sesión o con error) no caduca porque no tiene nada que proteger.
+     */
+    fun isExpired(now: Long): Boolean {
+        val fetchedAt = figures?.fetchedAt ?: return false
+        return now - fetchedAt > EXPIRE_AFTER_MS
+    }
+
+    /** Cuándo caduca, o `null` si no lleva cifras. */
+    val expiresAt: Long? get() = figures?.fetchedAt?.plus(EXPIRE_AFTER_MS)
+
     @Serializable
     enum class State {
         /** La última consulta salió bien: [figures] es de [checkedAt]. */
@@ -46,6 +58,9 @@ data class FinanceSnapshot(
     companion object {
         /** Pasado este tiempo, una cifra se marca como desactualizada aunque la última consulta saliera bien. */
         const val STALE_AFTER_MS: Long = 15 * 60_000L
+
+        /** Pasado este tiempo, las cifras se borran del reloj (memoria y caché cifrada) aunque no llegue nada nuevo. */
+        const val EXPIRE_AFTER_MS: Long = 6 * 60 * 60_000L
         private val CODE = Regex("[A-Z][A-Z0-9_]{0,31}")
     }
 }
@@ -77,6 +92,11 @@ data class FinanceFigures(
         require(upcomingPayments.size <= MAX_ITEMS && recentTransactions.size <= MAX_ITEMS) { "demasiados elementos" }
     }
 
+    /** Sin importes (WC-42): un `toString` que acabe en un log o en un mensaje de error no debe revelar cifras. */
+    override fun toString() =
+        "FinanceFigures(fetchedAt=$fetchedAt, month=$month, upcomingPayments=${upcomingPayments.size}, " +
+            "recentTransactions=${recentTransactions.size}, …)"
+
     companion object {
         const val MAX_ITEMS = 5
         const val MAX_LABEL = 40
@@ -106,6 +126,8 @@ data class UpcomingPayment(val cardName: String, val dueDate: String, val expect
         require(FinanceFigures.DATE.matches(dueDate)) { "fecha inválida" }
         require(FinanceFigures.AMOUNT.matches(expectedPayment)) { "importe inválido" }
     }
+
+    override fun toString() = "UpcomingPayment(dueDate=$dueDate, …)"
 }
 
 /**
@@ -122,6 +144,8 @@ data class RecentTransaction(val date: String, val label: String, val signedAmou
         require(FinanceFigures.AMOUNT.matches(signedAmount)) { "importe inválido" }
         require(TYPE.matches(type)) { "tipo inválido" }
     }
+
+    override fun toString() = "RecentTransaction(date=$date, type=$type, …)"
 
     private companion object {
         val TYPE = Regex("[A-Z_]{1,32}")

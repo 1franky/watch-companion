@@ -73,6 +73,9 @@ kotlin { jvmToolchain(21) }
 dependencies {
     implementation(project(":core:data-layer"))
     implementation(project(":core:permissions"))
+    // Caché cifrada del resumen de Nexora (WC-42) con la misma llave del Keystore que las sesiones del teléfono.
+    implementation(project(":core:session"))
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)

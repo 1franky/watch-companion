@@ -161,4 +161,10 @@ class PhoneDraftsTest {
         assertEquals("Ilegible: se trata como vacío", emptyList<StoredDraft>(), archivo.read())
         assertArrayEquals(byteArrayOf(1, 2, 3), file.readBytes())
     }
+
+    @Test
+    fun suTextoNoLlevaElCuerpoNiElImporte() {
+        val texto = StoredDraft(borrador.copy(note = "Cena aniversario"), DraftStatus.State.UNKNOWN, 0, "UNREACHABLE", "{\"amount\":\"250.50\"}").toString()
+        assertFalse(texto, texto.contains("250") || texto.contains("Cena") || texto.contains("amount"))
+    }
 }

@@ -29,6 +29,7 @@ import androidx.wear.compose.foundation.rotary.rotaryScrollable
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.FilledTonalButton
 import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.OutlinedButton
 import androidx.wear.compose.material3.Text
 import androidx.wear.tooling.preview.devices.WearDevices
 import mx.watchcompanion.core.communication.IntegrationStatus
@@ -63,6 +64,8 @@ import mx.watchcompanion.watch.live.LiveMetricsState
  * @param activity último estado de la actividad en Velora que informó el teléfono (WC-33).
  * @param finance último resumen financiero de Nexora que informó el teléfono (WC-38). No se muestra en ambiente: la
  *   pantalla siempre encendida queda a la vista de cualquiera (03 §6).
+ * @param financeHidden el usuario pidió ocultar las cifras de Nexora (WC-42): solo queda el título y «Mostrar cifras».
+ *   También oculta los importes de los borradores.
  * @param drafts borradores de Nexora capturados aquí y su estado según el teléfono (WC-40); tampoco en ambiente.
  * @param pendingRecordings grabaciones del modo B que siguen en el reloj esperando al teléfono (WC-54).
  * @param zoneId zona horaria para mostrar la fecha de la actividad; inyectable para pruebas.
@@ -81,6 +84,8 @@ fun SummaryScreen(
     pendingRecordings: Int = 0,
     activity: ActivityStatus? = null,
     finance: FinanceSnapshot? = null,
+    financeHidden: Boolean = false,
+    onFinanceHidden: (Boolean) -> Unit = {},
     drafts: List<WatchDraft> = emptyList(),
     onNewDraft: () -> Unit = {},
     zoneId: ZoneId = ZoneId.systemDefault(),
@@ -114,12 +119,14 @@ fun SummaryScreen(
             SummaryItem(stringResource(R.string.summary_velora), veloraSyncText(link, now), primary, secondary)
             ActivityItem(activity, now, zoneId, primary, secondary)
             if (!ambient) {
-                FinanceSection(finance, now, zoneId, primary, secondary)
+                // Caducado (WC-42): no se muestra ni como desactualizado, aunque la app aún no lo haya borrado.
+                val current = finance?.takeUnless { it.isExpired(now) }
+                FinanceSection(current, now, zoneId, primary, secondary, financeHidden, onFinanceHidden)
                 // Borrador de gasto o ingreso (WC-40): solo con cuentas de Nexora que elegir.
-                if (!finance?.options?.accounts.isNullOrEmpty()) {
+                if (!current?.options?.accounts.isNullOrEmpty()) {
                     FilledTonalButton(onClick = onNewDraft) { Text(stringResource(R.string.draft_new)) }
                 }
-                for (entry in drafts) {
+                if (!financeHidden) for (entry in drafts) {
                     val currency = finance?.options?.accounts?.firstOrNull { it.id == entry.draft.accountId }?.currency
                     DraftItem(entry, currency ?: "MXN", primary, secondary)
                 }
@@ -206,15 +213,29 @@ private val ACTIVITY_DATE = DateTimeFormatter.ofPattern("d MMM HH:mm", Locale.fo
 /**
  * Resumen financiero de Nexora (WC-38): las cifras tal como las calculó Nexora, cada una con su hora de actualización.
  * Si la última consulta falló o pasaron más de [FinanceSnapshot.STALE_AFTER_MS], se marcan como desactualizadas.
+ * Con [hidden] (WC-42) no se dibuja ninguna cifra: solo el botón para mostrarlas.
  */
 @Composable
-private fun FinanceSection(finance: FinanceSnapshot?, now: Long, zoneId: ZoneId, primary: Color, secondary: Color) {
+private fun FinanceSection(
+    finance: FinanceSnapshot?,
+    now: Long,
+    zoneId: ZoneId,
+    primary: Color,
+    secondary: Color,
+    hidden: Boolean,
+    onHidden: (Boolean) -> Unit,
+) {
     Text(
         stringResource(R.string.summary_finance),
         modifier = Modifier.semantics { heading() },
         color = secondary,
         style = MaterialTheme.typography.labelLarge,
     )
+    if (hidden) {
+        Text(stringResource(R.string.finance_hidden), color = primary, textAlign = TextAlign.Center)
+        OutlinedButton(onClick = { onHidden(false) }) { Text(stringResource(R.string.finance_show)) }
+        return
+    }
     val figures = finance?.figures
     if (finance == null || figures == null) {
         val message = when (finance?.state) {
@@ -264,6 +285,7 @@ private fun FinanceSection(finance: FinanceSnapshot?, now: Long, zoneId: ZoneId,
             )
         }
     }
+    OutlinedButton(onClick = { onHidden(true) }) { Text(stringResource(R.string.finance_hide)) }
 }
 
 @Composable

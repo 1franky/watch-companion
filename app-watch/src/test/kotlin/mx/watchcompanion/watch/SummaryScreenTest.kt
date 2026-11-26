@@ -238,6 +238,26 @@ class SummaryScreenTest {
     }
 
     @Test
+    fun guardianSeDesactivaConUnToqueYSeVuelveAActivar() {
+        var activo by mutableStateOf(true)
+        var historial = 0
+        compose.setContent {
+            SummaryScreen(
+                now = AHORA, link = LinkState.NoPeer, onCheck = {}, zoneId = utc,
+                guardianEnabled = activo, onGuardianEnabled = { activo = it }, onGuardianHistory = { historial++ },
+            )
+        }
+        compose.onNodeWithText("Historial de Guardian").performScrollTo().performClick()
+        assertEquals(1, historial)
+
+        compose.onNodeWithText("Desactivar Guardian").performScrollTo().performClick()
+        compose.onNodeWithText("Bloquear teléfono").assertDoesNotExist()
+        compose.onNodeWithText("Aviso sin teléfono", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Activar Guardian").performScrollTo().performClick()
+        compose.onNodeWithText("Bloquear teléfono").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     fun losBorradoresMuestranSuEstadoYNuncaSeDanPorRegistradosSinElTelefono() {
         val borrador = QuickTransactionDraft(
             "3d6f0a7e-1b2c-4d5e-8f90-a1b2c3d4e5f6", QuickTransactionDraft.Kind.EXPENSE, "250.5",

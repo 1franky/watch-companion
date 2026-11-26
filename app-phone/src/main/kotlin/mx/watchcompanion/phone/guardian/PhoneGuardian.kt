@@ -17,6 +17,9 @@ interface DeviceLocker {
     fun lockNow()
 
     fun isLocked(): Boolean
+
+    /** `removeActiveAdmin()`; no hace nada si ya no estaba activo. */
+    fun removeAdmin()
 }
 
 /**
@@ -39,6 +42,11 @@ class PhoneGuardian(
         if (clock() >= expiresAt) return result(Outcome.EXPIRED)
         return when (command.action) {
             GuardianCommand.Action.LOCK -> lock(::result)
+            // Revocar desde el reloj (WC-47): quitar un permiso nunca es peligroso, así que no se pide más.
+            GuardianCommand.Action.REVOKE -> {
+                if (locker.isAdminActive()) locker.removeAdmin()
+                result(Outcome.REVOKED)
+            }
         }
     }
 

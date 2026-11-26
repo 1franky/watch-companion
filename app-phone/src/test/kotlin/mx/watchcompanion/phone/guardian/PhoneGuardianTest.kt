@@ -28,6 +28,11 @@ class PhoneGuardianTest {
             lockCalls++
         }
         override fun isLocked(): Boolean = lockCalls > 0 && ++polls >= locksAfterCalls
+        var removed = 0
+        override fun removeAdmin() {
+            removed++
+            admin = false
+        }
     }
 
     @Test
@@ -86,5 +91,17 @@ class PhoneGuardianTest {
 
         assertEquals(Outcome.REJECTED, result.outcome)
         assertFalse(locker.lockCalls > 0)
+    }
+
+    @Test
+    fun revocarQuitaElAdministradorYEsIdempotente() = runTest {
+        val locker = FakeLocker()
+        val guardian = PhoneGuardian(locker)
+        val revoke = GuardianCommand(id, GuardianCommand.Action.REVOKE)
+
+        assertEquals(GuardianCommandResult(id, Outcome.REVOKED), guardian.execute(revoke, Long.MAX_VALUE))
+        assertEquals(GuardianCommandResult(id, Outcome.REVOKED), guardian.execute(revoke, Long.MAX_VALUE))
+        assertEquals(1, locker.removed)
+        assertEquals(0, locker.lockCalls)
     }
 }

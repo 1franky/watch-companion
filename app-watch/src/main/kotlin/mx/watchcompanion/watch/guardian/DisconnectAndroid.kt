@@ -62,6 +62,25 @@ class SharedPreferencesDisconnectStore(context: Context) : DisconnectStore {
     }
 }
 
+/** Preferencias de Guardian (WC-47), en el mismo archivo que el aviso de desconexión. Activo por omisión. */
+class SharedPreferencesGuardianSettings(context: Context) : GuardianSettingsStore {
+    private val prefs = context.getSharedPreferences("guardian", Context.MODE_PRIVATE)
+
+    override var enabled: Boolean
+        get() = prefs.getBoolean(KEY_ENABLED, true)
+        set(value) = prefs.edit { putBoolean(KEY_ENABLED, value) }
+
+    override var retentionDays: Int
+        get() = prefs.getInt(KEY_RETENTION, GuardianHistory.DEFAULT_RETENTION_DAYS).takeIf { it in GuardianHistory.RETENTION_OPTIONS }
+            ?: GuardianHistory.DEFAULT_RETENTION_DAYS
+        set(value) = prefs.edit { putInt(KEY_RETENTION, value) }
+
+    private companion object {
+        const val KEY_ENABLED = "activo"
+        const val KEY_RETENTION = "historial_dias"
+    }
+}
+
 /** Una sola revisión pendiente a la vez; reprogramar reemplaza la anterior. */
 class WorkDisconnectScheduler(private val context: Context) : DisconnectScheduler {
     override fun schedule(delayMs: Long) = guarded {

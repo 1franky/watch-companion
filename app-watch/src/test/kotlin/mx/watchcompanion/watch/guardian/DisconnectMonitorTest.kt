@@ -17,6 +17,7 @@ class DisconnectMonitorTest {
     private val avisos = mutableListOf<Long>()
     private var retirados = 0
     private var ahora = 1_000_000L
+    private val eventos = mutableListOf<kotlin.Pair<GuardianEvent.Kind, Long>>()
 
     private val monitor = DisconnectMonitor(
         store,
@@ -28,7 +29,9 @@ class DisconnectMonitorTest {
             override fun alert(since: Long) { avisos += since }
             override fun clear() { retirados++ }
         },
-    ) { ahora }
+        clock = { ahora },
+        onEvent = { kind, at -> eventos += kind to at },
+    )
 
     private val cincoMin = 5 * DisconnectMonitor.MINUTE_MS
 
@@ -109,5 +112,30 @@ class DisconnectMonitorTest {
         val vistos = mutableListOf<Int?>(null)
         repeat(5) { vistos += DisconnectMonitor.next(vistos.last()) }
         assertEquals(listOf(null, 2, 5, 15, 30, null), vistos)
+    }
+
+    @Test
+    fun elHistorialRegistraElAvisoYElRegresoPeroNoElApagado() {
+        monitor.onReachability(nearby = false)
+        ahora += cincoMin
+        monitor.onCheck(nearby = false)
+        val avisado = ahora
+        ahora += 60_000
+        monitor.onReachability(nearby = true)
+        assertEquals(listOf(GuardianEvent.Kind.PHONE_AWAY to avisado, GuardianEvent.Kind.PHONE_BACK to ahora), eventos)
+
+        // Apagar el aviso con uno a la vista no es «el teléfono volvió».
+        monitor.onReachability(nearby = false)
+        ahora += cincoMin
+        monitor.onCheck(nearby = false)
+        monitor.setDelay(null)
+        assertEquals(listOf(GuardianEvent.Kind.PHONE_AWAY, GuardianEvent.Kind.PHONE_BACK, GuardianEvent.Kind.PHONE_AWAY), eventos.map { it.first })
+    }
+
+    @Test
+    fun sinAvisoPrevioElRegresoNoSeRegistra() {
+        monitor.onReachability(nearby = false)
+        monitor.onReachability(nearby = true)
+        assertTrue(eventos.isEmpty())
     }
 }

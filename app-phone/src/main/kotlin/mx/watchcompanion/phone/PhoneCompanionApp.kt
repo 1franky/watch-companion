@@ -109,10 +109,10 @@ class PhoneCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
 
     /** Solo el resultado y su código, en el registro técnico local (el historial completo es WC-47). */
     private suspend fun recordGuardian(result: GuardianCommandResult) {
-        val ok = result.outcome == GuardianCommandResult.Outcome.LOCKED
+        val ok = result.outcome == GuardianCommandResult.Outcome.LOCKED || result.outcome == GuardianCommandResult.Outcome.REVOKED
         diagnostics.record(
             DiagnosticModule.LINK,
-            "guardian.lock",
+            if (result.outcome == GuardianCommandResult.Outcome.REVOKED) "guardian.revoke" else "guardian.lock",
             DiagnosticEvent.newCorrelationId(),
             if (ok) Outcome.OK else Outcome.ERROR,
             result.errorCode ?: result.outcome.name,

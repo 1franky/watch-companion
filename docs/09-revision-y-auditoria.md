@@ -255,7 +255,7 @@ Velora ya aplica privacidad de inicio y fin de recorrido (ADR-016 de Velora, mig
 
 ## 4. Decisiones que debe tomar el propietario
 
-1. ~~¿El modo A depende de Strava o del FIT directo?~~ **Resuelto:** Strava, operativo en producción; FIT directo como respaldo opcional. (A-01, WC-1)
+1. ~~¿El modo A depende de Strava o del FIT directo?~~ **Resuelto:** Strava, operativo en producción; FIT directo como respaldo opcional. (A-01, WC-1, WC-13: el respaldo está verificado, `02` §10)
 2. ~~¿Primera entrega = Fase 0 + Fase 1?~~ **Resuelto:** sí, WC-ADR-012. (R-01, WC-2)
 3. ~~¿El reloj sin tokens de backend en el MVP?~~ **Resuelto:** sí, WC-ADR-013. (A-05, WC-3)
 4. ~~¿Puente de Data Layer?~~ **Resuelto:** `app-phone` propia, WC-ADR-011. (A-06, WC-4)

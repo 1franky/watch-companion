@@ -64,6 +64,30 @@ Para considerar apertura/cierre remoto se requiere:
 
 No automatizar apertura por proximidad, detección de sueño ni pérdida de Bluetooth.
 
+### Resultado del spike (WC-49, 26 nov 2026)
+
+**La cerradura.** La app TTLock la muestra como **LL747** (prefijo del nombre del dispositivo; el resto es un identificador del aparato y no se documenta), firmware `7.2.14.250521`, batería 50 %. Es del usuario (administrador, no una eKey compartida). **No tiene gateway**: es solo Bluetooth. No se encontró documentación pública del modelo LL747; XE Seguridad lo vende sobre la plataforma TTLock, como muchos fabricantes.
+
+**Cuenta de desarrollador.** Registro en TTLock Open Platform (`euopen.ttlock.com` / `open.ttlock.com`) y alta de una aplicación, que TTLock **revisa y aprueba** (la comunidad reporta un par de días). La aprobación da `client_id` y `client_secret`.
+
+**Credenciales.** `POST /oauth2/token` (host `euapi.ttlock.com` o `api.ttlock.com`) con `client_id`, **`client_secret`**, el usuario de la **app TTLock** y su contraseña en MD5 (32 caracteres en minúsculas). Token de ~90 días y endpoint de renovación. El `client_secret` no puede ir en el APK (R-09, WC-12), y además el flujo pide la contraseña de la cuenta TTLock: si se integra, que el usuario la escriba una sola vez en el teléfono y solo se guarde el token cifrado, nunca la contraseña.
+
+**Endpoints de solo lectura** (todos con `clientId`, `accessToken` y `date` en ms):
+
+| Para qué | Endpoint | Sin gateway |
+|---|---|---|
+| Cerraduras de la cuenta | `/v3/lock/list` (paginado) | Funciona. Hay reportes de lista vacía cuando la cerradura no es de la cuenta que pide el token. |
+| Detalle y batería | `/v3/lock/detail` (`electricQuantity`) | Solo el último valor que la app TTLock subió al conectarse por Bluetooth: puede tener días. |
+| Abierta / cerrada | `/v3/lock/queryOpenState` → 0 cerrada, 1 abierta, 2 desconocido | **No funciona**: sin gateway responde «dispositivo sin conexión» (-3034/-3036). |
+| Historial de aperturas | `/v3/lockRecord/list` | Solo los registros que la app sube al sincronizar por Bluetooth; no en tiempo real. |
+| Eventos en vivo | URL de *callback* de la aplicación (webhook) | Exige gateway **y** un servidor que reciba el webhook. |
+
+**Conclusión.**
+- **Sin gateway, la nube no sabe si la cerradura está abierta.** El «estado en solo lectura» de WC-52 se reduce a batería y aperturas con retraso de días, sincronizadas solo cuando el usuario abre la app TTLock cerca de la puerta. Mostrarlo como estado actual sería engañoso (§5: distinguir desconocido).
+- **Para que WC-52 tenga sentido** hace falta un gateway TTLock (G2 o posterior, Wi-Fi de 2.4 GHz, a pocos metros de la cerradura) y, para eventos, el servidor del webhook. Ambos dependen de WC-12.
+- **Apertura remota: fuera de alcance** (WC-ADR-008). No se probó ni se documenta como opción. Con gateway la API la permite; seguiría prohibida hasta la evaluación de seguridad de este documento.
+- No se hizo llamada de prueba: exige la aprobación de la aplicación de desarrollador, y sin gateway solo confirmaría lo que dice la documentación.
+
 ## 4. Modelo de comandos
 
 Todo comando debe tener:

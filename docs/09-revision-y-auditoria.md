@@ -216,6 +216,8 @@ Existe `schemaVersion`, pero no se dice qué ocurre si el reloj y el teléfono t
 
 **Avance (WC-48):** SmartThings confirmado: PAT de 24 h (no sirve para la app), OAuth con `client_secret` y refresh de 30 días, eventos solo con webhook y API de pago desde oct 2026. Detalle en `05` §2. La decisión sigue en WC-12, tras WC-49 (TTLock).
 
+**Avance (WC-49):** TTLock también exige `client_secret` (y la contraseña de la cuenta TTLock en MD5) y una aplicación de desarrollador aprobada. La cerradura del usuario no tiene gateway: sin él no hay estado abierto/cerrado en la nube, solo batería y aperturas sincronizadas por la app. Detalle en `05` §3.
+
 ### R-10 · Resuelto — Contradicción sobre la sesión del reloj
 
 > **Actualización 2026-11-20 (WC-3):** `00` §6 reescrito según WC-ADR-013.

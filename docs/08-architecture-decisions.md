@@ -127,3 +127,20 @@ La primera entrega incluye la infraestructura (Fase 0) y Velora Watch en modo A 
 - `app-phone`: `minSdk 31`, igual que `velora-android`.
 - `compileSdk`/`targetSdk 37` y catálogo de versiones alineado con `velora-android` (AGP 9.5.x, Kotlin 2.4.21, Gradle 9.9.x).
 
+## WC-ADR-015 — Smart Hub se pospone
+
+**Estado:** Aceptada (2026-11-26). Resuelve R-09 y WC-12.
+
+**Decisión:** no se implementa Smart Hub por ahora: ni BFF, ni credenciales del usuario en el teléfono, ni PAT. WC-50, WC-51 y WC-52 quedan en espera.
+
+**Motivo** (spikes WC-48 y WC-49, `05` §2 y §3):
+- **SmartThings:** el PAT caduca a las 24 h; OAuth exige `client_secret` (fuera del APK) y un servidor para eventos; la API es de pago desde oct 2026 (plan personal US$4.99/mes). La cuenta del propietario solo tiene televisores y sensores de luz: sin luces, enchufes ni escenas que justifiquen el costo.
+- **TTLock:** exige `client_secret`, una aplicación de desarrollador aprobada y la contraseña de la cuenta TTLock. La cerradura (LL747) no tiene gateway, así que la nube no conoce su estado: WC-52 mostraría datos de días.
+- Un BFF agregaría un servicio, su secreto y su mantenimiento solo para eso; poner secretos del usuario en el teléfono amplía la superficie de ataque sin un caso de uso que lo pague.
+
+**Se retoma cuando** se cumpla alguna de estas condiciones, y entonces se vuelve a decidir entre BFF mínimo (separado de Velora y Nexora) o credenciales propias del usuario cifradas en el teléfono:
+- hay luces, enchufes o escenas en SmartThings que valga la pena controlar desde el reloj y se acepta el costo de la API, o
+- se instala un gateway TTLock y se quiere ver el estado de la cerradura.
+
+WC-ADR-008 (sin apertura remota) sigue vigente cuando se retome.
+

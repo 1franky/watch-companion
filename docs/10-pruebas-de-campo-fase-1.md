@@ -2,6 +2,8 @@
 
 Protocolo para las dos salidas reales que cierran la Fase 1 (`06` §3, salidas 1 y 2): **ruta urbana corta** y **MTB con desnivel**, en el **modo A** (el BSC100S graba; el reloj solo muestra métricas y alerta).
 
+La hoja con las seis salidas (estas dos y las de WC-57), la tarjeta de bolsillo y qué archivos pasar está en `11`.
+
 Objetivo: comprobar en el mundo real lo que las pruebas automatizadas no pueden, y dejar una **línea base** de batería y alertas. No se fijan tolerancias hasta tener esa línea base (`06` §3).
 
 ## 1. Antes de salir (una vez)

@@ -1,5 +1,7 @@
 # 05 — Smart Hub: hogar, SmartThings y TTLock
 
+> **Pospuesto** (WC-ADR-015, 26 nov 2026). Las secciones siguientes quedan como especificación para cuando se retome.
+
 ## 1. Objetivo
 
 Controlar desde Galaxy Watch Ultra los dispositivos y escenarios domésticos compatibles, usando el S26 Ultra como puente cuando sea necesario.
@@ -12,9 +14,35 @@ Primera etapa:
 - controlar luces y enchufes compatibles
 - recibir alertas de automatizaciones
 
-Antes de implementar, verificar el estado actual de las APIs/SDK oficiales de SmartThings, requisitos de OAuth, scopes, publicación y compatibilidad regional.
-
 No asumir que todas las funciones disponibles en la app SmartThings están expuestas por una API para aplicaciones de terceros.
+
+### Resultado del spike (WC-48, 26 nov 2026)
+
+**Credenciales.**
+
+| Vía | Caducidad | Para el companion |
+|---|---|---|
+| Token personal (PAT, account.smartthings.com/tokens) | **24 h** desde su creación (tokens creados desde el 30 dic 2024) | Solo pruebas: habría que pegar uno nuevo cada día. |
+| OAuth 2.0 con una «API Access App» (CLI de SmartThings) | Acceso 24 h; refresh token 30 días, se renueva al usarlo | Viable, pero el token se pide y se renueva con `client_id` + **`client_secret`** (Basic auth en `/oauth/token`): el secreto no puede ir en el APK. Se decide en WC-12 (R-09). |
+
+**Costo.** Samsung anunció (23 jun 2026) planes de pago para la API desde octubre de 2026; para un desarrollador individual, un plan personal de **US$4.99/mes**. La app SmartThings sigue gratis. No hay publicados umbrales exactos. Entra en la decisión de WC-12: Smart Hub tendría un costo recurrente.
+
+**Scopes necesarios** (formato `permiso:recurso:filtro`): `r:locations:*`, `r:devices:*`, `x:devices:*` (comandos), `r:scenes:*`, `x:scenes:*`. Las rutinas (`/rules`) piden otro scope y no son del MVP. Región: el endpoint es global (`api.smartthings.com`); las ubicaciones de la cuenta no traen `countryCode`, y no hizo falta nada por región.
+
+**Capacidades reales** (cuenta del usuario):
+- **Dispositivos:** 6, todos Samsung y OCF: 4 televisores y 2 sensores de luz de The Frame. **Sin luces, enchufes ni escenas** por ahora. Cada dispositivo trae sus capacidades (`switch`, `audioVolume`, `mediaInputSource`…); la app debe ofrecer solo acciones de capacidades presentes.
+- **Escenas:** `GET /v1/scenes` y `POST /v1/scenes/{id}/execute`; vía API solo se ven y ejecutan. La cuenta tiene 0.
+- **Eventos:** las suscripciones en tiempo real exigen una SmartApp con webhook (un servidor). Sin servidor solo queda consultar; las «alertas de automatizaciones» quedan fuera hasta WC-12.
+- **Límite:** 250 peticiones por ventana (`X-RateLimit-*`; el reinicio marcaba ~8 min). El reloj no debe consultar en bucle: estado al abrir la pantalla y tras un comando.
+
+**Llamada de prueba** (PAT temporal, ya borrado): `GET /locations`, `/devices`, `/scenes` respondieron en ~250 ms. `switch on` y luego `off` a un televisor propio (FRAME 2): la tele se encendió y se apagó.
+
+**Reglas que salen del spike:**
+- **`COMPLETED` no es «hecho».** `POST /devices/{id}/commands` respondió `COMPLETED` en 0.5–0.9 s, pero el estado del `switch` seguía igual al segundo y cambió hacia los 3 s. `SUCCEEDED` (§4) solo cuando `GET …/capabilities/switch/status` muestre el valor pedido con un `timestamp` posterior al comando; consultar unos segundos y, si no cambia, `FAILED`/sin confirmar.
+- **Desconocido ≠ apagado.** Un televisor con `GET /devices/{id}/health` = `OFFLINE` seguía devolviendo `switch=off` (su último valor). Con salud `OFFLINE` el estado se muestra como desconocido, nunca como apagado (criterio de §5).
+- **Encender desde la nube funciona** con un televisor en reposo (`samsungvd.supportsPowerOnByOcf`); no se probó uno totalmente desconectado de la red.
+
+**Lo que queda para WC-12:** OAuth exige `client_secret` y servidor para eventos, y la API tendrá costo mensual. Opciones: un BFF mínimo propio (secreto y webhook fuera del APK), que el usuario registre su propia API Access App e introduzca su `client_id`/`client_secret` en el teléfono (cifrados, nunca en el APK), o posponer Smart Hub.
 
 ## 3. Cerradura XE Seguridad / TTLock
 
@@ -37,6 +65,30 @@ Para considerar apertura/cierre remoto se requiere:
 - evaluar riesgo de apertura accidental
 
 No automatizar apertura por proximidad, detección de sueño ni pérdida de Bluetooth.
+
+### Resultado del spike (WC-49, 26 nov 2026)
+
+**La cerradura.** La app TTLock la muestra como **LL747** (prefijo del nombre del dispositivo; el resto es un identificador del aparato y no se documenta), firmware `7.2.14.250521`, batería 50 %. Es del usuario (administrador, no una eKey compartida). **No tiene gateway**: es solo Bluetooth. No se encontró documentación pública del modelo LL747; XE Seguridad lo vende sobre la plataforma TTLock, como muchos fabricantes.
+
+**Cuenta de desarrollador.** Registro en TTLock Open Platform (`euopen.ttlock.com` / `open.ttlock.com`) y alta de una aplicación, que TTLock **revisa y aprueba** (la comunidad reporta un par de días). La aprobación da `client_id` y `client_secret`.
+
+**Credenciales.** `POST /oauth2/token` (host `euapi.ttlock.com` o `api.ttlock.com`) con `client_id`, **`client_secret`**, el usuario de la **app TTLock** y su contraseña en MD5 (32 caracteres en minúsculas). Token de ~90 días y endpoint de renovación. El `client_secret` no puede ir en el APK (R-09, WC-12), y además el flujo pide la contraseña de la cuenta TTLock: si se integra, que el usuario la escriba una sola vez en el teléfono y solo se guarde el token cifrado, nunca la contraseña.
+
+**Endpoints de solo lectura** (todos con `clientId`, `accessToken` y `date` en ms):
+
+| Para qué | Endpoint | Sin gateway |
+|---|---|---|
+| Cerraduras de la cuenta | `/v3/lock/list` (paginado) | Funciona. Hay reportes de lista vacía cuando la cerradura no es de la cuenta que pide el token. |
+| Detalle y batería | `/v3/lock/detail` (`electricQuantity`) | Solo el último valor que la app TTLock subió al conectarse por Bluetooth: puede tener días. |
+| Abierta / cerrada | `/v3/lock/queryOpenState` → 0 cerrada, 1 abierta, 2 desconocido | **No funciona**: sin gateway responde «dispositivo sin conexión» (-3034/-3036). |
+| Historial de aperturas | `/v3/lockRecord/list` | Solo los registros que la app sube al sincronizar por Bluetooth; no en tiempo real. |
+| Eventos en vivo | URL de *callback* de la aplicación (webhook) | Exige gateway **y** un servidor que reciba el webhook. |
+
+**Conclusión.**
+- **Sin gateway, la nube no sabe si la cerradura está abierta.** El «estado en solo lectura» de WC-52 se reduce a batería y aperturas con retraso de días, sincronizadas solo cuando el usuario abre la app TTLock cerca de la puerta. Mostrarlo como estado actual sería engañoso (§5: distinguir desconocido).
+- **Para que WC-52 tenga sentido** hace falta un gateway TTLock (G2 o posterior, Wi-Fi de 2.4 GHz, a pocos metros de la cerradura) y, para eventos, el servidor del webhook. Ambos dependen de WC-12.
+- **Apertura remota: fuera de alcance** (WC-ADR-008). No se probó ni se documenta como opción. Con gateway la API la permite; seguiría prohibida hasta la evaluación de seguridad de este documento.
+- No se hizo llamada de prueba: exige la aprobación de la aplicación de desarrollador, y sin gateway solo confirmaría lo que dice la documentación.
 
 ## 4. Modelo de comandos
 

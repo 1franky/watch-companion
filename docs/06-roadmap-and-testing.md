@@ -46,6 +46,8 @@
 
 ### Fase 4 — Smart Hub
 
+**Pospuesta** (WC-ADR-015): se retoma con dispositivos que lo justifiquen o con un gateway TTLock.
+
 - Integración SmartThings.
 - Estado de cerradura TTLock si la API lo permite.
 - Escenas domésticas.
@@ -119,6 +121,8 @@ Comparar:
 - tiempo de sincronización
 
 No definir tolerancias finales sin obtener una línea base de rutas reales.
+
+Protocolo: `10` (salidas 1 y 2, WC-35) y `11` (hoja de las seis salidas, comparativa y archivos; WC-57).
 
 ## 4. Definition of Done
 

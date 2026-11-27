@@ -216,6 +216,12 @@ Existe `schemaVersion`, pero no se dice qué ocurre si el reloj y el teléfono t
 
 **Propuesta:** decisión explícita entre (a) un BFF mínimo propio para Smart Hub, (b) un token personal del usuario guardado en el Keystore del teléfono, si el proveedor lo permite (verificar caducidad y alcance actuales de los PAT de SmartThings), o (c) posponer.
 
+**Avance (WC-48):** SmartThings confirmado: PAT de 24 h (no sirve para la app), OAuth con `client_secret` y refresh de 30 días, eventos solo con webhook y API de pago desde oct 2026. Detalle en `05` §2. La decisión sigue en WC-12, tras WC-49 (TTLock).
+
+**Avance (WC-49):** TTLock también exige `client_secret` (y la contraseña de la cuenta TTLock en MD5) y una aplicación de desarrollador aprobada. La cerradura del usuario no tiene gateway: sin él no hay estado abierto/cerrado en la nube, solo batería y aperturas sincronizadas por la app. Detalle en `05` §3.
+
+**Resuelto (WC-12):** Smart Hub se pospone (WC-ADR-015) hasta que haya dispositivos que lo justifiquen o un gateway TTLock.
+
 ### R-10 · Resuelto — Contradicción sobre la sesión del reloj
 
 > **Actualización 2026-11-20 (WC-3):** `00` §6 reescrito según WC-ADR-013.
@@ -253,7 +259,7 @@ Velora ya aplica privacidad de inicio y fin de recorrido (ADR-016 de Velora, mig
 2. ~~¿Primera entrega = Fase 0 + Fase 1?~~ **Resuelto:** sí, WC-ADR-012. (R-01, WC-2)
 3. ~~¿El reloj sin tokens de backend en el MVP?~~ **Resuelto:** sí, WC-ADR-013. (A-05, WC-3)
 4. ~~¿Puente de Data Layer?~~ **Resuelto:** `app-phone` propia, WC-ADR-011. (A-06, WC-4)
-5. ¿Estrategia de secretos para Smart Hub: BFF, PAT o posponer? (R-09, WC-12)
+5. ~~¿Estrategia de secretos para Smart Hub: BFF, PAT o posponer?~~ **Resuelto:** posponer (WC-ADR-015, WC-12).
 6. ~~¿Prefijo `WC-ADR` y renumeración?~~ **Resuelto:** prefijo `WC-ADR` sin renumerar. (A-13, R-11, WC-5)
 
 ## 5. Siguientes pasos

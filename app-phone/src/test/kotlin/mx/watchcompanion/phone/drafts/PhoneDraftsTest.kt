@@ -46,8 +46,11 @@ class PhoneDraftsTest {
         buildBody = { cuerpos++; "{\"cuerpo\":$cuerpos}" },
         post = { k, body -> enviados += k to body; respuesta() },
         onChange = { avisos += it },
+        onNew = { nuevos += it },
         clock = { now },
     )
+
+    private val nuevos = mutableListOf<Int>()
 
     @Test
     fun recibirNoMandaNadaANexoraYUnReenvioNoLoDuplica() = runTest {
@@ -57,6 +60,19 @@ class PhoneDraftsTest {
         assertEquals(1, drafts.drafts.value.size)
         assertTrue(enviados.isEmpty())
         assertEquals(1, store.saved.size)
+    }
+
+    @Test
+    fun avisaSoloLosNuevosConCuantosQuedanPorResolver() = runTest {
+        val drafts = drafts()
+        drafts.receive(borrador)
+        drafts.receive(borrador)
+        drafts.receive(borrador.copy(idempotencyKey = "22222222-2222-2222-2222-222222222222"))
+        assertEquals("un reenvío del reloj no vuelve a avisar", listOf(1, 2), nuevos)
+
+        drafts.confirm(borrador.idempotencyKey)
+        assertEquals(listOf(1, 2), nuevos)
+        assertEquals(1, drafts.pending.size)
     }
 
     @Test

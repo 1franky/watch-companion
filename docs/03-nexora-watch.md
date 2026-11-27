@@ -74,7 +74,11 @@ Cancelar un borrador antes de confirmarlo lo borra del teléfono; nada llegó al
   - Sin respuesta o 5xx → «sin respuesta». En ese estado ya **no se puede descartar**, solo reintentar.
   - Sin sesión → no avanza.
 - **Al reloj** vuelve solo la clave, el estado y el código, nunca el importe.
-- **Pendiente:** el teléfono todavía no avisa con una notificación cuando llega un borrador; hay que abrir la app.
+- **Aviso en el teléfono (WC-62):** al llegar un borrador **nuevo** sale una notificación «Movimiento del reloj por confirmar» que solo dice cuántos hay, sin importe, cuenta, categoría ni nota.
+  - Un reenvío del mismo borrador no vuelve a sonar. Si cambia cuántos quedan, se actualiza en silencio, y se quita sola cuando no queda ninguno por resolver.
+  - En la pantalla bloqueada: «Watch Companion · Tienes algo por confirmar».
+  - Es **solo del teléfono** (`setLocalOnly`): no se puentea al reloj, que es de donde salió el borrador.
+  - Tocarla abre la app en la lista; nunca confirma nada. Usa el permiso de notificaciones que ya pide la sección de Nexora.
 
 ### Notificaciones
 

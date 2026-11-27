@@ -117,6 +117,18 @@
         <item quantity="other">%d rutas del reloj por subir a Velora</item>
     </plurals>
 
+    <!-- Aviso de borradores del reloj (WC-62) -->
+    <string name="drafts_channel">Movimientos del reloj</string>
+    <string name="drafts_channel_description">Avisa cuando llega del reloj un gasto o ingreso por confirmar.</string>
+    <string name="drafts_notice_title">Movimiento del reloj por confirmar</string>
+    <plurals name="drafts_notice_text">
+        <item quantity="one">Tienes un gasto o ingreso por confirmar. Ábrelo para registrarlo en Nexora.</item>
+        <item quantity="many">Tienes %d gastos o ingresos por confirmar. Ábrelos para registrarlos en Nexora.</item>
+        <item quantity="other">Tienes %d gastos o ingresos por confirmar. Ábrelos para registrarlos en Nexora.</item>
+    </plurals>
+    <string name="drafts_notice_public_title">Watch Companion</string>
+    <string name="drafts_notice_public_text">Tienes algo por confirmar</string>
+
     <!-- Guardian (WC-44) -->
     <string name="guardian_section">Guardian</string>
     <string name="guardian_admin_explanation">Watch Companion solo usará este permiso para bloquear el teléfono cuando lo pidas desde tu reloj. No puede borrar datos ni cambiar tu PIN.</string>

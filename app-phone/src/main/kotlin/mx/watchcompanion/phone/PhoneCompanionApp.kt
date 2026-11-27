@@ -45,6 +45,7 @@ import mx.watchcompanion.phone.alerts.fetchNexoraAlerts
 import mx.watchcompanion.phone.guardian.AndroidDeviceLocker
 import mx.watchcompanion.phone.guardian.GuardianAdmin
 import mx.watchcompanion.phone.guardian.PhoneGuardian
+import mx.watchcompanion.phone.drafts.DraftNotifier
 import mx.watchcompanion.phone.drafts.EncryptedFileDraftStore
 import mx.watchcompanion.phone.drafts.PhoneDrafts
 import mx.watchcompanion.phone.drafts.nexoraDraftOptions
@@ -148,8 +149,12 @@ class PhoneCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
             buildBody = ::transactionBody,
             post = { key, body -> postTransaction(nexoraSession, key, body) },
             onChange = { linkSession.sendToPeer(TransactionResult(it)) },
+            onNew = { pending -> draftNotifier.announce(pending) },
         )
     }
+
+    /** Aviso en el teléfono de borradores por confirmar (WC-62); solo local, no se puentea al reloj. */
+    private val draftNotifier: DraftNotifier by lazy { DraftNotifier(this) }
 
     /** Avisos de Nexora por sondeo (WC-41): notificaciones discretas que el sistema puentea al reloj. */
     val nexoraAlerts: NexoraAlertPoller by lazy {
@@ -225,6 +230,13 @@ class PhoneCompanionApp : Application(), LinkSessionOwner, RecordingTransferHand
         appScope.launch { veloraSession.restore() }
         appScope.launch { nexoraSession.restore() }
         appScope.launch { drafts.load() }
+        // El aviso de borradores sigue a la lista: se actualiza en silencio y se quita cuando no queda ninguno.
+        appScope.launch {
+            drafts.drafts
+                .map { list -> list.count { !it.state.final } }
+                .distinctUntilChanged()
+                .collect { draftNotifier.refresh(it) }
+        }
         // El sondeo de avisos solo corre con sesión de Nexora (WC-41).
         appScope.launch {
             nexoraSession.state

@@ -87,12 +87,14 @@ class EncryptedFileDraftStore(private val file: File, private val cipher: Secret
  * @param buildBody el `CreateTransactionRequest` en JSON; se llama una sola vez por borrador.
  * @param post manda el cuerpo con su clave y devuelve el código HTTP; lanza si no hubo respuesta.
  * @param onChange avisa al reloj de cada cambio de estado.
+ * @param onNew avisa que llegó un borrador **nuevo** (no un reenvío), con cuántos quedan por resolver (WC-62).
  */
 class PhoneDrafts(
     private val store: DraftStore,
     private val buildBody: (QuickTransactionDraft) -> String,
     private val post: suspend (key: UUID, body: String) -> Int,
     private val onChange: suspend (DraftStatus) -> Unit = {},
+    private val onNew: suspend (pending: Int) -> Unit = {},
     private val clock: () -> Long = System::currentTimeMillis,
     private val keepFinalMs: Long = KEEP_FINAL_MS,
 ) {
@@ -113,11 +115,13 @@ class PhoneDrafts(
     fun statuses(): List<DraftStatus> = _drafts.value.map { it.status }
 
     /** Guarda un borrador nuevo; si la clave ya se conocía (el reloj reenvía), solo devuelve su estado. */
-    suspend fun receive(draft: QuickTransactionDraft): DraftStatus = mutex.withLock {
-        _drafts.value.firstOrNull { it.draft.idempotencyKey == draft.idempotencyKey }?.let { return it.status }
-        val stored = StoredDraft(draft, State.RECEIVED, clock())
-        save(prune(_drafts.value) + stored)
-        stored.status
+    suspend fun receive(draft: QuickTransactionDraft): DraftStatus {
+        val stored = mutex.withLock {
+            _drafts.value.firstOrNull { it.draft.idempotencyKey == draft.idempotencyKey }?.let { return it.status }
+            StoredDraft(draft, State.RECEIVED, clock()).also { save(prune(_drafts.value) + it) }
+        }
+        onNew(pending.size)
+        return stored.status
     }
 
     /** Confirma (o reintenta) el borrador [key]. Devuelve su estado nuevo, o `null` si no existe o no se puede. */

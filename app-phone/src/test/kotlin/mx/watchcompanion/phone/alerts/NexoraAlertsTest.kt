@@ -23,12 +23,21 @@ class NexoraAlertsTest {
             aviso(2, "PAYMENT_DUE_SOON"),
             aviso(3, "INSTALLMENT_DUE"),
             aviso(4, "SCHEDULED_CHARGE_FAILED"),
-            aviso(5, "BUDGET_EXCEEDED"),
-            aviso(6, "TIPO_QUE_AUN_NO_EXISTE"),
-            aviso(7, "PAYMENT_DUE", status = "READ"),
+            aviso(5, "BUDGET_NEAR_LIMIT"),
+            aviso(6, "BUDGET_EXCEEDED"),
+            aviso(7, "UNUSUAL_EXPENSE"),
+            aviso(8, "TIPO_QUE_AUN_NO_EXISTE"),
+            aviso(9, "PAYMENT_DUE", status = "READ"),
         ).joinToString(",") + "]"
         assertEquals(
-            listOf(AlertKind.PAYMENT_DUE, AlertKind.PAYMENT_DUE_SOON, AlertKind.INSTALLMENT_DUE, AlertKind.SCHEDULED_CHARGE_FAILED),
+            listOf(
+                AlertKind.PAYMENT_DUE,
+                AlertKind.PAYMENT_DUE_SOON,
+                AlertKind.INSTALLMENT_DUE,
+                AlertKind.SCHEDULED_CHARGE_FAILED,
+                AlertKind.BUDGET_NEAR_LIMIT,
+                AlertKind.BUDGET_EXCEEDED,
+            ),
             parseAlerts(bandeja).map { it.kind },
         )
     }

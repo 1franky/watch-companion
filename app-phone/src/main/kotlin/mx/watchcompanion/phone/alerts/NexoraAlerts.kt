@@ -18,10 +18,21 @@ import mx.watchcompanion.integration.nexora.api.models.NotificationResponse
 import mx.watchcompanion.phone.NexoraHttpException
 
 /**
- * Tipos de aviso de Nexora que llegan al reloj (03 §2, WC-41): solo los que `nexora-api` emite hoy y piden algo del
- * usuario. El texto es **propio**, nunca el `message` de Nexora: ese lleva el monto y el nombre de la tarjeta.
+ * Tipos de aviso de Nexora que llegan al reloj (03 §2, WC-41 y WC-61): solo los que `nexora-api` emite hoy y piden algo
+ * del usuario. El texto es **propio**, nunca el `message` de Nexora: ese lleva montos y nombres de tarjeta o categoría.
  */
-enum class AlertKind { PAYMENT_DUE_SOON, PAYMENT_DUE, INSTALLMENT_DUE, SCHEDULED_CHARGE_FAILED }
+enum class AlertKind {
+    PAYMENT_DUE_SOON,
+    PAYMENT_DUE,
+    INSTALLMENT_DUE,
+    SCHEDULED_CHARGE_FAILED,
+
+    /** Un presupuesto llegó al 80 % este mes (nexora-api B15). */
+    BUDGET_NEAR_LIMIT,
+
+    /** Un presupuesto se pasó este mes (nexora-api B15). */
+    BUDGET_EXCEEDED,
+}
 
 /** Un aviso por mostrar: solo su id (para no repetirlo) y su tipo. */
 data class NexoraAlert(val id: String, val kind: AlertKind)

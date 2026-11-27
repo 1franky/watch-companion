@@ -1,5 +1,7 @@
 # 05 — Smart Hub: hogar, SmartThings y TTLock
 
+> **Pospuesto** (WC-ADR-015, 26 nov 2026). Las secciones siguientes quedan como especificación para cuando se retome.
+
 ## 1. Objetivo
 
 Controlar desde Galaxy Watch Ultra los dispositivos y escenarios domésticos compatibles, usando el S26 Ultra como puente cuando sea necesario.

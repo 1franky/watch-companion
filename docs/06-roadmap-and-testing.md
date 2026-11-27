@@ -46,6 +46,8 @@
 
 ### Fase 4 — Smart Hub
 
+**Pospuesta** (WC-ADR-015): se retoma con dispositivos que lo justifiquen o con un gateway TTLock.
+
 - Integración SmartThings.
 - Estado de cerradura TTLock si la API lo permite.
 - Escenas domésticas.

@@ -202,6 +202,8 @@ Existe `schemaVersion`, pero no se dice qué ocurre si el reloj y el teléfono t
 
 **Propuesta:** dejarlo como investigación en Fase 3. No bloquea el bloqueo manual.
 
+**Resuelto (WC-46):** Health Services entrega `USER_ACTIVITY_ASLEEP` en vivo a apps de terceros en el SM-L705F, con ~16 min de retraso al dormir y al instante al despertar, sin nivel de confianza. Alcanza solo para *sugerir* el bloqueo, no para bloquear solo (`04` §4).
+
 ### R-08 · Media — «Teléfono lejos» por intensidad de señal
 
 `04` §2 depende de estimar la distancia. Wear OS no expone de forma estable el RSSI del enlace con el teléfono a apps de terceros. Con `NodeClient`/`CapabilityClient` solo se sabe si hay conexión o no.

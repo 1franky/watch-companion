@@ -100,6 +100,25 @@ Ambos componentes exportados exigen el permiso `DUMP`: solo los dispara el shell
 
 La detección de sueño no es una función de seguridad certificada ni debe utilizarse como prueba concluyente.
 
+### Resultado en el dispositivo (WC-46)
+
+Prototipo solo de depuración (`app-watch/src/debug/`, `SleepSpike.kt`): un `PassiveListenerService` de Health Services con `setShouldUserActivityInfoBeRequested(true)` que anota cada cambio de estado en `files/spike-sueno.txt`. Galaxy Watch SM-L705F, Wear OS SDK 36, una noche (26→27 nov 2026).
+
+| Momento | Estado | Cambio según Health Services | Llegó a la app | Retraso |
+|---|---|---|---|---|
+| Al registrar (17:19) | `PASSIVE` | 08:16 de ese día | 17:19 | (estado vigente) |
+| Noche | `ASLEEP` | 23:43:53 | 23:59:53 | 16 min |
+| Mañana | `PASSIVE` | 08:40:02 | 08:40:02 | 0 s |
+
+- **Disponible para apps de terceros:** el reloj anuncia `USER_ACTIVITY_ASLEEP` entre sus capacidades y lo entrega en vivo, sin Samsung Health Sensor SDK ni permisos especiales más allá de `ACTIVITY_RECOGNITION`. R-07 queda resuelto.
+- **Es tardío al dormir:** el «dormido» llegó 16 min después del cambio (entrega por lotes de los datos pasivos). El despertar llegó al instante.
+- **Sin confianza ni detalle:** solo el estado y la hora del cambio; no hay nivel de confianza ni fases.
+- **Una sola noche, sin referencia exacta** de la hora real en que se durmió: basta para saber que existe y su orden de retraso, no para medir falsos positivos (siestas, reposo en sofá).
+
+**Conclusión:** sirve para una política **solo de sugerencia**: al llegar `ASLEEP`, el reloj puede ofrecer bloquear el teléfono (una notificación con un toque que usa el bloqueo de WC-44), nunca bloquear solo. Con 16 min de retraso y sin confianza, un bloqueo automático no aporta seguridad real y sí puede bloquear en falso; además `04` §4 ya exige condiciones adicionales que esta señal no da. La política de sugerencia queda como mejora futura, sin tarjeta abierta hasta que se pida; antes conviene registrar varias noches y alguna siesta.
+
+**Cómo repetir:** `./gradlew :app-watch:installDebug`, luego `adb shell am start -n mx.watchcompanion/mx.watchcompanion.watch.spike.SleepSpikeActivity` y en la pantalla conceder el permiso y registrar; dormir con el reloj puesto y leer con `adb shell run-as mx.watchcompanion cat files/spike-sueno.txt`. Para terminar, botón **4. Dejar de escuchar**. El prototipo no va en la versión de producción.
+
 ## 5. Máquina de estados
 
 ```mermaid

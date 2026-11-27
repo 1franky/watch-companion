@@ -122,6 +122,8 @@ Comparar:
 
 No definir tolerancias finales sin obtener una línea base de rutas reales.
 
+Protocolo: `10` (salidas 1 y 2, WC-35) y `11` (hoja de las seis salidas, comparativa y archivos; WC-57).
+
 ## 4. Definition of Done
 
 - Código compilable y pruebas automatizadas aprobadas.

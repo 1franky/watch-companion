@@ -184,7 +184,7 @@ Estado al 2026-11-23 (A-04, WC-7):
 
 | Pregunta | Respuesta | Dónde se sigue |
 |---|---|---|
-| ¿La app iGPSPORT permite exportar el FIT original del BSC100S y en qué condiciones? | **Abierta.** Ya no bloquea: el camino principal es Strava (WC-ADR-005) y el FIT directo es respaldo. | WC-13 (spike, baja) |
+| ¿La app iGPSPORT permite exportar el FIT original del BSC100S y en qué condiciones? | **Sí, a mano** desde la app, y Velora lo importa sin cambios (§10). Sigue siendo respaldo: el camino principal es Strava (WC-ADR-005). | Resuelta (WC-13) |
 | ¿Velora ya descarga streams de Strava o solo resumen y polyline? | **Sí descarga streams:** `HttpStravaApi.streams()` pide `/activities/{id}/streams?key_by_type=true`; sin stream de tiempo, el ítem queda `NO_DATA`. | Resuelta |
 | ¿Qué scopes de Strava tiene concedidos la aplicación actual? | **`read,activity:read_all`** (verificado en producción el 23/11/2026; conectado desde el 15/11/2026). Es el mínimo que pide el conector de Velora, sin `activity:write`: Velora no puede modificar nada en Strava. El companion solo usa `GET /integrations/strava` de Velora, sin scopes propios. Documentado en `velora-api/docs/operacion.md`. | Resuelta (WC-26) |
 | ¿Qué intervalo de muestreo y precisión GPS entrega el Watch en rutas reales? | **Abierta**, solo aplica al modo B; el MVP no usa GPS del reloj. | WC-53, WC-57 |
@@ -192,3 +192,32 @@ Estado al 2026-11-23 (A-04, WC-7):
 | ¿Qué dispositivo es autoridad para distancia, elevación y HR en el modo A? | **Resuelta por WC-ADR-010:** track, distancia y elevación del BSC100S; HR de la fuente configurada y etiquetada; la actividad lógica es la de Velora. La FC en vivo del reloj solo se muestra y alerta, no se guarda ni se sube. | Resuelta |
 
 No bloquear el MVP por las preguntas de fusión: el modo A funciona sin ellas.
+
+## 10. Respaldo: el FIT directo del BSC100S (WC-13)
+
+Si Strava falla o se desconecta, la actividad del BSC100S puede llegar a Velora sin Strava.
+
+**Procedimiento verificado (27/11/2026):**
+1. App iGPSPORT → la salida → **exportar .fit** → guardar en el teléfono (queda en `Descargas/Archivos/ride-0-<fecha>-<hora>.fit`).
+2. Pasar el archivo a la computadora y subirlo a Velora: `POST /api/v1/activities/imports` (multipart `file`) → `202` con `jobId` → `GET /api/v1/imports/<jobId>`.
+
+**Evidencia (Velora local, una salida corta):**
+
+| Qué | Resultado |
+|---|---|
+| Archivo | FIT válido, protocolo 2.0, perfil 20.74, 6,5 KB; `file_id` con fabricante **115 (iGPSPORT)**: es el archivo del aparato, no uno regenerado por Strava |
+| Contenido | 206 `record`, 2 vueltas, 8 eventos, `device_info`, `session` y `activity` |
+| Muestreo | ~5 s entre puntos (206 puntos en 17 min en movimiento): grabación inteligente del BSC100S |
+| Importación | `COMPLETED` en 1,2 s, sin avisos ni posibles duplicados |
+| Lo que leyó Velora | 5,85 km, 17:20 en movimiento de 41:08 totales, +25/−24 m, vel. máx. 35 km/h, 2 vueltas; streams de tiempo, distancia, posición, altitud, velocidad y temperatura; todas las métricas `DEVICE_REPORTED` |
+
+**Lo que no funcionó o no se probó:**
+- **USB:** con el cable usado, el BSC100S no apareció en la Mac ni como disco ni como dispositivo USB. Puede ser un cable solo de carga; no se descarta que monte como disco con otro cable (otros iGPSPORT exponen `iGPSPORT/Activities/*.fit`).
+- **Strava «Exportar original»:** sigue siendo válido como tercera vía, pero Strava puede entregar el archivo ya procesado; el de la app es más directo.
+
+**¿Se puede automatizar?** Hoy no, sin trabajo extra:
+- iGPSPORT no publica una API para terceros; la exportación es manual desde la app.
+- La API de Strava no entrega el archivo original (solo resumen y streams, que Velora ya usa).
+- **Opción a futuro, sin tarjeta:** que la app del teléfono del companion aparezca en **Compartir** para archivos `.fit` y los suba a Velora con la sesión ya iniciada. Reduce el respaldo a «exportar → compartir → companion». Vale la pena solo si el camino de Strava falla seguido.
+
+**Para WC-57:** el muestreo de ~5 s del BSC100S importa para las tolerancias: un hueco de 10 s en el BSC100S son solo dos puntos perdidos, así que el umbral de hueco debe medirse contra su intervalo real y no contra 1 s.

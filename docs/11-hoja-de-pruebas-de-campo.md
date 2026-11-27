@@ -105,7 +105,7 @@ Observaciones: <…>
 ## 6. Qué me pasas y cómo lo comparo
 
 **Archivos por salida:**
-- **BSC100S:** el original desde Strava web (actividad → ⋯ → **Exportar original**, da el `.fit`) o desde la app iGPSPORT si deja exportar. Si solo se puede GPX (**Exportar GPX**), también sirve, pero sin la altitud barométrica cruda.
+- **BSC100S:** el `.fit` desde la app iGPSPORT (la salida → **exportar .fit**; queda en `Descargas/Archivos` del teléfono, `02` §10). Si no, el original desde Strava web (actividad → ⋯ → **Exportar original**). Un GPX también sirve, pero sin la altitud barométrica cruda.
 - **Reloj (modo B):** el GPX de la grabación secundaria desde Velora; si no llegó, se saca del reloj por adb (README, modo B) antes de que viaje al teléfono.
 - **Capturas** de la pantalla final del reloj y de Velora.
 

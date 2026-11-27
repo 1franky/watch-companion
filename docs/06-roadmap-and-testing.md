@@ -40,7 +40,7 @@
 - Bloqueo manual.
 - Verificación de resultado.
 - Alertas de desconexión.
-- Evaluación de bloqueo reforzado y política de sueño.
+- Evaluación de bloqueo reforzado y política de sueño (evaluada en WC-46: solo sugerencia, `04` §4).
 
 **Salida:** automatizaciones permitidas, verificables y reversibles.
 

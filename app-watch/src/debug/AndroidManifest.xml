@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Spike WC-46 (R-07), solo en debug: estado «dormido» de Health Services. El release no lo incluye. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+
+    <application>
+        <!-- Solo se abre por adb (DUMP lo tiene el shell, no otras apps). -->
+        <activity
+            android:name=".spike.SleepSpikeActivity"
+            android:exported="true"
+            android:permission="android.permission.DUMP"
+            android:taskAffinity="" />
+
+        <service
+            android:name=".spike.SleepSpikeService"
+            android:exported="true"
+            android:permission="com.google.android.wearable.healthservices.permission.PASSIVE_DATA_BINDING">
+            <intent-filter>
+                <action android:name="hs.passivelistener.BIND" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

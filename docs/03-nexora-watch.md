@@ -16,7 +16,7 @@ Nexora API conserva toda regla financiera. El reloj nunca calcula saldos, intere
 - Gastos del periodo.
 - Estado de sincronización y fecha de última actualización.
 
-**Presupuestos: fuera del MVP (A-07).** `nexora-api` no tiene presupuestos; `BUDGET_EXCEEDED` existe en el enum de notificaciones pero nada la emite. Las alertas de presupuesto vuelven a este documento cuando exista la épica en `nexora-api` (WC-28).
+**Presupuestos (A-07):** `nexora-api` los tiene desde B15 (WC-28): un tope mensual por categoría de gasto o general. El reloj no muestra cifras de presupuesto; solo recibe los avisos (§2 Notificaciones, WC-61).
 
 Cada dato debe mostrar su fecha/hora de actualización. No presentar una cifra cacheada como actual.
 
@@ -88,8 +88,10 @@ Tipos que se muestran en el MVP, solo de los que `nexora-api` emite hoy:
 | `PAYMENT_DUE` | Pago de tarjeta que vence |
 | `INSTALLMENT_DUE` | Mensualidad MSI/MCI pendiente |
 | `SCHEDULED_CHARGE_FAILED` | Un cargo programado no se pudo aplicar |
+| `BUDGET_NEAR_LIMIT` | Un presupuesto llegó al 80 % este mes (WC-61) |
+| `BUDGET_EXCEEDED` | Un presupuesto se pasó este mes (WC-61) |
 
-No se usan: `BUDGET_EXCEEDED`, `UNUSUAL_EXPENSE` y `PAYMENT_OVERDUE` (declarados pero sin emisor), `SCHEDULED_CHARGE_POSTED` (informativo, sin acción) y `SAT_SYNC_*` (de la web). Un tipo desconocido se ignora sin fallar.
+No se usan: `UNUSUAL_EXPENSE` y `PAYMENT_OVERDUE` (declarados pero sin emisor), `SCHEDULED_CHARGE_POSTED` (informativo, sin acción) y `SAT_SYNC_*` (de la web). Un tipo desconocido se ignora sin fallar.
 
 No incluir números completos de cuenta, referencias bancarias o información sensible en la pantalla bloqueada.
 
@@ -102,6 +104,12 @@ No incluir números completos de cuenta, referencias bancarias o información se
 - **Repetidos:** los ids ya mostrados se recuerdan (`avisos-nexora-mostrados.json`, los últimos 200). Sin permiso de notificaciones, el aviso no se da por mostrado.
 - **Leídos:** el companion no marca nada como leído en Nexora; no hace ninguna escritura.
 - **Permiso:** `POST_NOTIFICATIONS` se pide en el teléfono, en la sección de Nexora, con el botón «Permitir avisos».
+
+**Implementado (WC-61):** avisos de presupuesto.
+- `BUDGET_NEAR_LIMIT` y `BUDGET_EXCEEDED` entran al mismo sondeo, con texto propio y genérico («Presupuesto cerca del límite» / «Presupuesto excedido»). El `message` de Nexora trae montos y la categoría, así que no se usa.
+- `nexora-api` manda cada uno una vez por presupuesto y mes; el companion además no repite un id ya mostrado.
+- El contrato fijado (`contract/nexora`) pasa al commit de B15, que agrega `BUDGET_NEAR_LIMIT` y `/api/v1/budgets`; el companion no usa ese endpoint.
+- **En producción** llegan cuando `nexora-api` libere `develop` → `main`; mientras tanto el sondeo simplemente no los encuentra.
 
 ## 3. Funciones posteriores
 
@@ -150,6 +158,6 @@ Revisados en `nexora-api` (`develop`, 2026-11-23). Los DTO exactos salen del con
 - El reloj indica claramente cuándo los datos están desactualizados.
 - Una operación no confirmada en el teléfono no se registra en el backend.
 - Reintentar un envío (misma `Idempotency-Key`) no crea dos movimientos.
-- Ninguna pantalla ni notificación habla de presupuestos mientras `nexora-api` no los tenga.
+- Los avisos de presupuesto no muestran montos ni el nombre de la categoría.
 - La app funciona en modo desconectado mostrando estado de datos cacheados, sin permitir acciones que aparenten éxito.
 - No se filtran datos sensibles en logs ni notificaciones.

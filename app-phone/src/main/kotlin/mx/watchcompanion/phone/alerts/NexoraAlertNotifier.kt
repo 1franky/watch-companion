@@ -58,6 +58,8 @@ class NexoraAlertNotifier(private val context: Context) {
                 AlertKind.PAYMENT_DUE -> R.string.alert_payment_due_title to R.string.alert_payment_due_text
                 AlertKind.INSTALLMENT_DUE -> R.string.alert_installment_due_title to R.string.alert_installment_due_text
                 AlertKind.SCHEDULED_CHARGE_FAILED -> R.string.alert_charge_failed_title to R.string.alert_charge_failed_text
+                AlertKind.BUDGET_NEAR_LIMIT -> R.string.alert_budget_near_title to R.string.alert_budget_near_text
+                AlertKind.BUDGET_EXCEEDED -> R.string.alert_budget_exceeded_title to R.string.alert_budget_exceeded_text
             }
             val open = PendingIntent.getActivity(
                 context,

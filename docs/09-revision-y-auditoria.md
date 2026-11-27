@@ -102,6 +102,8 @@ Por eso, la Fase 1 («comunicación con Velora Android/API para consultar estado
 
 **Propuesta:** quitar presupuestos del MVP de Nexora Watch y marcarlos como dependientes de una épica de `nexora-api`.
 
+**Resuelto (WC-28, WC-61):** `nexora-api` B15 agrega presupuestos y emite `BUDGET_NEAR_LIMIT` y `BUDGET_EXCEEDED`; el companion los avisa en el reloj (`03` §2).
+
 ### A-08 · Resuelto — Nexora no tiene «borradores» ni «consultar resultado de operación»
 
 > **Actualización 2026-11-23 (WC-8):** `03` §2 adopta la propuesta (borrador local en el teléfono + `Idempotency-Key` generada en el reloj) y `03` §5 lista los endpoints reales.

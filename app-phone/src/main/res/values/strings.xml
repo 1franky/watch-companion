@@ -34,6 +34,10 @@
     <string name="alert_installment_due_text">Tienes una mensualidad MSI/MCI por vencer. Revisa Nexora.</string>
     <string name="alert_charge_failed_title">Cargo programado no aplicado</string>
     <string name="alert_charge_failed_text">Un cargo programado no se pudo aplicar. Revisa Nexora.</string>
+    <string name="alert_budget_near_title">Presupuesto cerca del límite</string>
+    <string name="alert_budget_near_text">Ya usaste casi todo un presupuesto este mes. Revisa Nexora.</string>
+    <string name="alert_budget_exceeded_title">Presupuesto excedido</string>
+    <string name="alert_budget_exceeded_text">Te pasaste de un presupuesto este mes. Revisa Nexora.</string>
     <string name="alerts_permission">Los avisos de Nexora llegan al reloj como notificaciones. Sin montos.</string>
     <string name="alerts_allow">Permitir avisos</string>
     <!-- Borradores del reloj (WC-40) -->
